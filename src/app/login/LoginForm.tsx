@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { supabaseClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -20,6 +20,7 @@ import LanguageToggleButton from '@/components/LanguageToggleButton';
 
 export default function LoginForm() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { t } = useLanguage();
 
@@ -31,27 +32,49 @@ export default function LoginForm() {
   const [isSignUpLoading, setIsSignUpLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  // Seed the banner from `?error=`/`?confirmed=` on first render (lazy
+  // initializer, not an effect — setting state synchronously inside an
+  // effect causes an extra cascading render). A dedicated effect below then
+  // strips those params from the URL so the banner can't get permanently
+  // stuck: previously it was derived from searchParams on every render, so
+  // a failed OAuth attempt (`/login?error=auth_failed`) kept showing even
+  // after a later, unrelated sign-in attempt, because `error ||
+  // urlErrorMessage` fell back to the URL-derived message the moment local
+  // state was cleared.
+  const [error, setError] = useState(() => {
+    const authError = searchParams.get('error');
+    const customMessage = searchParams.get('message');
+    if (customMessage) return decodeURIComponent(customMessage);
+    if (authError === 'confirmation_failed') {
+      return 'The confirmation link is invalid or has expired. Please sign up again or request a new link.';
+    }
+    if (authError === 'auth_failed') return 'Authentication failed. Please try signing in again.';
+    return '';
+  });
+  const [successMessage, setSuccessMessage] = useState(() =>
+    searchParams.get('confirmed') === 'true' ? 'Email confirmed successfully! You can now sign in.' : ''
+  );
 
-  const isConfirmed = searchParams.get('confirmed') === 'true';
-  const authError = searchParams.get('error');
-  const customMessage = searchParams.get('message');
+  const activeError = error;
+  const activeSuccess = successMessage;
 
-  const urlErrorMessage = customMessage
-    ? decodeURIComponent(customMessage)
-    : authError === 'confirmation_failed'
-      ? 'The confirmation link is invalid or has expired. Please sign up again or request a new link.'
-      : authError === 'auth_failed'
-        ? 'Authentication failed. Please try signing in again.'
-        : '';
+  useEffect(() => {
+    const isConfirmed = searchParams.get('confirmed') === 'true';
+    const authError = searchParams.get('error');
+    const customMessage = searchParams.get('message');
+    if (!isConfirmed && !authError && !customMessage) return;
 
-  const urlSuccessMessage = isConfirmed
-    ? 'Email confirmed successfully! You can now sign in.'
-    : '';
-
-  const activeError = error || urlErrorMessage;
-  const activeSuccess = successMessage || urlSuccessMessage;
+    // Preserve any other params (e.g. `next`) — only drop the ones we just consumed.
+    const rest = new URLSearchParams(searchParams.toString());
+    rest.delete('error');
+    rest.delete('error_code');
+    rest.delete('message');
+    rest.delete('confirmed');
+    const query = rest.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+    // Only run once on mount — searchParams/router/pathname intentionally excluded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     async function checkExistingSession() {

@@ -13,8 +13,7 @@
 
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
-import { supabaseServer } from '@/lib/supabase/server';
+import { supabaseServer, createSupabaseRouteClient } from '@/lib/supabase/server';
 import { calculateMarginPercent, assessCashFlowRisk } from '@/lib/engines/financialEngine';
 import { matchSchemes, SchemeRecord } from '@/lib/engines/schemeMatcher';
 import LogoutButton from './LogoutButton';
@@ -123,16 +122,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
     if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('placeholder')) {
-      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll() {
-            // Ignored in Server Component
-          },
-        },
-      });
+      const supabase = await createSupabaseRouteClient(cookieStore);
 
       const { data: authData } = await supabase.auth.getUser();
       if (authData?.user) {
