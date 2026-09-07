@@ -93,6 +93,24 @@ export default function OnboardingPage() {
   async function handleGoogleSignIn() {
     setIsGoogleLoading(true);
     setErrorMessage(null);
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const isPlaceholder = !supabaseUrl || supabaseUrl.includes('placeholder');
+
+    if (isPlaceholder) {
+      setTimeout(() => {
+        setIsGoogleLoading(false);
+        setAuthUserEmail('demo.user@example.com');
+        setEmail('demo.user@example.com');
+        setFormData((prev) => ({
+          ...prev,
+          email: 'demo.user@example.com',
+          name: prev.name || 'Google Demo User',
+        }));
+      }, 500);
+      return;
+    }
+
     try {
       const redirectUrl =
         typeof window !== 'undefined'

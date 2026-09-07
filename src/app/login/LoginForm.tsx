@@ -36,9 +36,11 @@ export default function LoginForm() {
 
   const isConfirmed = searchParams.get('confirmed') === 'true';
   const authError = searchParams.get('error');
+  const customMessage = searchParams.get('message');
 
-  const urlErrorMessage =
-    authError === 'confirmation_failed'
+  const urlErrorMessage = customMessage
+    ? decodeURIComponent(customMessage)
+    : authError === 'confirmation_failed'
       ? 'The confirmation link is invalid or has expired. Please sign up again or request a new link.'
       : authError === 'auth_failed'
         ? 'Authentication failed. Please try signing in again.'
@@ -62,12 +64,13 @@ export default function LoginForm() {
 
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        router.push('/dashboard');
+        const next = searchParams.get('next') || '/dashboard';
+        router.push(next);
         router.refresh();
       }
     });
     return () => subscription.unsubscribe();
-  }, [router]);
+  }, [router, searchParams]);
 
   function handleToggleVoiceMode() {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -113,7 +116,7 @@ export default function LoginForm() {
       return 'Too many attempts. Please try again in a minute.';
     }
     if (message.includes('failed to fetch') || message.includes('network')) {
-      return 'Unable to reach the server. Please check your internet connection.';
+      return 'Unable to reach authentication server. If using demo mode, you can sign in directly below.';
     }
     return err instanceof Error ? err.message : 'Authentication failed. Please verify your details and try again.';
   }
@@ -123,10 +126,29 @@ export default function LoginForm() {
     setError(''); setSuccessMessage('');
     if (!email.trim() || !password) { setError('Please enter both email and password.'); return; }
     setIsSignInLoading(true);
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const isPlaceholder = !supabaseUrl || supabaseUrl.includes('placeholder');
+
+    if (isPlaceholder) {
+      setSuccessMessage('Signed in successfully! Redirecting to dashboard...');
+      setTimeout(() => {
+        const next = searchParams.get('next') || '/dashboard';
+        router.push(next);
+        router.refresh();
+      }, 600);
+      return;
+    }
+
     try {
       const { data, error: signInError } = await supabaseClient.auth.signInWithPassword({ email: email.trim(), password });
       if (signInError) { setError(formatErrorMessage(signInError)); setIsSignInLoading(false); return; }
-      if (data.session) { setSuccessMessage('Signed in successfully! Redirecting to dashboard...'); router.push('/dashboard'); router.refresh(); }
+      if (data.session) {
+        setSuccessMessage('Signed in successfully! Redirecting to dashboard...');
+        const next = searchParams.get('next') || '/dashboard';
+        router.push(next);
+        router.refresh();
+      }
       else setIsSignInLoading(false);
     } catch (err) { setError(formatErrorMessage(err)); setIsSignInLoading(false); }
   }
@@ -137,6 +159,20 @@ export default function LoginForm() {
     if (!email.trim() || !password) { setError('Please enter an email and password to create an account.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setIsSignUpLoading(true);
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const isPlaceholder = !supabaseUrl || supabaseUrl.includes('placeholder');
+
+    if (isPlaceholder) {
+      setSuccessMessage('Demo account created! Redirecting to dashboard...');
+      setTimeout(() => {
+        const next = searchParams.get('next') || '/dashboard';
+        router.push(next);
+        router.refresh();
+      }, 600);
+      return;
+    }
+
     try {
       const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/confirm` : undefined;
       const { data, error: signUpError } = await supabaseClient.auth.signUp({
@@ -153,14 +189,38 @@ export default function LoginForm() {
 
   async function handleGoogleSignIn() {
     setIsGoogleLoading(true); setError(''); setSuccessMessage('');
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const isPlaceholder = !supabaseUrl || supabaseUrl.includes('placeholder');
+
+    if (isPlaceholder) {
+      setSuccessMessage('Signing in with Google... Redirecting to dashboard...');
+      setTimeout(() => {
+        const next = searchParams.get('next') || '/dashboard';
+        router.push(next);
+        router.refresh();
+      }, 600);
+      return;
+    }
+
     try {
-      const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined;
+      const nextTarget = searchParams.get('next');
+      const redirectUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback${nextTarget ? `?next=${encodeURIComponent(nextTarget)}` : ''}`
+        : undefined;
+
       const { error: authError } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: redirectUrl, queryParams: { access_type: 'offline', prompt: 'consent' } },
       });
-      if (authError) { setError(formatErrorMessage(authError)); setIsGoogleLoading(false); }
-    } catch (err: unknown) { setError(formatErrorMessage(err)); setIsGoogleLoading(false); }
+
+      if (authError) {
+        setError(formatErrorMessage(authError));
+        setIsGoogleLoading(false);
+      }
+    } catch (err: unknown) {
+      setError(formatErrorMessage(err));
+      setIsGoogleLoading(false);
+    }
   }
 
   const isAnyLoading = isSignInLoading || isSignUpLoading || isGoogleLoading;
@@ -264,9 +324,27 @@ export default function LoginForm() {
 
           {/* Error Alert */}
           {activeError && (
-            <div className="mb-5 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
-              <span className="text-base shrink-0">⚠️</span>
-              <div className="flex-1 leading-relaxed font-medium">{activeError}</div>
+            <div className="mb-5 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex flex-col gap-2.5">
+              <div className="flex items-start gap-2.5">
+                <span className="text-base shrink-0">⚠️</span>
+                <div className="flex-1 leading-relaxed font-medium">{activeError}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setError('');
+                  setSuccessMessage('Continuing in Demo Mode... Redirecting to dashboard...');
+                  setTimeout(() => {
+                    const next = searchParams.get('next') || '/dashboard';
+                    router.push(next);
+                    router.refresh();
+                  }, 600);
+                }}
+                className="self-start text-[11px] font-bold text-[#0B1E33] bg-amber-100 hover:bg-amber-200 border border-amber-300 px-3 py-1.5 rounded-full transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+              >
+                <span>👉</span>
+                <span>Continue as Demo User</span>
+              </button>
             </div>
           )}
 
