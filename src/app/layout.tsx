@@ -17,6 +17,11 @@ export const metadata: Metadata = {
   title: "Saathi Vyapar (साथी व्यापार) — AI Business Advisory for Rural Micro-Entrepreneurs",
   description:
     "AI-driven hyper-local business advisory and financial structuring assistant for rural micro-entrepreneurs, accessible via WhatsApp, SMS, and web. SIH26091 · Ministry of Social Justice & Empowerment · Team Pantheon Eternal.",
+  icons: {
+    icon: '/Logo.png',
+    shortcut: '/Logo.png',
+    apple: '/Logo.png',
+  },
 };
 
 export default function RootLayout({

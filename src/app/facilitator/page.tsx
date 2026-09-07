@@ -83,7 +83,7 @@ export default async function FacilitatorPage() {
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#C9A24B]/20 pb-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="text-3xl">🤝</span>
+              <img src="/Logo.png" alt="Saathi Vyapar Logo" className="w-9 h-9 object-contain" />
               <h1 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold tracking-tight text-[#0B1E33] flex items-center gap-2">
                 Facilitator Hub
                 <span className="text-[11px] font-bold bg-[#C9A24B]/15 text-[#0B1E33] border border-[#C9A24B]/30 px-2.5 py-0.5 rounded-full font-['Inter',sans-serif]">

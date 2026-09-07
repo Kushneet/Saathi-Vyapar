@@ -38,6 +38,8 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${redirectOrigin}/login?error=missing_config`);
   }
 
+  const response = NextResponse.redirect(`${redirectOrigin}/login?confirmed=true`);
+
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
@@ -45,9 +47,10 @@ export async function GET(request: Request) {
       },
       setAll(cookiesToSet) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+            response.cookies.set(name, value, options);
+          });
         } catch {
           // Server component / route handler cookie set handling
         }
@@ -63,7 +66,7 @@ export async function GET(request: Request) {
     });
 
     if (!error) {
-      return NextResponse.redirect(`${redirectOrigin}/login?confirmed=true`);
+      return response;
     }
   }
 
@@ -71,7 +74,7 @@ export async function GET(request: Request) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${redirectOrigin}/login?confirmed=true`);
+      return response;
     }
   }
 
@@ -84,7 +87,7 @@ export async function GET(request: Request) {
     });
 
     if (!error) {
-      return NextResponse.redirect(`${redirectOrigin}/login?confirmed=true`);
+      return response;
     }
   }
 

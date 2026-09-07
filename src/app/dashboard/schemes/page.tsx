@@ -482,7 +482,7 @@ function YojanaKendraContent() {
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#C9A24B]/20 pb-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="text-3xl filter drop-shadow-sm">🏛️</span>
+              <img src="/Logo.png" alt="Saathi Vyapar Logo" className="w-8 h-8 object-contain" />
               <div>
                 <h1 className="text-xl sm:text-2xl font-black text-[#0B1E33] flex items-center gap-2">
                   योजना केंद्र (Yojana Kendra)

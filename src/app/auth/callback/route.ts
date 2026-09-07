@@ -43,6 +43,8 @@ export async function GET(request: Request) {
   // 3. Live Supabase PKCE OAuth code exchange
   if (code) {
     const cookieStore = await cookies();
+    const response = NextResponse.redirect(`${redirectOrigin}${next}`);
+
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
@@ -50,9 +52,10 @@ export async function GET(request: Request) {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+              response.cookies.set(name, value, options);
+            });
           } catch {
             // Server route cookie handling
           }
@@ -62,7 +65,7 @@ export async function GET(request: Request) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${redirectOrigin}${next}`);
+      return response;
     }
 
     // Pass specific code exchange error

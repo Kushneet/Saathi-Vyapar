@@ -113,26 +113,7 @@ export default function StitchFolio() {
             onClick={() => scrollTo("01-hero")}
             className="flex items-center gap-3 shrink-0 cursor-pointer group"
           >
-            <div className="w-10 h-10 rounded-full bg-surface-container border border-primary/40 flex items-center justify-center text-primary group-hover:border-primary group-hover:scale-105 transition-all shadow-md">
-              {/* Classical Pantheon Temple SVG */}
-              <svg
-                className="w-5 h-5 text-primary drop-shadow-[0_1px_4px_rgba(235,193,102,0.3)]"
-                viewBox="0 0 64 64"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polygon points="32 14, 52 24, 12 24" strokeWidth="2.5" />
-                <line x1="10" y1="26" x2="54" y2="26" strokeWidth="2.5" />
-                <line x1="17" y1="28" x2="17" y2="44" strokeWidth="2.5" />
-                <line x1="27" y1="28" x2="27" y2="44" strokeWidth="2.5" />
-                <line x1="37" y1="28" x2="37" y2="44" strokeWidth="2.5" />
-                <line x1="47" y1="28" x2="47" y2="44" strokeWidth="2.5" />
-                <line x1="13" y1="46" x2="51" y2="46" strokeWidth="2.5" />
-                <line x1="9" y1="49" x2="55" y2="49" strokeWidth="2.5" />
-              </svg>
-            </div>
+            <img src="/Logo.png" alt="Saathi Vyapar Logo" className="w-10 h-10 object-contain rounded-full border border-primary/40 group-hover:scale-105 transition-transform" />
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="font-serif text-lg md:text-xl text-primary tracking-wide font-medium">
@@ -359,25 +340,7 @@ export default function StitchFolio() {
       {/* Institutional Archival Footer */}
       <footer className="w-full bg-surface-container-lowest border-t border-surface-container-highest/50 py-12 px-4 md:px-8 lg:px-12 text-center text-on-surface-variant">
         <div className="max-w-4xl mx-auto flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary border border-primary/30">
-            <svg
-              className="w-5 h-5 text-primary"
-              viewBox="0 0 64 64"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polygon points="32 14, 52 24, 12 24" strokeWidth="2.5" />
-              <line x1="10" y1="26" x2="54" y2="26" strokeWidth="2.5" />
-              <line x1="17" y1="28" x2="17" y2="44" strokeWidth="2.5" />
-              <line x1="27" y1="28" x2="27" y2="44" strokeWidth="2.5" />
-              <line x1="37" y1="28" x2="37" y2="44" strokeWidth="2.5" />
-              <line x1="47" y1="28" x2="47" y2="44" strokeWidth="2.5" />
-              <line x1="13" y1="46" x2="51" y2="46" strokeWidth="2.5" />
-              <line x1="9" y1="49" x2="55" y2="49" strokeWidth="2.5" />
-            </svg>
-          </div>
+          <img src="/Logo.png" alt="Saathi Vyapar Logo" className="w-8 h-8 object-contain" />
           <h4 className="text-2xl font-serif text-on-surface font-normal">
             Saathi Vyapar · साथी व्यापार
           </h4>

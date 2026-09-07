@@ -236,7 +236,7 @@ export default function LoginForm() {
       {/* ── Top Header ── */}
       <header className="w-full max-w-7xl mx-auto px-4 sm:px-8 py-5 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
-          <span className="text-3xl sm:text-4xl filter drop-shadow-sm transition-transform group-hover:scale-105">🤝</span>
+          <img src="/Logo.png" alt="Saathi Vyapar Logo" className="w-10 h-10 sm:w-11 sm:h-11 object-contain transition-transform group-hover:scale-105" />
           <div>
             <h1 className="font-['Playfair_Display',Georgia,serif] text-[#0B1E33] text-xl sm:text-2xl font-bold tracking-tight leading-tight flex items-center gap-2">
               {t('brand_name')}

@@ -147,38 +147,43 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           authUser.email ||
           `+91${authUser.id.replace(/\D/g, '').padEnd(10, '0').slice(0, 10)}`;
 
-        // Check if user exists in public.users
-        const { data: dbUser } = await supabaseServer
-          .from('users')
-          .select('id, name, phone, language')
-          .eq('id', authUser.id)
-          .maybeSingle();
+        user = {
+          id: authUser.id,
+          name: userName,
+          phone: userContact,
+          language: 'hi',
+        };
 
-        if (dbUser) {
-          user = dbUser;
-        } else {
-          // Attempt upsert into public.users
-          const { data: newUser } = await supabaseServer
+        // Try syncing with public.users table if accessible
+        try {
+          const { data: dbUser } = await supabaseServer
             .from('users')
-            .upsert(
-              {
-                id: authUser.id,
-                name: userName,
-                phone: userContact.slice(0, 20),
-                language: 'hi',
-                role: 'entrepreneur',
-              },
-              { onConflict: 'id' }
-            )
             .select('id, name, phone, language')
+            .eq('id', authUser.id)
             .maybeSingle();
 
-          user = newUser || {
-            id: authUser.id,
-            name: userName,
-            phone: userContact,
-            language: 'hi',
-          };
+          if (dbUser) {
+            user = dbUser;
+          } else {
+            const { data: newUser } = await supabaseServer
+              .from('users')
+              .upsert(
+                {
+                  id: authUser.id,
+                  name: userName,
+                  phone: userContact.slice(0, 20),
+                  language: 'hi',
+                  role: 'entrepreneur',
+                },
+                { onConflict: 'id' }
+              )
+              .select('id, name, phone, language')
+              .maybeSingle();
+
+            if (newUser) user = newUser;
+          }
+        } catch (dbErr) {
+          console.warn('Dashboard DB user sync warning:', dbErr);
         }
       }
     }
@@ -188,25 +193,29 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   // 2. Query targetUserId if explicitly provided
   if (!user && targetUserId) {
-    const { data } = await supabaseServer
-      .from('users')
-      .select('id, name, phone, language')
-      .eq('id', targetUserId)
-      .maybeSingle();
-    if (data) user = data;
+    try {
+      const { data } = await supabaseServer
+        .from('users')
+        .select('id, name, phone, language')
+        .eq('id', targetUserId)
+        .maybeSingle();
+      if (data) user = data;
+    } catch { /* fallback */ }
   }
 
   // 3. Fallback to latest active user in DB
   if (!user) {
-    const { data: latestUsers } = await supabaseServer
-      .from('users')
-      .select('id, name, phone, language')
-      .order('created_at', { ascending: false })
-      .limit(1);
+    try {
+      const { data: latestUsers } = await supabaseServer
+        .from('users')
+        .select('id, name, phone, language')
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-    if (latestUsers && latestUsers.length > 0) {
-      user = latestUsers[0];
-    }
+      if (latestUsers && latestUsers.length > 0) {
+        user = latestUsers[0];
+      }
+    } catch { /* fallback */ }
   }
 
   // 4. Default active demo user (guarantees dashboard ALWAYS renders and never fails)
@@ -220,13 +229,19 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   }
 
   // ── 1. Fetch latest business profile ─────────────────────────────
-  const { data: profileData } = await supabaseServer
-    .from('business_profiles')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  let profileData = null;
+  try {
+    const { data } = await supabaseServer
+      .from('business_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    profileData = data;
+  } catch (err) {
+    console.warn('Dashboard profile fetch warning:', err);
+  }
 
   const profile = profileData || {
     user_id: user.id,
@@ -242,13 +257,19 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   };
 
   // ── 2. Fetch latest financial plan ───────────────────────────────
-  const { data: planData } = await supabaseServer
-    .from('financial_plans')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  let planData = null;
+  try {
+    const { data } = await supabaseServer
+      .from('financial_plans')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    planData = data;
+  } catch (err) {
+    console.warn('Dashboard plan fetch warning:', err);
+  }
 
   // If no stored plan, dynamically calculate using deterministic engines
   let latestPlan = planData;
@@ -259,7 +280,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     const cashRisk = assessCashFlowRisk(rev, exp, Boolean(profile.existing_loans));
 
     // Match against schemes
-    const { data: dbSchemes } = await supabaseServer.from('schemes').select('*');
+    let dbSchemes = null;
+    try {
+      const { data } = await supabaseServer.from('schemes').select('*');
+      dbSchemes = data;
+    } catch { /* fallback */ }
+
     const schemesToMatch: SchemeRecord[] =
       dbSchemes && dbSchemes.length > 0 ? (dbSchemes as SchemeRecord[]) : FALLBACK_SCHEMES;
 
@@ -307,12 +333,18 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const { data: ledgerEntriesRaw } = await supabaseServer
-    .from('ledger_entries')
-    .select('*')
-    .eq('user_id', user.id)
-    .gte('created_at', thirtyDaysAgo.toISOString())
-    .order('created_at', { ascending: true });
+  let ledgerEntriesRaw = null;
+  try {
+    const { data } = await supabaseServer
+      .from('ledger_entries')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: true });
+    ledgerEntriesRaw = data;
+  } catch (err) {
+    console.warn('Dashboard ledger fetch warning:', err);
+  }
 
   const rawEntries = ledgerEntriesRaw && ledgerEntriesRaw.length > 0 ? ledgerEntriesRaw : [
     { id: '1', amount: 1500, entry_type: 'income', description: 'Daily Sales', source: 'whatsapp', confirmed: true, created_at: '2026-09-01T10:00:00.000Z' },
@@ -382,7 +414,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <div>
             <div className="flex items-center gap-2.5">
               <Link href="/" className="hover:opacity-80 transition-opacity">
-                <span className="text-3xl">🤝</span>
+                <img src="/Logo.png" alt="Saathi Vyapar Logo" className="w-9 h-9 object-contain" />
               </Link>
               <h1 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold tracking-tight text-[#0B1E33] flex items-center gap-2">
                 Saathi Vyapar

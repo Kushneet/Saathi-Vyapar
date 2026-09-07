@@ -81,14 +81,13 @@ export default function ShowcaseHomePage() {
          ══════════════════════════════════════════════════════════════════ */}
       <header className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-5xl transition-all">
         <div className="bg-[#0B1E33]/92 backdrop-blur-xl border border-[#C9A24B]/35 rounded-full px-5 sm:px-8 py-3.5 shadow-[0_20px_50px_rgba(11,30,51,0.28)] flex items-center justify-between">
-          {/* Left: Pantheon Eternal Emblem + Wordmark */}
+          {/* Left: Brand Logo + Wordmark */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-full bg-[#0B1E33] border border-[#C9A24B] flex items-center justify-center text-[#C9A24B] shadow-inner transition-transform group-hover:rotate-12 duration-500">
-              {/* Pantheon Column SVG Emblem */}
-              <svg className="w-5 h-5 text-[#C9A24B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 10v11M12 10v11M16 10v11" />
-              </svg>
-            </div>
+            <img
+              src="/Logo.png"
+              alt="Saathi Vyapar Logo"
+              className="w-9 h-9 object-contain rounded-full border border-[#C9A24B] shadow-sm transition-transform group-hover:scale-105 duration-300"
+            />
             <div className="flex flex-col">
               <span className="font-['Playfair_Display',Georgia,serif] text-base sm:text-lg font-bold text-[#F5F1E6] tracking-wide leading-none">
                 Saathi Vyapar
@@ -953,11 +952,11 @@ export default function ShowcaseHomePage() {
             {/* Column 1: Brand */}
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#0B1E33] border border-[#C9A24B] flex items-center justify-center text-[#C9A24B]">
-                  <svg className="w-5 h-5 text-[#C9A24B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 10v11M12 10v11M16 10v11" />
-                  </svg>
-                </div>
+                <img
+                  src="/Logo.png"
+                  alt="Saathi Vyapar Logo"
+                  className="w-9 h-9 object-contain rounded-full border border-[#C9A24B]"
+                />
                 <span className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-white">
                   Saathi Vyapar
                 </span>
