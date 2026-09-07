@@ -18,9 +18,16 @@ export const metadata: Metadata = {
   description:
     "AI-driven hyper-local business advisory and financial structuring assistant for rural micro-entrepreneurs, accessible via WhatsApp, SMS, and web. SIH26091 · Ministry of Social Justice & Empowerment · Team Pantheon Eternal.",
   icons: {
-    icon: '/Logo.png',
-    shortcut: '/Logo.png',
-    apple: '/Logo.png',
+    icon: [
+      { url: '/Logo.png', type: 'image/png' },
+      { url: '/icon.png', type: 'image/png' },
+      { url: '/favicon.ico' },
+    ],
+    shortcut: ['/Logo.png'],
+    apple: [
+      { url: '/Logo.png', type: 'image/png' },
+      { url: '/apple-icon.png', type: 'image/png' },
+    ],
   },
 };
 
@@ -35,6 +42,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased light scroll-smooth`}
     >
       <head>
+        <link rel="icon" href="/Logo.png" type="image/png" />
+        <link rel="shortcut icon" href="/Logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/Logo.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

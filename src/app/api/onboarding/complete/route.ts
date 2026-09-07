@@ -103,11 +103,30 @@ export async function POST(request: NextRequest) {
         userId = newUser.id;
       }
     } else {
-      // Update existing user's name
-      await supabaseServer
-        .from('users')
-        .update({ name: data.name })
-        .eq('id', userId);
+      // Session-authenticated user (password or Google sign-in): auth.users
+      // already has a row, but public.users may not — it's only ever created
+      // here or by the dashboard's own first-visit upsert. business_profiles
+      // has a FK to public.users(id), so it must exist before step 2 below,
+      // or the insert there fails with "Failed to save business profile".
+      const { error: userUpsertError } = await supabaseServer.from('users').upsert(
+        {
+          id: userId,
+          name: data.name,
+          phone: data.phone || undefined,
+          email: data.email || undefined,
+          language: 'hi',
+          role: 'entrepreneur',
+        },
+        { onConflict: 'id' }
+      );
+
+      if (userUpsertError) {
+        console.error('User upsert failed:', userUpsertError);
+        return NextResponse.json(
+          { error: 'Failed to save user account', details: userUpsertError.message },
+          { status: 500 }
+        );
+      }
     }
 
     // ── 2. Upsert Business Profile ─────────────────────────────────────────
