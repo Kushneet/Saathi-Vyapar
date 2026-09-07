@@ -18,6 +18,28 @@ import { supabaseClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageToggleButton from '@/components/LanguageToggleButton';
 
+/**
+ * Decides where a just-authenticated user should land: `/onboarding` if they
+ * have no `business_profiles` row yet (new account, or one that never
+ * finished the profile wizard), `/dashboard` otherwise. An explicit `next`
+ * (e.g. a deep link that expired mid-session) always wins, since a returning
+ * user resuming a specific page is more likely to already have a profile.
+ */
+async function resolvePostLoginPath(userId: string, explicitNext: string | null): Promise<string> {
+  if (explicitNext) return explicitNext;
+  try {
+    const { data: profile } = await supabaseClient
+      .from('business_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (!profile) return '/onboarding';
+  } catch {
+    // Lookup failed — don't block sign-in on it, just fall through to the dashboard.
+  }
+  return '/dashboard';
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const pathname = usePathname();
@@ -80,16 +102,20 @@ export default function LoginForm() {
     async function checkExistingSession() {
       try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) router.push('/dashboard');
+        if (session) {
+          const next = await resolvePostLoginPath(session.user.id, searchParams.get('next'));
+          router.push(next);
+        }
       } catch { /* ignore */ }
     }
     checkExistingSession();
 
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        const next = searchParams.get('next') || '/dashboard';
-        router.push(next);
-        router.refresh();
+        resolvePostLoginPath(session.user.id, searchParams.get('next')).then((next) => {
+          router.push(next);
+          router.refresh();
+        });
       }
     });
     return () => subscription.unsubscribe();
@@ -167,8 +193,8 @@ export default function LoginForm() {
       const { data, error: signInError } = await supabaseClient.auth.signInWithPassword({ email: email.trim(), password });
       if (signInError) { setError(formatErrorMessage(signInError)); setIsSignInLoading(false); return; }
       if (data.session) {
-        setSuccessMessage('Signed in successfully! Redirecting to dashboard...');
-        const next = searchParams.get('next') || '/dashboard';
+        setSuccessMessage('Signed in successfully! Redirecting...');
+        const next = await resolvePostLoginPath(data.session.user.id, searchParams.get('next'));
         router.push(next);
         router.refresh();
       }
@@ -187,9 +213,9 @@ export default function LoginForm() {
     const isPlaceholder = !supabaseUrl || supabaseUrl.includes('placeholder');
 
     if (isPlaceholder) {
-      setSuccessMessage('Demo account created! Redirecting to dashboard...');
+      setSuccessMessage('Demo account created! Redirecting...');
       setTimeout(() => {
-        const next = searchParams.get('next') || '/dashboard';
+        const next = searchParams.get('next') || '/onboarding';
         router.push(next);
         router.refresh();
       }, 600);
@@ -203,6 +229,14 @@ export default function LoginForm() {
         options: { data: { full_name: email.split('@')[0] }, emailRedirectTo: redirectUrl },
       });
       if (signUpError) { setError(formatErrorMessage(signUpError)); setIsSignUpLoading(false); return; }
+      if (data.session) {
+        // Email confirmation is disabled on this project, so signUp already returned
+        // an active session — a brand-new account, so send it straight to onboarding.
+        setSuccessMessage('Account created! Redirecting...');
+        router.push('/onboarding');
+        router.refresh();
+        return;
+      }
       if (data.user) {
         setSuccessMessage('Account created! Please check your email to confirm your address.');
       }

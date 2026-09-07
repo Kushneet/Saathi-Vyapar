@@ -5,13 +5,14 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/dashboard';
+  const explicitNext = searchParams.get('next');
+  const next = explicitNext ?? '/dashboard';
   const errorParam = searchParams.get('error') || searchParams.get('error_code');
   const errorDescription = searchParams.get('error_description');
 
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
   // 3. Live Supabase PKCE OAuth code exchange
   if (code) {
     const cookieStore = await cookies();
-    const response = NextResponse.redirect(`${redirectOrigin}${next}`);
+    let pendingCookies: { name: string; value: string; options: CookieOptions }[] = [];
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -51,10 +52,10 @@ export async function GET(request: Request) {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
+          pendingCookies = cookiesToSet;
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options);
-              response.cookies.set(name, value, options);
             });
           } catch {
             // Server route cookie handling
@@ -65,6 +66,26 @@ export async function GET(request: Request) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // New sign-in with no explicit destination: route to the profile
+      // wizard if this user has never completed one, instead of always
+      // dropping them on the dashboard with a blank/default profile.
+      let redirectPath = next;
+      if (!explicitNext) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('business_profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          if (!profile) redirectPath = '/onboarding';
+        }
+      }
+
+      const response = NextResponse.redirect(`${redirectOrigin}${redirectPath}`);
+      pendingCookies.forEach(({ name, value, options }) => {
+        response.cookies.set(name, value, options);
+      });
       return response;
     }
 
