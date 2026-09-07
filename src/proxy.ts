@@ -39,7 +39,13 @@ export async function proxy(request: NextRequest) {
 
   // Touching auth.getUser() triggers a token refresh (and cookie rewrite via
   // setAll above) whenever the access token is stale but the session is not.
-  await supabase.auth.getUser();
+  // This runs on every matched request (including the page itself), so a
+  // transient Auth-service hiccup here must never take the whole page down.
+  try {
+    await supabase.auth.getUser();
+  } catch (err) {
+    console.warn('Proxy session refresh failed, continuing unauthenticated for this request', err);
+  }
 
   return response;
 }

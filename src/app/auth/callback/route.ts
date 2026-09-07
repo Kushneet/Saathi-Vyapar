@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   // 3. Live Supabase PKCE OAuth code exchange
   if (code) {
     const cookieStore = await cookies();
-    let pendingCookies: { name: string; value: string; options: CookieOptions }[] = [];
+    const pendingCookies: { name: string; value: string; options: CookieOptions }[] = [];
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          pendingCookies = cookiesToSet;
+          pendingCookies.push(...cookiesToSet);
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options);
@@ -69,16 +69,23 @@ export async function GET(request: Request) {
       // New sign-in with no explicit destination: route to the profile
       // wizard if this user has never completed one, instead of always
       // dropping them on the dashboard with a blank/default profile.
+      // This check must never block the redirect itself — if the lookup
+      // is slow or errors, fall through to the default destination rather
+      // than stalling or failing the whole sign-in.
       let redirectPath = next;
       if (!explicitNext) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('business_profiles')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          if (!profile) redirectPath = '/onboarding';
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: profile } = await supabase
+              .from('business_profiles')
+              .select('id')
+              .eq('user_id', user.id)
+              .maybeSingle();
+            if (!profile) redirectPath = '/onboarding';
+          }
+        } catch (lookupErr) {
+          console.warn('Post-login profile lookup failed, defaulting to', next, lookupErr);
         }
       }
 
