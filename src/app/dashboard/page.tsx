@@ -414,14 +414,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <div>
             <div className="flex items-center gap-2.5">
               <Link href="/" className="hover:opacity-80 transition-opacity">
-                <img src="/Logo.png" alt="Saathi Vyapar Logo" className="w-9 h-9 object-contain" />
+                <img src="/Logo.png" alt="Saathi Vyapar Logo" className="h-10 sm:h-12 w-auto object-contain" />
               </Link>
-              <h1 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold tracking-tight text-[#0B1E33] flex items-center gap-2">
-                Saathi Vyapar
-                <span className="text-[11px] font-bold bg-[#F5F1E6] text-[#0B1E33] border border-[#C9A24B]/30 px-2.5 py-0.5 rounded-full font-['Inter',sans-serif]">
-                  Dashboard
-                </span>
-              </h1>
             </div>
             <p className="text-[#0B1E33]/50 text-sm mt-0.5">
               {user.name || 'Entrepreneur'} • {user.phone} {profile?.sector ? `(${profile.sector})` : ''}

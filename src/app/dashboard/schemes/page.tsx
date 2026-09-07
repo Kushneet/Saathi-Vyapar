@@ -480,20 +480,20 @@ function YojanaKendraContent() {
       <div className="relative z-10 max-w-5xl mx-auto space-y-6">
         {/* ── Header ────────────────────────────────────────────────── */}
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#C9A24B]/20 pb-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <img src="/Logo.png" alt="Saathi Vyapar Logo" className="w-8 h-8 object-contain" />
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black text-[#0B1E33] flex items-center gap-2">
-                  योजना केंद्र (Yojana Kendra)
-                  <span className="text-xs font-bold bg-[#F5F1E6] text-[#0B1E33] border border-[#C9A24B]/20 px-2.5 py-0.5 rounded-full">
-                    {eligibleResults.length} योजनाएं योग्य
-                  </span>
-                </h1>
-                <p className="text-xs sm:text-sm text-[#0B1E33]/50 mt-0.5">
-                  {user?.name || 'उद्यमी'} • आपके पंजीकृत व्यापार प्रोफाइल के आधार पर सरकारी योजनाओं का संपूर्ण मिलान
-                </p>
-              </div>
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="hover:opacity-80 transition-opacity">
+              <img src="/Logo.png" alt="Saathi Vyapar Logo" className="h-10 sm:h-12 w-auto object-contain" />
+            </Link>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-[#0B1E33] flex items-center gap-2">
+                योजना केंद्र (Yojana Kendra)
+                <span className="text-xs font-bold bg-[#F5F1E6] text-[#0B1E33] border border-[#C9A24B]/20 px-2.5 py-0.5 rounded-full">
+                  {eligibleResults.length} योजनाएं योग्य
+                </span>
+              </h1>
+              <p className="text-xs sm:text-sm text-[#0B1E33]/50 mt-0.5">
+                {user?.name || 'उद्यमी'} • आपके पंजीकृत व्यापार प्रोफाइल के आधार पर सरकारी योजनाओं का संपूर्ण मिलान
+              </p>
             </div>
           </div>
 

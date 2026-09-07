@@ -111,22 +111,9 @@ export default function StitchFolio() {
           {/* Brand Wordmark & Classical Pantheon SVG Emblem */}
           <div
             onClick={() => scrollTo("01-hero")}
-            className="flex items-center gap-3 shrink-0 cursor-pointer group"
+            className="flex items-center shrink-0 cursor-pointer group"
           >
-            <img src="/Logo.png" alt="Saathi Vyapar Logo" className="w-10 h-10 object-contain rounded-full border border-primary/40 group-hover:scale-105 transition-transform" />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="font-serif text-lg md:text-xl text-primary tracking-wide font-medium">
-                  SAATHI VYAPAR
-                </span>
-                <span className="text-xs text-primary/70 font-sans hidden sm:inline">
-                  साथी व्यापार
-                </span>
-              </div>
-              <span className="text-[10px] font-mono text-outline tracking-widest uppercase">
-                Archival Commerce · SIH26091
-              </span>
-            </div>
+            <img src="/Logo.png" alt="Saathi Vyapar Logo" className="h-10 w-auto object-contain group-hover:scale-105 transition-transform" />
           </div>
 
           {/* Center Navigation: 9 Folio Panels (Visible on Large/Medium Viewports) */}

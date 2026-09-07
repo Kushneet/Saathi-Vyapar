@@ -282,14 +282,8 @@ export default function OnboardingPage() {
       {/* ── Top Header ────────────────────────────────────────────── */}
       <header className="border-b border-[#C9A24B]/20 bg-[#F5F1E6]/90 backdrop-blur-xl px-4 sm:px-8 py-3.5 sticky top-0 z-20">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <img src="/Logo.png" alt="Saathi Vyapar Logo" className="w-8 h-8 sm:w-9 sm:h-9 object-contain" />
-            <div>
-              <span className="font-['Playfair_Display',Georgia,serif] text-lg sm:text-xl font-bold text-[#0B1E33]">Saathi Vyapar</span>
-              <span className="text-[10px] text-[#0B1E33]/50 block -mt-1 font-semibold">
-                उद्यमी पंजीकरण (Entrepreneur Registration)
-              </span>
-            </div>
+          <Link href="/" className="flex items-center group">
+            <img src="/Logo.png" alt="Saathi Vyapar Logo" className="h-9 sm:h-11 w-auto object-contain transition-transform group-hover:scale-105" />
           </Link>
 
           <div className="flex items-center gap-2.5 sm:gap-3">

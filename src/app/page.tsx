@@ -81,21 +81,13 @@ export default function ShowcaseHomePage() {
          ══════════════════════════════════════════════════════════════════ */}
       <header className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-5xl transition-all">
         <div className="bg-[#0B1E33]/92 backdrop-blur-xl border border-[#C9A24B]/35 rounded-full px-5 sm:px-8 py-3.5 shadow-[0_20px_50px_rgba(11,30,51,0.28)] flex items-center justify-between">
-          {/* Left: Brand Logo + Wordmark */}
-          <Link href="/" className="flex items-center gap-3 group">
+          {/* Left: Brand Logo */}
+          <Link href="/" className="flex items-center group">
             <img
               src="/Logo.png"
               alt="Saathi Vyapar Logo"
-              className="w-9 h-9 object-contain rounded-full border border-[#C9A24B] shadow-sm transition-transform group-hover:scale-105 duration-300"
+              className="h-10 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105 duration-300"
             />
-            <div className="flex flex-col">
-              <span className="font-['Playfair_Display',Georgia,serif] text-base sm:text-lg font-bold text-[#F5F1E6] tracking-wide leading-none">
-                Saathi Vyapar
-              </span>
-              <span className="text-[9px] text-[#C9A24B] font-bold tracking-[0.18em] uppercase mt-0.5">
-                साथी व्यापार
-              </span>
-            </div>
           </Link>
 
           {/* Center: Nav links in cream */}
