@@ -143,7 +143,10 @@ export async function POST(request: NextRequest) {
           monthly_expense_est: data.monthly_expense_est,
           existing_loans: data.existing_loans,
           category: data.category || 'general',
-          gender: data.gender || 'any',
+          // The onboarding form never collects gender; 'business_profiles.gender'
+          // has CHECK (gender IN ('male','female','other')), so the previous
+          // 'any' default violated that constraint and failed every submission.
+          gender: data.gender || 'other',
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id' }
