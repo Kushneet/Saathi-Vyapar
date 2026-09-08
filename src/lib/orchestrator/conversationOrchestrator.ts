@@ -318,21 +318,33 @@ export async function handleIncomingMessage(
 
       const newContext = { ...context, existing_loans: hasLoans };
 
-      // Upsert business profile with collected data
-      const { error: profileError } = await supabaseServer
+      // business_profiles.user_id has no UNIQUE/exclusion constraint, so
+      // `.upsert(..., { onConflict: 'user_id' })` fails every time with
+      // "there is no unique or exclusion constraint matching the ON CONFLICT
+      // specification". Look the row up first and insert or update explicitly.
+      const profilePayload = {
+        sector: newContext.sector,
+        district: newContext.district,
+        monthly_revenue_est: newContext.monthly_revenue,
+        monthly_expense_est: newContext.monthly_expense,
+        existing_loans: newContext.existing_loans,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: existingProfile } = await supabaseServer
         .from('business_profiles')
-        .upsert(
-          {
-            user_id: user.id,
-            sector: newContext.sector,
-            district: newContext.district,
-            monthly_revenue_est: newContext.monthly_revenue,
-            monthly_expense_est: newContext.monthly_expense,
-            existing_loans: newContext.existing_loans,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_id' }
-        );
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const { error: profileError } = existingProfile
+        ? await supabaseServer
+            .from('business_profiles')
+            .update(profilePayload)
+            .eq('user_id', user.id)
+        : await supabaseServer
+            .from('business_profiles')
+            .insert({ ...profilePayload, user_id: user.id });
 
       if (profileError) {
         console.error('Failed to save business profile:', profileError);

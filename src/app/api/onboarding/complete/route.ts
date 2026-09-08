@@ -130,29 +130,39 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 2. Upsert Business Profile ─────────────────────────────────────────
-    const { error: profileError } = await supabaseServer
+    // business_profiles.user_id has no UNIQUE/exclusion constraint in any
+    // migration, so `.upsert(..., { onConflict: 'user_id' })` fails every time
+    // with "there is no unique or exclusion constraint matching the ON
+    // CONFLICT specification" — surfaced to users as "Failed to save business
+    // profile". Look the row up first and insert or update explicitly instead
+    // of relying on a DB constraint that doesn't exist.
+    const profilePayload = {
+      business_name: data.business_name || data.sector,
+      sector: data.sector,
+      district: data.district || 'General',
+      state: data.state || 'India',
+      monthly_revenue_est: data.monthly_revenue_est,
+      monthly_expense_est: data.monthly_expense_est,
+      existing_loans: data.existing_loans,
+      category: data.category || 'general',
+      gender: data.gender || 'other',
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: existingProfile } = await supabaseServer
       .from('business_profiles')
-      .upsert(
-        {
-          user_id: userId,
-          business_name: data.business_name || data.sector,
-          sector: data.sector,
-          district: data.district || 'General',
-          state: data.state || 'India',
-          monthly_revenue_est: data.monthly_revenue_est,
-          monthly_expense_est: data.monthly_expense_est,
-          existing_loans: data.existing_loans,
-          category: data.category || 'general',
-          // The onboarding form never collects gender; 'business_profiles.gender'
-          // has CHECK (gender IN ('male','female','other')), so the previous
-          // 'any' default violated that constraint and failed every submission.
-          gender: data.gender || 'other',
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      )
-      .select()
-      .single();
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const { error: profileError } = existingProfile
+      ? await supabaseServer
+          .from('business_profiles')
+          .update(profilePayload)
+          .eq('user_id', userId)
+      : await supabaseServer
+          .from('business_profiles')
+          .insert({ ...profilePayload, user_id: userId });
 
     if (profileError) {
       console.error('Profile creation failed:', profileError);
