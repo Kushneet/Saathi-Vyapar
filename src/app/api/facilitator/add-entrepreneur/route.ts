@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, sector, facilitator_id } = parsed.data;
+    const { name, sector } = parsed.data;
     let { phone } = parsed.data;
 
     // Standardize phone format (+91...)
@@ -67,28 +67,27 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Upsert business profile with sector
+    // business_profiles.user_id has no UNIQUE/exclusion constraint, so
+    // `.upsert(..., { onConflict: 'user_id' })` fails every time with
+    // "there is no unique or exclusion constraint matching the ON CONFLICT
+    // specification". Look the row up first and insert or update explicitly.
     if (sector) {
-      await supabaseServer.from('business_profiles').upsert(
-        {
-          user_id: user.id,
-          sector,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      );
-    }
+      const { data: existingProfile } = await supabaseServer
+        .from('business_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-    // 3. Link to facilitator if facilitator_id is provided
-    if (facilitator_id) {
-      await supabaseServer
-        .from('facilitators_entrepreneurs')
-        .upsert(
-          {
-            facilitator_id,
-            entrepreneur_id: user.id,
-          },
-          { onConflict: 'facilitator_id,entrepreneur_id' }
-        );
+      if (existingProfile) {
+        await supabaseServer
+          .from('business_profiles')
+          .update({ sector, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id);
+      } else {
+        await supabaseServer
+          .from('business_profiles')
+          .insert({ user_id: user.id, sector, updated_at: new Date().toISOString() });
+      }
     }
 
     return NextResponse.json({
