@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import parse, { DOMNode, Element, domToReact } from "html-react-parser";
+import { useLanguage } from '@/contexts/LanguageContext';
 import { STITCH_PANELS, STITCH_PROJECT } from "@/lib/stitchPanelsData";
 import PlatesGallery from "./PlatesGallery";
 
 export default function StitchFolio() {
+  const { t } = useLanguage();
   const [activePanel, setActivePanel] = useState<string>("01-hero");
   const [viewMode, setViewMode] = useState<"interactive" | "plates">("interactive");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -131,7 +133,7 @@ export default function StitchFolio() {
                       : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
                   }`}
                 >
-                  {p.title}
+                  {t(`folio_p${p.num}_title`)}
                 </button>
               );
             })}
@@ -155,7 +157,7 @@ export default function StitchFolio() {
                   <line x1="3" y1="9" x2="21" y2="9" />
                   <line x1="3" y1="15" x2="21" y2="15" />
                 </svg>
-                <span>Canvas</span>
+                <span>{t('folio_canvas')}</span>
               </button>
               <button
                 type="button"
@@ -170,7 +172,7 @@ export default function StitchFolio() {
                   <rect x="2" y="2" width="16" height="16" rx="2" />
                   <path d="M6 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2" />
                 </svg>
-                <span>Plates (9)</span>
+                <span>{t('folio_plates')}</span>
               </button>
             </div>
 
@@ -184,8 +186,8 @@ export default function StitchFolio() {
                 <polyline points="10 17 15 12 10 7" />
                 <line x1="15" y1="12" x2="3" y2="12" />
               </svg>
-              <span className="hidden sm:inline">Access Gateway</span>
-              <span className="sm:hidden">Sign In</span>
+              <span className="hidden sm:inline">{t('folio_gateway')}</span>
+              <span className="sm:hidden">{t('folio_signin')}</span>
             </Link>
 
             {/* Mobile / Compact Hamburger Toggle */}
@@ -226,7 +228,7 @@ export default function StitchFolio() {
                       : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
                   }`}
                 >
-                  {p.title}
+                  {t(`folio_p${p.num}_title`)}
                 </button>
               ))}
             </div>
@@ -255,7 +257,7 @@ export default function StitchFolio() {
                     </span>
                     <span className="hidden sm:inline text-outline-variant">•</span>
                     <span className="hidden sm:inline text-on-surface-variant">
-                      {panel.fullTitle}
+                      {t(`folio_p${panel.num}_full`)}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -265,7 +267,7 @@ export default function StitchFolio() {
                       rel="noopener noreferrer"
                       className="hover:text-primary transition-colors flex items-center gap-1"
                     >
-                      <span>Screenshot</span>
+                      <span>{t('folio_screenshot')}</span>
                       <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                         <polyline points="15 3 21 3 21 9" />
@@ -298,7 +300,7 @@ export default function StitchFolio() {
         <button
           type="button"
           onClick={() => scrollTo(nextPanel.id)}
-          title={`Jump to next: ${nextPanel.title}`}
+          title={`${t('folio_jump')}: ${t(`folio_p${nextPanel.num}_title`)}`}
           aria-label="Next panel"
           className="p-1.5 rounded-full hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center"
         >
