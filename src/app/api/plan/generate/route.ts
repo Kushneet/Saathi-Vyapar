@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
 - Monthly Expenses: ₹${profile.monthly_expense_est}
 - Profit Margin: ${financialSummary.marginPercent}%
 - Cash Flow Risk: ${financialSummary.cashFlowRisk}
-- Break-Even Target: ₹${isFinite(financialSummary.breakEvenUnits) ? financialSummary.breakEvenUnits : 'N/A'}
+- Break-Even Monthly Sales Target: ₹${isFinite(financialSummary.breakEvenRevenue) ? financialSummary.breakEvenRevenue : 'N/A'}
 - Matched Schemes: ${matchedSchemeNames || 'General Microfinance Schemes'}
 
 Please translate and summarize this into 2-3 short, encouraging sentences in ${languageName} for the entrepreneur.`;
@@ -199,8 +199,8 @@ STRICT RULES:
     // ── 7. Save plan to database ───────────────────────────────────────────
     const planJson = {
       financialMetrics: {
-        breakEvenUnits: isFinite(financialSummary.breakEvenUnits)
-          ? financialSummary.breakEvenUnits
+        breakEvenRevenue: isFinite(financialSummary.breakEvenRevenue)
+          ? financialSummary.breakEvenRevenue
           : null,
         marginPercent: financialSummary.marginPercent,
         cashFlowRisk: financialSummary.cashFlowRisk,
@@ -227,8 +227,8 @@ STRICT RULES:
       .from('financial_plans')
       .insert({
         user_id,
-        break_even_units: isFinite(financialSummary.breakEvenUnits)
-          ? financialSummary.breakEvenUnits
+        break_even_revenue: isFinite(financialSummary.breakEvenRevenue)
+          ? financialSummary.breakEvenRevenue
           : null,
         margin_percent: financialSummary.marginPercent,
         plan_json: planJson,
@@ -251,8 +251,8 @@ STRICT RULES:
       success: true,
       plan: {
         id: savedPlan.id,
-        breakEvenUnits: isFinite(financialSummary.breakEvenUnits)
-          ? financialSummary.breakEvenUnits
+        breakEvenRevenue: isFinite(financialSummary.breakEvenRevenue)
+          ? financialSummary.breakEvenRevenue
           : null,
         marginPercent: financialSummary.marginPercent,
         cashFlowRisk: financialSummary.cashFlowRisk,

@@ -196,6 +196,14 @@ export const translations: Record<Language, Record<string, string>> = {
     photo_too_large: 'That photo is too large. Please use one under 8 MB.',
     photo_failed: 'Could not read the photo. Please try again.',
     photo_totals: 'Income ₹{income} · Expenses ₹{expense}',
+
+    // ── Empty states (shown instead of placeholder figures)
+    empty_profile_title: 'Your business profile is not set up yet',
+    empty_profile_sub: 'Answer a few questions about your business and we will work out your margins, your break-even target and the government schemes you qualify for.',
+    empty_profile_cta: 'Set up my profile',
+    empty_ledger_title: 'No transactions yet',
+    empty_ledger_sub: 'Photograph a page of your bahi-khata above, or send a photo on WhatsApp, and your entries will appear here.',
+    empty_chart: 'Your cash flow graph will appear once you have recorded some transactions.',
   },
 
   hi: {
@@ -386,6 +394,14 @@ export const translations: Record<Language, Record<string, string>> = {
     photo_too_large: 'फोटो बहुत बड़ी है। 8 MB से छोटी फोटो भेजें।',
     photo_failed: 'फोटो पढ़ी नहीं जा सकी। कृपया फिर कोशिश करें।',
     photo_totals: 'आय ₹{income} · खर्च ₹{expense}',
+
+    // ── Empty states (shown instead of placeholder figures)
+    empty_profile_title: 'आपकी व्यापार प्रोफ़ाइल अभी तैयार नहीं है',
+    empty_profile_sub: 'अपने व्यापार के बारे में कुछ सवालों के जवाब दें — हम आपका मुनाफ़ा, ब्रेक-ईवन लक्ष्य और आपके लिए उपलब्ध सरकारी योजनाएँ निकाल देंगे।',
+    empty_profile_cta: 'मेरी प्रोफ़ाइल बनाएँ',
+    empty_ledger_title: 'अभी कोई लेन-देन नहीं',
+    empty_ledger_sub: 'ऊपर अपने बही-खाते के पन्ने की फोटो खींचें, या WhatsApp पर फोटो भेजें — आपकी एंट्री यहाँ दिखने लगेंगी।',
+    empty_chart: 'लेन-देन दर्ज होते ही आपका नकदी प्रवाह ग्राफ़ यहाँ दिखेगा।',
   },
 };
 

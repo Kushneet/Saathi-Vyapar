@@ -154,10 +154,20 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single();
 
-    const sector = profile?.sector || 'General Micro-Enterprise';
-    const district = profile?.district || 'Rural India';
-    const revenue = Number(profile?.monthly_revenue_est) || 20000;
-    const expense = Number(profile?.monthly_expense_est) || 12000;
+    // The roadmap quotes rupee savings targets derived from these numbers, so
+    // inventing ₹20,000/₹12,000 for a user with no profile produced concrete
+    // financial advice about a business nobody runs.
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'Business profile not found. Please complete onboarding first.' },
+        { status: 404 }
+      );
+    }
+
+    const sector = profile.sector || 'General Micro-Enterprise';
+    const district = profile.district || 'Rural India';
+    const revenue = Number(profile.monthly_revenue_est) || 0;
+    const expense = Number(profile.monthly_expense_est) || 0;
 
     const ai = getGeminiClient();
     let roadmap: RoadmapStageItem[];

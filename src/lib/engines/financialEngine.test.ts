@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   calculateBreakEven,
+  calculateBreakEvenRevenue,
   calculateMarginPercent,
   assessCashFlowRisk,
   generateFinancialSummary,
@@ -136,6 +137,27 @@ describe('assessCashFlowRisk', () => {
 // ─────────────────────────────────────────────────────────
 // generateFinancialSummary
 // ─────────────────────────────────────────────────────────
+describe('calculateBreakEvenRevenue', () => {
+  it('equals fixed costs when no variable-cost split is known', () => {
+    expect(calculateBreakEvenRevenue(20000)).toBe(20000);
+  });
+
+  it('scales up as the contribution margin shrinks', () => {
+    expect(calculateBreakEvenRevenue(10000, 0.5)).toBe(20000);
+    expect(calculateBreakEvenRevenue(10000, 0.25)).toBe(40000);
+  });
+
+  it('is Infinity when the contribution margin is zero or negative', () => {
+    expect(calculateBreakEvenRevenue(10000, 0)).toBe(Infinity);
+    expect(calculateBreakEvenRevenue(10000, -0.1)).toBe(Infinity);
+  });
+
+  it('is zero when there are no costs to cover', () => {
+    expect(calculateBreakEvenRevenue(0)).toBe(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────
 describe('generateFinancialSummary', () => {
   it('returns correct structure for a healthy business', () => {
     const result = generateFinancialSummary({
@@ -143,7 +165,7 @@ describe('generateFinancialSummary', () => {
       monthlyExpenseEst: 10000,
       existingLoans: false,
     });
-    expect(result).toHaveProperty('breakEvenUnits');
+    expect(result).toHaveProperty('breakEvenRevenue');
     expect(result).toHaveProperty('marginPercent');
     expect(result).toHaveProperty('cashFlowRisk');
     expect(result).toHaveProperty('explanation');
@@ -171,7 +193,10 @@ describe('generateFinancialSummary', () => {
     });
     expect(result.cashFlowRisk).toBe('high');
     expect(result.marginPercent).toBe(0);
-    expect(result.breakEvenUnits).toBe(Infinity);
+    // Earning nothing does not make the target infinite — you still need
+    // ₹5,000 of sales to cover ₹5,000 of costs. The old formula
+    // (expenses / revenue) returned Infinity here.
+    expect(result.breakEvenRevenue).toBe(5000);
   });
 
   it('mentions loans in explanation when existingLoans is true', () => {
@@ -193,14 +218,15 @@ describe('generateFinancialSummary', () => {
     expect(result.cashFlowRisk).toBe('medium');
   });
 
-  it('breakEvenUnits is a finite positive number for normal case', () => {
+  it('reports break-even as the rupee sales target, not a ratio', () => {
     const result = generateFinancialSummary({
       monthlyRevenueEst: 30000,
       monthlyExpenseEst: 20000,
       existingLoans: false,
     });
-    expect(isFinite(result.breakEvenUnits)).toBe(true);
-    expect(result.breakEvenUnits).toBeGreaterThan(0);
+    // The old code returned 20000/30000 = 0.67 and stored it as "units".
+    expect(result.breakEvenRevenue).toBe(20000);
+    expect(result.explanation).toContain('₹20000');
   });
 
   it('marginPercent is negative when expenses exceed revenue', () => {

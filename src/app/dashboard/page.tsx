@@ -196,18 +196,37 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     console.warn('Dashboard profile fetch warning:', err);
   }
 
-  const profile = profileData || {
-    user_id: user.id,
-    business_name: `${user.name || 'Entrepreneur'}'s Business`,
-    sector: 'retail',
-    district: 'Varanasi',
-    state: 'Uttar Pradesh',
-    monthly_revenue_est: 45000,
-    monthly_expense_est: 28000,
-    existing_loans: false,
-    category: 'obc',
-    gender: 'male',
-  };
+  // No profile means we have nothing to compute from. This used to fall back
+  // to an invented business in Varanasi earning ₹45,000 against ₹28,000 of
+  // costs — figures that looked like the user's own analysis, drove the
+  // margin, risk and scheme-matching cards, and belonged to nobody.
+  if (!profileData) {
+    return (
+      <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] p-4 sm:p-6 flex items-center justify-center font-['Inter',sans-serif]">
+        <div className="max-w-md w-full bg-white border border-[#C9A24B]/20 rounded-[32px] p-7 shadow-[0_16px_40px_rgba(11,30,51,0.07)] space-y-4 text-center">
+          <div className="text-4xl">📋</div>
+          <h1 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
+            {t('empty_profile_title')}
+          </h1>
+          <p className="text-sm text-[#0B1E33]/60 leading-relaxed">{t('empty_profile_sub')}</p>
+          <div className="flex items-center justify-center gap-2 pt-1">
+            <Link
+              href="/onboarding"
+              className="px-6 py-3 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] font-bold text-xs rounded-full transition-all shadow-sm"
+            >
+              {t('empty_profile_cta')} →
+            </Link>
+            <LanguageToggleButton />
+          </div>
+          <div className="pt-2">
+            <LogoutButton />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const profile = profileData;
 
   // ── 2. Fetch latest financial plan ───────────────────────────────
   let planData = null;
@@ -227,8 +246,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // If no stored plan, dynamically calculate using deterministic engines
   let latestPlan = planData;
   if (!latestPlan) {
-    const rev = Number(profile.monthly_revenue_est) || 45000;
-    const exp = Number(profile.monthly_expense_est) || 28000;
+    const rev = Number(profile.monthly_revenue_est) || 0;
+    const exp = Number(profile.monthly_expense_est) || 0;
     const margin = calculateMarginPercent(rev, exp);
     const cashRisk = assessCashFlowRisk(rev, exp, Boolean(profile.existing_loans));
 
@@ -247,10 +266,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         monthly_revenue_est: rev,
         monthly_expense_est: exp,
         existing_loans: Boolean(profile.existing_loans),
-        sector: profile.sector || 'retail',
-        category: profile.category || 'obc',
-        gender: profile.gender || 'male',
-        state: profile.state || 'उत्तर प्रदेश',
+        // Undefined rather than invented: an unstated social category or
+        // gender must not silently qualify someone for a reserved scheme.
+        sector: profile.sector || undefined,
+        category: profile.category || undefined,
+        gender: profile.gender || undefined,
+        state: profile.state || undefined,
       },
       schemesToMatch
     );
@@ -268,12 +289,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       id: 'dynamic-plan',
       user_id: user.id,
       margin_percent: margin,
-      break_even_units: exp,
+      break_even_revenue: exp,
       summary_text: `Your net profit margin is ${margin.toFixed(1)}%. After monthly expenses (₹${exp.toLocaleString("en-IN")}), your cash flow is ${cashRisk === "low" ? "strong" : "stable"}. Explore government loan & subsidy options below.`,
       created_at: new Date().toISOString(),
       plan_json: {
         financialMetrics: {
-          breakEvenUnits: exp,
+          breakEvenRevenue: exp,
           marginPercent: margin,
           cashFlowRisk: cashRisk,
         },
@@ -299,12 +320,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     console.warn('Dashboard ledger fetch warning:', err);
   }
 
-  const rawEntries = ledgerEntriesRaw && ledgerEntriesRaw.length > 0 ? ledgerEntriesRaw : [
-    { id: '1', amount: 1500, entry_type: 'income', description: 'Daily Sales', source: 'whatsapp', confirmed: true, created_at: '2026-09-01T10:00:00.000Z' },
-    { id: '2', amount: 800, entry_type: 'expense', description: 'Stock Purchase', source: 'ocr', confirmed: true, created_at: '2026-09-02T11:30:00.000Z' },
-    { id: '3', amount: 2200, entry_type: 'income', description: 'Bulk Order', source: 'whatsapp', confirmed: true, created_at: '2026-09-03T15:45:00.000Z' },
-    { id: '4', amount: 450, entry_type: 'expense', description: 'Electricity Bill', source: 'sms', confirmed: true, created_at: '2026-09-04T09:15:00.000Z' },
-  ];
+  // Previously four invented transactions ("Daily Sales", "Stock Purchase" …)
+  // stood in whenever the ledger was empty, and they were indistinguishable
+  // from real ones. An empty ledger now reads as empty.
+  const rawEntries = ledgerEntriesRaw || [];
 
   const ledgerEntries: LedgerRow[] = rawEntries.map((e) => ({
     id: e.id,
@@ -328,7 +347,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // Parse plan schemes
   const planJson = latestPlan?.plan_json as {
     financialMetrics?: {
-      breakEvenUnits?: number | null;
+      breakEvenRevenue?: number | null;
       marginPercent?: number;
       cashFlowRisk?: 'low' | 'medium' | 'high';
     };
@@ -336,14 +355,66 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   } | null;
 
   const matchedSchemes: SchemeItem[] = planJson?.matchedSchemes || [];
+
+  // Monthly sales needed to cover costs. Prefer the stored plan value; fall
+  // back to current expenses, which is the same quantity the engine computes.
+  // `break_even_units` is deliberately not consulted: it held a ratio.
+  const storedBreakEven = Number(latestPlan?.break_even_revenue);
+  const breakEvenRevenue = isFinite(storedBreakEven) && storedBreakEven > 0
+    ? storedBreakEven
+    : Number(profile.monthly_expense_est) || null;
   const eligibleCount = matchedSchemes.filter((s) => s.eligible).length;
 
-  // Prepare chart coordinates for 30-day view
-  const days = Array.from({ length: 15 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (14 - i) * 2);
-    return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+  // ── Chart series, computed from the ledger ───────────────────────
+  // The SVG below used to draw two hard-coded polylines: the same rising
+  // "trend" for every user, on every visit, whatever their transactions said.
+  // These are the real daily totals for the last 30 days.
+  const CHART_BUCKETS = 15; // one point per two days across the window
+
+  const buckets = Array.from({ length: CHART_BUCKETS }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (CHART_BUCKETS - 1 - i) * 2);
+    date.setHours(0, 0, 0, 0);
+    return { date, income: 0, expense: 0 };
   });
+
+  // Bucket relative to the window's own start rather than a fresh clock read,
+  // so this stays a pure function of `buckets` and the entries.
+  const windowStart = buckets[0].date.getTime();
+  const bucketSpanMs = 2 * 86400000;
+
+  for (const entry of ledgerEntries) {
+    const index = Math.floor(
+      (new Date(entry.created_at).getTime() - windowStart) / bucketSpanMs
+    );
+    if (index < 0 || index >= CHART_BUCKETS) continue;
+
+    if (entry.entry_type === 'income') buckets[index].income += entry.amount;
+    else buckets[index].expense += entry.amount;
+  }
+
+  const days = buckets.map((b) =>
+    b.date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
+  );
+
+  // Scale to the SVG's 0–500 × 20–120 plot area, with a floor so a single
+  // small transaction does not stretch to fill the whole chart.
+  const peak = Math.max(1000, ...buckets.map((b) => Math.max(b.income, b.expense)));
+
+  function toPoints(series: 'income' | 'expense'): string {
+    return buckets
+      .map((bucket, i) => {
+        const x = 40 + (i * 420) / (CHART_BUCKETS - 1);
+        const y = 120 - (bucket[series] / peak) * 100;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(' ');
+  }
+
+  const incomePoints = toPoints('income');
+  const expensePoints = toPoints('expense');
+  const lastBucket = buckets[CHART_BUCKETS - 1];
+  const hasLedgerData = ledgerEntries.length > 0;
 
   // Risk styling helper
   const risk = planJson?.financialMetrics?.cashFlowRisk || 'low';
@@ -455,7 +526,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </span>
               <div className="my-2">
                 <span className="text-3xl sm:text-4xl font-bold text-[#0B1E33]">
-                  ₹{profile?.monthly_expense_est ? Number(profile.monthly_expense_est).toLocaleString('en-IN') : '28,000'}
+                  {breakEvenRevenue !== null ? `₹${breakEvenRevenue.toLocaleString('en-IN')}` : '—'}
                 </span>
               </div>
               <p className="text-xs text-[#0B1E33]/50">{t('dashboard_break_even_sub')}</p>
@@ -498,40 +569,41 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </div>
             </div>
 
-            {/* Visual SVG Line Chart */}
-            <div className="w-full bg-[#F5F1E6] rounded-2xl p-4 border border-[#C9A24B]/15">
-              <svg viewBox="0 0 500 160" className="w-full h-40 overflow-visible">
-                {/* Grid lines */}
-                <line x1="40" y1="20" x2="480" y2="20" stroke="#C9A24B" strokeOpacity="0.2" strokeDasharray="3 3" />
-                <line x1="40" y1="70" x2="480" y2="70" stroke="#C9A24B" strokeOpacity="0.2" strokeDasharray="3 3" />
-                <line x1="40" y1="120" x2="480" y2="120" stroke="#C9A24B" strokeOpacity="0.2" strokeDasharray="3 3" />
+            {/* Visual SVG Line Chart — plotted from real ledger entries */}
+            {hasLedgerData ? (
+              <div className="w-full bg-[#F5F1E6] rounded-2xl p-4 border border-[#C9A24B]/15">
+                <svg
+                  viewBox="0 0 500 160"
+                  className="w-full h-40 overflow-visible"
+                  role="img"
+                  aria-label={`${t('dashboard_chart_title')}: ${t('dashboard_income_label')} ₹${totalIncome.toLocaleString('en-IN')}, ${t('dashboard_expense_label')} ₹${totalExpense.toLocaleString('en-IN')}`}
+                >
+                  {/* Grid lines */}
+                  <line x1="40" y1="20" x2="480" y2="20" stroke="#C9A24B" strokeOpacity="0.2" strokeDasharray="3 3" />
+                  <line x1="40" y1="70" x2="480" y2="70" stroke="#C9A24B" strokeOpacity="0.2" strokeDasharray="3 3" />
+                  <line x1="40" y1="120" x2="480" y2="120" stroke="#C9A24B" strokeOpacity="0.2" strokeDasharray="3 3" />
 
-                {/* Income Line (Charcoal) */}
-                <polyline
-                  fill="none"
-                  stroke="#0B1E33"
-                  strokeWidth="3.5"
-                  points="40,110 75,95 110,80 145,100 180,60 215,75 250,45 285,60 320,35 355,50 390,40 425,30 460,25"
-                />
+                  {/* Income */}
+                  <polyline fill="none" stroke="#0B1E33" strokeWidth="3.5" points={incomePoints} />
 
-                {/* Expense Line (Pink-Orange Gradient) */}
-                <polyline
-                  fill="none"
-                  stroke="#C9A24B"
-                  strokeWidth="3.5"
-                  points="40,120 75,115 110,95 145,90 180,85 215,90 250,75 285,80 320,70 355,65 390,75 425,60 460,55"
-                />
+                  {/* Expenses */}
+                  <polyline fill="none" stroke="#C9A24B" strokeWidth="3.5" points={expensePoints} />
 
-                {/* Data points */}
-                <circle cx="460" cy="25" r="5" fill="#0B1E33" />
-                <circle cx="460" cy="55" r="5" fill="#C9A24B" />
-              </svg>
-              <div className="flex justify-between text-[10px] text-[#0B1E33]/40 mt-2 px-2">
-                {days.slice(0, 7).map((d, i) => (
-                  <span key={i}>{d}</span>
-                ))}
+                  {/* Latest data points */}
+                  <circle cx="460" cy={120 - (lastBucket.income / peak) * 100} r="5" fill="#0B1E33" />
+                  <circle cx="460" cy={120 - (lastBucket.expense / peak) * 100} r="5" fill="#C9A24B" />
+                </svg>
+                <div className="flex justify-between text-[10px] text-[#0B1E33]/40 mt-2 px-2">
+                  {days.filter((_, i) => i % 2 === 0).map((d, i) => (
+                    <span key={i}>{d}</span>
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <p className="w-full bg-[#F5F1E6] rounded-2xl p-6 border border-[#C9A24B]/15 text-sm text-[#0B1E33]/55 text-center">
+                {t('empty_chart')}
+              </p>
+            )}
           </section>
 
           {/* ── Matched Government Schemes ───────────────────────────── */}
@@ -624,6 +696,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </div>
 
             <div className="space-y-2">
+              {ledgerEntries.length === 0 && (
+                <div className="p-5 bg-[#F5F1E6] rounded-2xl border border-[#C9A24B]/15 text-center space-y-1">
+                  <p className="text-sm font-bold text-[#0B1E33]">{t('empty_ledger_title')}</p>
+                  <p className="text-xs text-[#0B1E33]/55">{t('empty_ledger_sub')}</p>
+                </div>
+              )}
               {ledgerEntries.slice(0, 5).map((entry) => (
                 <div
                   key={entry.id}

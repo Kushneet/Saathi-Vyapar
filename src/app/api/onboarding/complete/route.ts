@@ -167,8 +167,8 @@ export async function POST(request: NextRequest) {
 
     const planJson = {
       financialMetrics: {
-        breakEvenUnits: isFinite(financialSummary.breakEvenUnits)
-          ? financialSummary.breakEvenUnits
+        breakEvenRevenue: isFinite(financialSummary.breakEvenRevenue)
+          ? financialSummary.breakEvenRevenue
           : null,
         marginPercent: financialSummary.marginPercent,
         cashFlowRisk: financialSummary.cashFlowRisk,
@@ -192,8 +192,8 @@ export async function POST(request: NextRequest) {
     // Save initial plan
     await supabaseServer.from('financial_plans').insert({
       user_id: userId,
-      break_even_units: isFinite(financialSummary.breakEvenUnits)
-        ? financialSummary.breakEvenUnits
+      break_even_revenue: isFinite(financialSummary.breakEvenRevenue)
+        ? financialSummary.breakEvenRevenue
         : null,
       margin_percent: financialSummary.marginPercent,
       plan_json: planJson,

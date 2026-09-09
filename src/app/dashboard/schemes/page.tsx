@@ -380,14 +380,25 @@ function YojanaKendraContent() {
             .limit(1)
             .single();
 
+          // Eligibility is only meaningful against the user's real figures.
+          // These fields used to default to ₹25,000/₹15,000 and a 'retail'
+          // 'general' profile, which produced confident scheme matches for a
+          // business that did not exist.
+          if (!profileData) {
+            setProfile(null);
+            setMatchResults([]);
+            setIsLoading(false);
+            return;
+          }
+
           const currentProfile: BusinessProfile = {
-            monthly_revenue_est: Number(profileData?.monthly_revenue_est) || 25000,
-            monthly_expense_est: Number(profileData?.monthly_expense_est) || 15000,
-            existing_loans: Boolean(profileData?.existing_loans),
-            category: profileData?.category || 'general',
-            sector: profileData?.sector || 'retail',
-            gender: profileData?.gender || 'any',
-            state: profileData?.state || 'India',
+            monthly_revenue_est: Number(profileData.monthly_revenue_est) || 0,
+            monthly_expense_est: Number(profileData.monthly_expense_est) || 0,
+            existing_loans: Boolean(profileData.existing_loans),
+            category: profileData.category || undefined,
+            sector: profileData.sector || undefined,
+            gender: profileData.gender || undefined,
+            state: profileData.state || undefined,
           };
 
           setProfile(currentProfile);
@@ -616,6 +627,21 @@ function YojanaKendraContent() {
               <div className="text-center py-12 text-[#0B1E33] bg-white rounded-2xl border border-[#C9A24B]/20">
                 <span className="text-2xl block mb-2 animate-spin">⏳</span>
                 <p className="text-sm font-semibold">सरकारी योजनाओं का मिलान हो रहा है...</p>
+              </div>
+            ) : !profile ? (
+              // Distinct from "nothing matched": there is nothing to match
+              // against yet. Saying "update your details" would send the user
+              // looking for details they never entered.
+              <div className="p-8 text-center bg-white rounded-2xl border border-[#C9A24B]/20 space-y-3">
+                <span className="text-3xl">📋</span>
+                <h4 className="text-base font-bold text-[#0B1E33]">{t('empty_profile_title')}</h4>
+                <p className="text-xs text-[#0B1E33]/55 max-w-md mx-auto">{t('schemes_no_profile')}</p>
+                <Link
+                  href="/onboarding"
+                  className="inline-block px-5 py-2.5 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] font-bold text-xs rounded-full transition-all"
+                >
+                  {t('empty_profile_cta')} →
+                </Link>
               </div>
             ) : eligibleResults.length === 0 ? (
               <div className="p-8 text-center bg-white rounded-2xl border border-[#C9A24B]/20 space-y-2">

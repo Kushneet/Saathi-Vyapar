@@ -29,6 +29,34 @@ export function calculateBreakEven(
 }
 
 /**
+ * Calculate the break-even point in RUPEES of monthly sales.
+ *
+ * Break-even revenue = Fixed Costs / Contribution Margin Ratio
+ *
+ * This is the figure the app actually reports. It is distinct from
+ * `calculateBreakEven` above, which answers "how many units?" and needs
+ * per-unit price and cost data this app never collects at onboarding.
+ *
+ * @param fixedCosts - Costs that must be covered each month (₹)
+ * @param contributionMarginRatio - Share of each rupee of sales left after
+ *   variable costs, in (0, 1]. Defaults to 1: with no split between fixed and
+ *   variable costs available, every rupee of expenses must be covered by a
+ *   rupee of sales, so break-even revenue equals total monthly expenses.
+ * @returns Monthly sales needed to cover costs (₹), or Infinity if the
+ *   contribution margin is zero or negative (no sales volume ever breaks even)
+ */
+export function calculateBreakEvenRevenue(
+  fixedCosts: number,
+  contributionMarginRatio: number = 1
+): number {
+  if (contributionMarginRatio <= 0) {
+    return Infinity;
+  }
+
+  return fixedCosts / contributionMarginRatio;
+}
+
+/**
  * Calculate the profit margin percentage.
  * Margin % = (Revenue - Expenses) / Revenue * 100
  *
@@ -92,7 +120,17 @@ export interface FinancialSummaryInput {
 
 /** Output from financial summary generation */
 export interface FinancialSummaryOutput {
-  breakEvenUnits: number;
+  /**
+   * Monthly sales needed to cover costs, in RUPEES.
+   *
+   * Was previously `breakEvenUnits` and was computed as
+   * `calculateBreakEven(expenses, revenue, 0)`, which returns
+   * `expenses / revenue` — a ratio, not units and not rupees. It was stored in
+   * a column called `break_even_units` while the explanation text told the
+   * user a rupee figure, so the number shown, the number stored and the label
+   * on it were three different things.
+   */
+  breakEvenRevenue: number;
   marginPercent: number;
   cashFlowRisk: 'low' | 'medium' | 'high';
   explanation: string;
@@ -104,11 +142,13 @@ export interface FinancialSummaryOutput {
  * The explanation is a template-based string in English; it will be
  * translated/rephrased by the LLM in the API layer.
  *
- * Note: Break-even units are computed assuming fixed costs = monthly expenses
- * and a per-unit model is not available at onboarding. We use a simplified
- * approximation: breakEven is reported as a revenue target (₹) by treating
- * pricePerUnit=revenue and variableCostPerUnit=0 when units are unknown.
- * The actual unit-based break-even requires price and variable cost data.
+ * Break-even is reported in rupees of monthly sales, not units: onboarding
+ * collects monthly totals, never per-unit price or variable cost, so a
+ * unit-based break-even cannot honestly be derived from this input. With no
+ * fixed/variable split available every rupee of expense must be covered by a
+ * rupee of sales, so the target equals monthly expenses. Once per-unit data
+ * exists, pass a real contribution margin ratio to
+ * `calculateBreakEvenRevenue`, or use `calculateBreakEven` for units.
  *
  * @param profile - Business financial profile
  * @returns Financial summary with metrics and human-readable explanation
@@ -118,14 +158,11 @@ export function generateFinancialSummary(
 ): FinancialSummaryOutput {
   const { monthlyRevenueEst, monthlyExpenseEst, existingLoans } = profile;
 
-  // For break-even: treat fixedCosts = monthly expenses, price = revenue/unit proxy
-  // Since we don't have per-unit data, calculate break-even as minimum revenue needed
-  // to cover fixed costs (monthlyExpenseEst) with 0 variable cost — gives the revenue target
-  const breakEvenUnits = calculateBreakEven(
-    monthlyExpenseEst, // fixed costs = monthly expenses
-    monthlyRevenueEst, // price proxy (revenue)
-    0 // no variable cost info at this stage
-  );
+  // Treat every expense as a cost that must be covered by sales. Note this
+  // deliberately does not depend on current revenue: a business earning
+  // nothing still needs to reach ₹{expenses} of sales to break even, whereas
+  // the old formula returned Infinity in exactly that case.
+  const breakEvenRevenue = calculateBreakEvenRevenue(monthlyExpenseEst);
 
   const marginPercent = calculateMarginPercent(monthlyRevenueEst, monthlyExpenseEst);
   const cashFlowRisk = assessCashFlowRisk(monthlyRevenueEst, monthlyExpenseEst, existingLoans);
@@ -147,10 +184,9 @@ export function generateFinancialSummary(
       ? `Your current profit margin is ${marginPercent.toFixed(1)}%.`
       : `You are currently operating at a loss of ${Math.abs(marginPercent).toFixed(1)}%.`;
 
-  const breakEvenNote =
-    breakEvenUnits === Infinity
-      ? 'Break-even cannot be calculated with current data (revenue may be zero or below costs).'
-      : `You need to maintain at least ₹${monthlyExpenseEst.toFixed(0)} in monthly revenue to cover your costs.`;
+  const breakEvenNote = isFinite(breakEvenRevenue)
+    ? `You need at least ₹${breakEvenRevenue.toFixed(0)} in monthly sales to cover your costs.`
+    : 'Break-even cannot be calculated with the current data.';
 
   const explanation =
     `${riskDescriptions[cashFlowRisk]}${loanNote} ` +
@@ -158,7 +194,9 @@ export function generateFinancialSummary(
     `Monthly Revenue: ₹${monthlyRevenueEst.toFixed(0)}, Monthly Expenses: ₹${monthlyExpenseEst.toFixed(0)}.`;
 
   return {
-    breakEvenUnits: isFinite(breakEvenUnits) ? parseFloat(breakEvenUnits.toFixed(2)) : Infinity,
+    breakEvenRevenue: isFinite(breakEvenRevenue)
+      ? parseFloat(breakEvenRevenue.toFixed(2))
+      : Infinity,
     marginPercent: parseFloat(marginPercent.toFixed(2)),
     cashFlowRisk,
     explanation,
