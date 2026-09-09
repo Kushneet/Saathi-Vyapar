@@ -33,8 +33,10 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import VoiceOnboardingModal from '@/components/VoiceOnboardingModal';
 import LanguageToggleButton from '@/components/LanguageToggleButton';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ShowcaseHomePage() {
+  const { t } = useLanguage();
   const [activePersona, setActivePersona] = useState<'vendor' | 'tailor' | 'artisan' | 'dairy'>('vendor');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isFabOpen, setIsFabOpen] = useState(false);
@@ -93,16 +95,16 @@ export default function ShowcaseHomePage() {
           {/* Center: Nav links in cream */}
           <nav className="hidden md:flex items-center gap-7 text-[#F5F1E6]/85 text-xs font-medium tracking-wide">
             <a href="#product" className="hover:text-[#C9A24B] transition-colors">
-              Product
+              {t('nav_product')}
             </a>
             <a href="#how-it-works" className="hover:text-[#C9A24B] transition-colors">
-              How It Works
+              {t('nav_how_it_works')}
             </a>
             <a href="#impact" className="hover:text-[#C9A24B] transition-colors">
-              Impact
+              {t('nav_impact')}
             </a>
             <a href="#team" className="hover:text-[#C9A24B] transition-colors">
-              Team
+              {t('nav_team')}
             </a>
           </nav>
 
@@ -113,13 +115,13 @@ export default function ShowcaseHomePage() {
               href="/login"
               className="hidden sm:inline-block text-xs text-[#F5F1E6]/80 hover:text-[#F5F1E6] font-medium px-3 py-1.5 transition-colors"
             >
-              Sign In
+              {t('nav_login')}
             </Link>
             <Link
               href="/onboarding"
               className="border border-[#C9A24B] text-[#C9A24B] hover:bg-[#C9A24B] hover:text-[#0B1E33] font-semibold text-xs sm:text-sm px-5 py-2 rounded-full transition-all duration-300 shadow-sm"
             >
-              Try the Demo
+              {t('nav_try_demo')}
             </Link>
           </div>
         </div>
@@ -133,23 +135,19 @@ export default function ShowcaseHomePage() {
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0B1E33]/5 border border-[#C9A24B]/30 mb-6">
           <span className="w-2 h-2 rounded-full bg-[#C9A24B] animate-pulse" />
           <p className="text-[11px] sm:text-xs font-bold text-[#C9A24B] tracking-[0.2em] uppercase font-sans">
-            SIH26091 / Ministry of Social Justice & Empowerment / Team Pantheon Eternal
+            {t('home_badge')}
           </p>
         </div>
 
         {/* Primary Serif Display Headline */}
         <h1 className="font-['Playfair_Display',Georgia,serif] text-4xl sm:text-6xl md:text-7xl font-bold text-[#0B1E33] tracking-tight leading-[1.1] mb-6">
-          Bring clarity to <br className="hidden sm:inline" />
-          <span className="italic text-[#0B1E33]">every rural business</span>
+          {t('home_hero_1')} <br className="hidden sm:inline" />
+          <span className="italic text-[#0B1E33]">{t('home_hero_2')}</span>
         </h1>
 
         {/* Subtitle */}
         <p className="text-[#0B1E33]/80 font-['Inter',sans-serif] text-base sm:text-xl max-w-3xl mx-auto leading-relaxed mb-10">
-          An AI-driven hyper-local business advisor for rural micro-entrepreneurs — providing
-          provably deterministic break-even calculations, handwritten ledger OCR, and instant
-          government scheme matching on <span className="font-semibold text-[#0B1E33]">WhatsApp</span>,{' '}
-          <span className="font-semibold text-[#0B1E33]">SMS</span>, or the{' '}
-          <span className="font-semibold text-[#0B1E33]">web</span>.
+          {t('home_hero_sub')}
         </p>
 
         {/* Action Button Group */}
@@ -158,20 +156,20 @@ export default function ShowcaseHomePage() {
             href="/onboarding"
             className="px-8 py-4 bg-[#0B1E33] hover:bg-[#142D4B] text-[#F5F1E6] font-semibold text-sm rounded-full shadow-[0_10px_30px_rgba(11,30,51,0.2)] hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
           >
-            Launch Advisory Demo
+            {t('home_cta_demo')}
           </Link>
           <button
             onClick={() => setIsVoiceModalOpen(true)}
             className="px-7 py-4 bg-[#F5F1E6] border border-[#C9A24B] text-[#0B1E33] hover:bg-[#C9A24B] hover:text-[#0B1E33] font-semibold text-sm rounded-full transition-all duration-300 shadow-sm flex items-center gap-2"
           >
             <span>🎙️</span>
-            <span>Voice Registration</span>
+            <span>{t('home_cta_voice')}</span>
           </button>
           <Link
             href="/facilitator"
             className="px-6 py-4 text-[#0B1E33]/80 hover:text-[#0B1E33] font-semibold text-sm rounded-full hover:bg-[#0B1E33]/5 transition-colors"
           >
-            Facilitator Hub →
+            {t('home_cta_facilitator')}
           </Link>
         </div>
 
@@ -193,20 +191,20 @@ export default function ShowcaseHomePage() {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#C9A24B]">
-                  Live Rural Deployment
+                  {t('home_live_badge')}
                 </span>
               </div>
               <p className="font-['Playfair_Display',Georgia,serif] text-base sm:text-lg font-bold mt-1">
                 Ramesh General Store · Satara District
               </p>
               <p className="text-xs text-[#F5F1E6]/80 font-sans mt-0.5">
-                Break-Even: 12 units/day · Net Margin +28.4%
+                {t('home_live_metrics')}
               </p>
             </div>
 
             <div className="bg-[#0B1E33]/80 backdrop-blur-md border border-[#C9A24B]/40 px-4 py-2.5 rounded-full text-xs text-[#F5F1E6] flex items-center gap-2">
               <span className="text-[#C9A24B]">✓</span>
-              <span>Zero-Bandwidth WhatsApp & SMS Handshake Active</span>
+              <span>{t('home_live_handshake')}</span>
             </div>
           </div>
         </div>
@@ -218,7 +216,7 @@ export default function ShowcaseHomePage() {
       <section className="py-8 bg-[#F5F1E6] border-y border-[#C9A24B]/25 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 text-center mb-3">
           <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.28em] text-[#C9A24B]">
-            Connects you to
+            {t('home_trust_title')}
           </span>
         </div>
         <div className="relative w-full overflow-hidden flex items-center">
@@ -253,19 +251,19 @@ export default function ShowcaseHomePage() {
         {/* Background Large Serif Watermark Heading */}
         <div className="absolute inset-x-0 top-12 text-center pointer-events-none select-none z-0">
           <h2 className="font-['Playfair_Display',Georgia,serif] text-6xl sm:text-8xl md:text-9xl font-bold text-[#0B1E33]/[0.06] tracking-tight">
-            Financial Clarity
+            {t('home_collage_eyebrow')}
           </h2>
         </div>
 
         <div className="relative z-10 text-center max-w-2xl mx-auto mb-16">
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#C9A24B]">
-            Product Moments in Action
+            {t('home_collage_label')}
           </span>
           <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] mt-2">
-            Every Touchpoint Designed for Reality
+            {t('home_collage_title')}
           </h3>
           <p className="text-sm sm:text-base text-[#0B1E33]/70 font-sans mt-3">
-            Layered advisory moments bridging conversational voice messages to formal banking readiness.
+            {t('home_collage_sub')}
           </p>
         </div>
 
@@ -275,7 +273,7 @@ export default function ShowcaseHomePage() {
           <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#25D366] flex items-center gap-1.5 bg-[#25D366]/10 px-3 py-1 rounded-full">
-                <span>💬</span> WhatsApp Voice Ingestion
+                <span>💬</span> {t('home_voice_ingestion')}
               </span>
               <span className="text-[10px] text-[#0B1E33]/50 font-mono">0.82s Latency</span>
             </div>
@@ -296,7 +294,7 @@ export default function ShowcaseHomePage() {
             </div>
             <div className="p-3 bg-[#0B1E33]/5 rounded-2xl border border-[#0B1E33]/10">
               <p className="text-xs font-semibold text-[#0B1E33]">
-                AI Extraction: +₹1,200 Revenue, -₹400 Expense → Daily Cash Flow Balanced.
+                {t('home_ai_extraction')}
               </p>
             </div>
           </div>
@@ -305,18 +303,18 @@ export default function ShowcaseHomePage() {
           <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#C9A24B] uppercase tracking-wider">
-                Deterministic Math
+                {t('home_det_math')}
               </span>
               <span className="text-xs bg-[#0B1E33] text-white px-2.5 py-0.5 rounded-full font-mono">
-                Verified
+                {t('home_verified')}
               </span>
             </div>
             <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold text-[#0B1E33]">
-              Break-Even: 12 units/day
+              {t('home_breakeven_12')}
             </h4>
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs font-medium text-[#0B1E33]/70">
-                <span>Daily Sales Progress (16 units)</span>
+                <span>{t('home_daily_progress')}</span>
                 <span className="text-[#0B1E33] font-bold">133% Target</span>
               </div>
               <div className="w-full bg-[#EFECE4] h-3 rounded-full overflow-hidden">
@@ -324,7 +322,7 @@ export default function ShowcaseHomePage() {
               </div>
             </div>
             <p className="text-xs text-[#0B1E33]/70 leading-relaxed">
-              Every unit sold above 12 yields ₹45 pure net contribution toward debt servicing.
+              {t('home_unit_contrib')}
             </p>
           </div>
 
@@ -333,25 +331,25 @@ export default function ShowcaseHomePage() {
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                Eligible Match · 94%
+                {t('home_eligible_match')}
               </span>
-              <span className="text-xs text-[#C9A24B] font-bold">Priority Scheme</span>
+              <span className="text-xs text-[#C9A24B] font-bold">{t('home_priority_scheme')}</span>
             </div>
             <div>
               <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
                 PMEGP (KVIC)
               </h4>
               <p className="text-xs text-[#C9A24B] font-semibold mt-0.5">
-                35% Capital Subsidy for Rural Enterprises
+                {t('home_pmegp_sub')}
               </p>
             </div>
             <div className="bg-[#F5F1E6] p-3 rounded-2xl border border-[#C9A24B]/20 text-xs text-[#0B1E33]/80 space-y-1">
               <div className="flex justify-between">
-                <span>Max Loan Amount:</span>
+                <span>{t('home_max_loan')}</span>
                 <span className="font-bold text-[#0B1E33]">₹10,00,000</span>
               </div>
               <div className="flex justify-between">
-                <span>Government Subsidy:</span>
+                <span>{t('home_govt_subsidy')}</span>
                 <span className="font-bold text-emerald-700">₹3,50,000 (Non-repayable)</span>
               </div>
             </div>
@@ -361,25 +359,25 @@ export default function ShowcaseHomePage() {
           <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#0B1E33] uppercase tracking-wider">
-                📸 Notebook OCR
+                {t('home_ocr_title')}
               </span>
               <span className="text-xs text-[#C9A24B] font-mono">Bahi-Khata</span>
             </div>
             <h4 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33]">
-              Photo to Structured Ledger
+              {t('home_ocr_sub')}
             </h4>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="bg-[#EFECE4] p-2.5 rounded-xl">
-                <span className="text-[10px] text-[#0B1E33]/60 block font-bold">RAW KHATA NOTEBOOK</span>
+                <span className="text-[10px] text-[#0B1E33]/60 block font-bold">{t('home_raw_khata')}</span>
                 <span className="italic text-[#0B1E33]/80 font-serif">“रोहन ₹240 जमा, तेल ₹180 बाकी”</span>
               </div>
               <div className="bg-[#0B1E33] p-2.5 rounded-xl text-white">
-                <span className="text-[10px] text-[#C9A24B] block font-bold">PARSED LEDGER</span>
+                <span className="text-[10px] text-[#C9A24B] block font-bold">{t('home_parsed_ledger')}</span>
                 <span className="font-mono text-[11px]">+₹240 In / -₹180 Rec</span>
               </div>
             </div>
             <p className="text-xs text-[#0B1E33]/70">
-              Scans handwritten Devanagari numerals directly into double-entry accounting.
+              {t('home_ocr_desc')}
             </p>
           </div>
 
@@ -387,15 +385,14 @@ export default function ShowcaseHomePage() {
           <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300 md:col-span-2 lg:col-span-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#C9A24B] uppercase tracking-wider">
-                Field Facilitator Reality
+                {t('home_field_title')}
               </span>
               <span className="text-xs bg-[#0B1E33]/5 text-[#0B1E33] px-3 py-1 rounded-full font-bold">
-                1 SHG Worker : 50 Artisans
+                {t('home_field_ratio')}
               </span>
             </div>
             <blockquote className="font-['Playfair_Display',Georgia,serif] text-lg sm:text-xl font-normal italic text-[#0B1E33] leading-relaxed">
-              “This changed how I support my entrepreneurs. Instead of guessing who qualifies for a loan,
-              we generate a verified financial dossier in 5 minutes and submit it directly to the rural bank branch.”
+              {t('home_field_quote')}
             </blockquote>
             <div className="flex items-center gap-3 pt-2">
               <div className="w-10 h-10 rounded-full bg-[#0B1E33] text-[#C9A24B] flex items-center justify-center font-bold text-sm">
@@ -403,7 +400,7 @@ export default function ShowcaseHomePage() {
               </div>
               <div>
                 <p className="text-sm font-bold text-[#0B1E33]">Sunita Devi</p>
-                <p className="text-xs text-[#0B1E33]/70">SHG Prerak & Rural Banking Mitra, Satara Cluster</p>
+                <p className="text-xs text-[#0B1E33]/70">{t('home_field_role')}</p>
               </div>
             </div>
           </div>
@@ -428,14 +425,12 @@ export default function ShowcaseHomePage() {
         </div>
 
         <blockquote className="font-['Playfair_Display',Georgia,serif] text-2xl sm:text-4xl md:text-5xl text-[#0B1E33] leading-[1.3] font-normal italic">
-          “As government schemes multiply and financial products grow more complex, rural entrepreneurs
-          are left further behind. Saathi Vyapar closes that gap — in their language, on their phone,
-          without asking them to change how they live.”
+          {t('home_manifesto_quote')}
         </blockquote>
 
         <div className="mt-8 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-[0.25em] text-[#C9A24B]">
           <span className="w-8 h-px bg-[#C9A24B]/60" />
-          <span>The Sovereign Inclusion Manifesto</span>
+          <span>{t('home_manifesto_label')}</span>
           <span className="w-8 h-px bg-[#C9A24B]/60" />
         </div>
       </section>
@@ -449,10 +444,10 @@ export default function ShowcaseHomePage() {
           <div className="lg:col-span-6 space-y-8">
             <div className="space-y-3">
               <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#C9A24B]">
-                Core Advisory Architecture
+                {t('home_engine_eyebrow')}
               </span>
               <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] leading-tight">
-                An advisor that actually understands your business.
+                {t('home_engine_title')}
               </h3>
             </div>
 
@@ -460,28 +455,28 @@ export default function ShowcaseHomePage() {
             <div className="border-l-2 border-[#C9A24B] pl-6 space-y-6">
               <div className="space-y-1.5">
                 <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                  Deterministic Financial Engine
+                  {t('home_f1_title')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
-                  Break-even and margin math that is provably correct, built on rigorous accounting axioms, and never AI-guessed or hallucinated.
+                  {t('home_f1_desc')}
                 </p>
               </div>
 
               <div className="space-y-1.5">
                 <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                  Notebook Photo to Ledger
+                  {t('home_f2_title')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
-                  Optical Character Recognition reads handwritten sales notebooks and vernacular slates, transforming daily paper records into structured balance sheets.
+                  {t('home_f2_desc')}
                 </p>
               </div>
 
               <div className="space-y-1.5">
                 <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                  Explainable by Design
+                  {t('home_f3_title')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
-                  Every recommendation shows why. Transparent logic breaks down monthly fixed costs, contribution margins, and credit repayment limits.
+                  {t('home_f3_desc')}
                 </p>
               </div>
             </div>
@@ -494,36 +489,36 @@ export default function ShowcaseHomePage() {
                 <div className="flex items-center justify-between pb-3 border-b border-[#E5E2E1]">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#C9A24B]">
-                      FINANCIAL STRUCTURING DOSSIER
+                      {t('home_dossier_label')}
                     </span>
                     <h5 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33]">
                       Shree Ganesh Tailoring · Solapur
                     </h5>
                   </div>
                   <span className="text-xs bg-[#0B1E33] text-[#F5F1E6] font-bold px-3 py-1 rounded-full">
-                    Solvent · Grade A
+                    {t('home_dossier_grade')}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-[#F5F1E6] p-3.5 rounded-2xl">
-                    <span className="text-[10px] text-[#0B1E33]/60 uppercase font-bold">Monthly Revenue</span>
+                    <span className="text-[10px] text-[#0B1E33]/60 uppercase font-bold">{t('home_dossier_revenue')}</span>
                     <p className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold text-[#0B1E33]">₹28,500</p>
-                    <span className="text-[10px] text-emerald-700 font-bold">+14% vs Last Month</span>
+                    <span className="text-[10px] text-emerald-700 font-bold">{t('home_dossier_revenue_note')}</span>
                   </div>
                   <div className="bg-[#F5F1E6] p-3.5 rounded-2xl">
-                    <span className="text-[10px] text-[#0B1E33]/60 uppercase font-bold">Gross Margin</span>
+                    <span className="text-[10px] text-[#0B1E33]/60 uppercase font-bold">{t('home_dossier_margin')}</span>
                     <p className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold text-[#C9A24B]">34.2%</p>
-                    <span className="text-[10px] text-[#0B1E33]/70">Healthy Unit Economics</span>
+                    <span className="text-[10px] text-[#0B1E33]/70">{t('home_dossier_margin_note')}</span>
                   </div>
                 </div>
 
                 <div className="p-3.5 bg-[#0B1E33] text-[#F5F1E6] rounded-2xl flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] uppercase text-[#C9A24B] font-bold">Break-Even Threshold</span>
-                    <p className="text-sm font-semibold">14 Garments per week to cover fixed costs</p>
+                    <span className="text-[10px] uppercase text-[#C9A24B] font-bold">{t('home_dossier_be')}</span>
+                    <p className="text-sm font-semibold">{t('home_dossier_be_note')}</p>
                   </div>
-                  <span className="text-xl font-bold text-[#C9A24B]">✓ Met</span>
+                  <span className="text-xl font-bold text-[#C9A24B]">{t('home_target_met')}</span>
                 </div>
               </div>
             </div>
@@ -543,10 +538,10 @@ export default function ShowcaseHomePage() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-[#C9A24B] uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    #1 Matched Scheme
+                    {t('home_yojana_matched')}
                   </span>
                   <span className="text-xs bg-emerald-900/60 text-emerald-300 font-bold px-2.5 py-0.5 rounded-full">
-                    96% Score
+                    {t('home_yojana_score')}
                   </span>
                 </div>
 
@@ -555,26 +550,26 @@ export default function ShowcaseHomePage() {
                     PMEGP — Prime Minister Employment Generation Programme
                   </h5>
                   <p className="text-xs text-[#C9A24B] font-semibold mt-1">
-                    35% Capital Subsidy for Special Category / Rural Area
+                    {t('home_yojana_sub')}
                   </p>
                 </div>
 
                 <div className="bg-white/10 p-3.5 rounded-2xl space-y-2 text-xs">
                   <p className="font-bold text-white uppercase text-[10px] tracking-wider">
-                    Document Checklist Ready:
+                    {t('home_yojana_checklist')}
                   </p>
                   <div className="space-y-1 text-[#F5F1E6]/90">
                     <div className="flex items-center gap-2">
                       <span className="text-emerald-400 font-bold">✓</span>
-                      <span>Aadhaar Card linked with mobile number</span>
+                      <span>{t('home_yojana_doc1')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-emerald-400 font-bold">✓</span>
-                      <span>EDP Training Certificate (online course matched)</span>
+                      <span>{t('home_yojana_doc2')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-emerald-400 font-bold">✓</span>
-                      <span>Detailed Project Report (Generated automatically by Saathi)</span>
+                      <span>{t('home_yojana_doc3')}</span>
                     </div>
                   </div>
                 </div>
@@ -583,7 +578,7 @@ export default function ShowcaseHomePage() {
                   href="/dashboard/schemes"
                   className="block text-center w-full py-3 rounded-full bg-[#C9A24B] hover:bg-[#d9b25a] text-[#0B1E33] font-bold text-xs uppercase tracking-wider transition-all"
                 >
-                  View Scheme Application Roadmap
+                  {t('home_yojana_cta')}
                 </Link>
               </div>
             </div>
@@ -593,38 +588,38 @@ export default function ShowcaseHomePage() {
           <div className="lg:col-span-6 space-y-8 order-1 lg:order-2">
             <div className="space-y-3">
               <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#C9A24B]">
-                Welfare Scheme Allocation
+                {t('home_welfare_eyebrow')}
               </span>
               <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] leading-tight">
-                Government support, matched automatically.
+                {t('home_welfare_title')}
               </h3>
             </div>
 
             <div className="border-l-2 border-[#C9A24B] pl-6 space-y-6">
               <div className="space-y-1.5">
                 <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                  Curated & Verified Schemes
+                  {t('home_w1_title')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
-                  Not unreliable live scraping. 15+ Central and State welfare initiatives verified directly against official ministry guidelines.
+                  {t('home_w1_desc')}
                 </p>
               </div>
 
               <div className="space-y-1.5">
                 <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                  Plain-Language Eligibility
+                  {t('home_w2_title')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
-                  Why you qualify, clearly explained in your spoken vernacular without legal jargon or fine-print ambiguity.
+                  {t('home_w2_desc')}
                 </p>
               </div>
 
               <div className="space-y-1.5">
                 <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                  Full Document Checklist
+                  {t('home_w3_title')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
-                  Know exactly what papers to gather before setting foot in a bank branch, cutting out wasted visits and mediator fees.
+                  {t('home_w3_desc')}
                 </p>
               </div>
             </div>
@@ -638,13 +633,13 @@ export default function ShowcaseHomePage() {
       <section id="impact" className="py-24 px-4 sm:px-8 max-w-7xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#C9A24B]">
-            Hyper-Local Domain Diversity
+            {t('home_usecase_eyebrow')}
           </span>
           <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] mt-2">
-            Built for every kind of entrepreneur.
+            {t('home_usecase_title')}
           </h3>
           <p className="text-sm sm:text-base text-[#0B1E33]/70 font-sans mt-3">
-            Whether running a roadside stall or a handloom guild, tailored advisory workflows align with your reality.
+            {t('home_usecase_sub')}
           </p>
 
           {/* Filter Pill Buttons */}
@@ -657,7 +652,7 @@ export default function ShowcaseHomePage() {
                   : 'bg-transparent border border-[#0B1E33]/30 text-[#0B1E33] hover:border-[#0B1E33]'
               }`}
             >
-              Vendor
+              {t('home_tab_vendor')}
             </button>
             <button
               onClick={() => setActivePersona('tailor')}
@@ -667,7 +662,7 @@ export default function ShowcaseHomePage() {
                   : 'bg-transparent border border-[#0B1E33]/30 text-[#0B1E33] hover:border-[#0B1E33]'
               }`}
             >
-              Tailor
+              {t('home_tab_tailor')}
             </button>
             <button
               onClick={() => setActivePersona('artisan')}
@@ -677,7 +672,7 @@ export default function ShowcaseHomePage() {
                   : 'bg-transparent border border-[#0B1E33]/30 text-[#0B1E33] hover:border-[#0B1E33]'
               }`}
             >
-              Artisan
+              {t('home_tab_artisan')}
             </button>
             <button
               onClick={() => setActivePersona('dairy')}
@@ -687,7 +682,7 @@ export default function ShowcaseHomePage() {
                   : 'bg-transparent border border-[#0B1E33]/30 text-[#0B1E33] hover:border-[#0B1E33]'
               }`}
             >
-              Dairy Farmer
+              {t('home_tab_dairy')}
             </button>
           </div>
         </div>
@@ -708,13 +703,13 @@ export default function ShowcaseHomePage() {
             />
             <div className="relative z-20 space-y-2 text-white">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A24B] bg-[#0B1E33]/80 px-3 py-1 rounded-full inline-block">
-                Daily Working Capital
+                {t('home_uc1_label')}
               </span>
               <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold">
-                The Vegetable Vendor
+                {t('home_uc1_title')}
               </h4>
               <p className="text-sm text-[#F5F1E6]/90 font-sans leading-relaxed">
-                Pricing and daily cash-flow clarity, preventing wholesale market losses and debt traps.
+                {t('home_uc1_desc')}
               </p>
             </div>
           </div>
@@ -733,13 +728,13 @@ export default function ShowcaseHomePage() {
             />
             <div className="relative z-20 space-y-2 text-white">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A24B] bg-[#0B1E33]/80 px-3 py-1 rounded-full inline-block">
-                Home Enterprise Scale
+                {t('home_uc2_label')}
               </span>
               <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold">
-                The Tailor
+                {t('home_uc2_title')}
               </h4>
               <p className="text-sm text-[#F5F1E6]/90 font-sans leading-relaxed">
-                Knowing which loan actually fits a home business without predatory interest rates.
+                {t('home_uc2_desc')}
               </p>
             </div>
           </div>
@@ -758,13 +753,13 @@ export default function ShowcaseHomePage() {
             />
             <div className="relative z-20 space-y-2 text-white">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A24B] bg-[#0B1E33]/80 px-3 py-1 rounded-full inline-block">
-                Heritage Trade Formalization
+                {t('home_uc3_label')}
               </span>
               <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold">
-                The Artisan
+                {t('home_uc3_title')}
               </h4>
               <p className="text-sm text-[#F5F1E6]/90 font-sans leading-relaxed">
-                Turning informal skill into a registered, fundable trade linked with Vishwakarma and Mudra.
+                {t('home_uc3_desc')}
               </p>
             </div>
           </div>
@@ -783,13 +778,13 @@ export default function ShowcaseHomePage() {
             />
             <div className="relative z-20 space-y-2 text-white">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A24B] bg-[#0B1E33]/80 px-3 py-1 rounded-full inline-block">
-                Agrarian Risk Buffer
+                {t('home_uc4_label')}
               </span>
               <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold">
-                The Dairy Farmer
+                {t('home_uc4_title')}
               </h4>
               <p className="text-sm text-[#F5F1E6]/90 font-sans leading-relaxed">
-                Seasonal risk planning made simple, hedging milk yield cycles against cattle feed outlays.
+                {t('home_uc4_desc')}
               </p>
             </div>
           </div>
@@ -805,8 +800,7 @@ export default function ShowcaseHomePage() {
         </span>
 
         <blockquote className="font-['Playfair_Display',Georgia,serif] text-2xl sm:text-4xl text-[#0B1E33] leading-relaxed italic font-normal">
-          “For the first time, I know exactly how much my shop actually makes — and which government
-          scheme I can use to grow it.”
+          {t('home_testimonial_quote')}
         </blockquote>
 
         <div className="mt-8 flex flex-col items-center gap-2">
@@ -815,7 +809,7 @@ export default function ShowcaseHomePage() {
           </div>
           <p className="text-sm font-bold text-[#0B1E33]">Ramesh Patil</p>
           <p className="text-xs text-[#0B1E33]/60 italic">
-            Illustrative user persona, based on target entrepreneur research
+            {t('home_testimonial_note')}
           </p>
         </div>
       </section>
@@ -827,17 +821,17 @@ export default function ShowcaseHomePage() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-12">
           <div>
             <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#C9A24B]">
-              The Horizon
+              {t('home_horizon_eyebrow')}
             </span>
             <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] mt-1">
-              Where this is headed
+              {t('home_horizon_title')}
             </h3>
           </div>
           <Link
             href="/dashboard/business-guide"
             className="text-xs sm:text-sm font-bold text-[#0B1E33] hover:text-[#C9A24B] flex items-center gap-1.5 transition-colors border-b border-[#0B1E33]/30 pb-0.5"
           >
-            <span>View Full Roadmap</span>
+            <span>{t('home_horizon_cta')}</span>
             <span>→</span>
           </Link>
         </div>
@@ -849,14 +843,14 @@ export default function ShowcaseHomePage() {
             <div className="flex items-center justify-between">
               <span className="text-2xl">🗣️</span>
               <span className="text-[10px] font-bold uppercase tracking-wider bg-[#0B1E33]/5 text-[#0B1E33] px-3 py-1 rounded-full border border-[#0B1E33]/15">
-                Future Scope
+                {t('home_future_scope')}
               </span>
             </div>
             <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-              Voice Assistant Onboarding
+              {t('home_r1_title')}
             </h4>
             <p className="text-sm text-[#0B1E33]/70 leading-relaxed">
-              Talk instead of type to register. Full conversational voice registration in Marathi, Tamil, Bengali, and 12 regional dialects.
+              {t('home_r1_desc')}
             </p>
           </div>
 
@@ -865,14 +859,14 @@ export default function ShowcaseHomePage() {
             <div className="flex items-center justify-between">
               <span className="text-2xl">👥</span>
               <span className="text-[10px] font-bold uppercase tracking-wider bg-[#0B1E33]/5 text-[#0B1E33] px-3 py-1 rounded-full border border-[#0B1E33]/15">
-                Future Scope
+                {t('home_future_scope')}
               </span>
             </div>
             <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-              Facilitator Network
+              {t('home_r2_title')}
             </h4>
             <p className="text-sm text-[#0B1E33]/70 leading-relaxed">
-              One SHG worker, many entrepreneurs. Village-level animators driving batch enrollment and multi-firm subsidy tracking.
+              {t('home_r2_desc')}
             </p>
           </div>
 
@@ -881,14 +875,14 @@ export default function ShowcaseHomePage() {
             <div className="flex items-center justify-between">
               <span className="text-2xl">🏛️</span>
               <span className="text-[10px] font-bold uppercase tracking-wider bg-[#0B1E33]/5 text-[#0B1E33] px-3 py-1 rounded-full border border-[#0B1E33]/15">
-                Future Scope
+                {t('home_future_scope')}
               </span>
             </div>
             <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-              Full Scheme Coverage
+              {t('home_r3_title')}
             </h4>
             <p className="text-sm text-[#0B1E33]/70 leading-relaxed">
-              Expanding beyond the initial curated dataset via official state-level data partnerships and automated portal linkages.
+              {t('home_r3_desc')}
             </p>
           </div>
         </div>
@@ -908,10 +902,10 @@ export default function ShowcaseHomePage() {
 
           <div className="space-y-4 max-w-2xl mx-auto">
             <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] leading-tight">
-              Experience business advisory, reimagined for rural India.
+              {t('home_closing_title')}
             </h3>
             <p className="text-sm sm:text-base text-[#0B1E33]/75 font-sans leading-relaxed">
-              Available today via zero-bandwidth SMS, WhatsApp voice note, or the web portal.
+              {t('home_closing_sub')}
             </p>
           </div>
 
@@ -920,7 +914,7 @@ export default function ShowcaseHomePage() {
               href="/onboarding"
               className="px-8 py-4 bg-[#0B1E33] hover:bg-[#142D4B] text-[#F5F1E6] font-semibold text-sm rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
             >
-              Watch the Demo
+              {t('home_closing_demo')}
             </Link>
             <a
               href="https://github.com/dev-lover-codes/Saathi-Vyapar"
@@ -928,7 +922,7 @@ export default function ShowcaseHomePage() {
               rel="noopener noreferrer"
               className="px-8 py-4 bg-transparent border border-[#C9A24B] text-[#0B1E33] hover:bg-[#C9A24B] hover:text-[#0B1E33] font-semibold text-sm rounded-full transition-all"
             >
-              View on GitHub
+              {t('home_closing_github')}
             </a>
           </div>
         </div>
@@ -954,7 +948,7 @@ export default function ShowcaseHomePage() {
                 </span>
               </div>
               <p className="text-xs text-[#F5F1E6]/75 leading-relaxed">
-                AI-driven hyper-local business advisory and financial structuring for India’s 63+ million rural micro-enterprises.
+                {t('home_footer_desc')}
               </p>
               <div className="flex items-center gap-3 pt-2">
                 <a
@@ -985,26 +979,26 @@ export default function ShowcaseHomePage() {
             {/* Column 2: Project */}
             <div className="space-y-3 text-xs">
               <span className="font-bold uppercase tracking-widest text-[#C9A24B] block mb-2">
-                Project
+                {t('home_footer_project')}
               </span>
               <p>
                 <a href="#product" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Product Overview
+                  {t('home_footer_product_overview')}
                 </a>
               </p>
               <p>
                 <a href="#how-it-works" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Architecture & Engines
+                  {t('home_footer_architecture')}
                 </a>
               </p>
               <p>
                 <a href="#impact" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Impact & Personas
+                  {t('home_footer_impact')}
                 </a>
               </p>
               <p>
                 <Link href="/dashboard" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Live Dashboard
+                  {t('home_footer_dashboard')}
                 </Link>
               </p>
             </div>
@@ -1012,16 +1006,16 @@ export default function ShowcaseHomePage() {
             {/* Column 3: Team */}
             <div className="space-y-3 text-xs">
               <span className="font-bold uppercase tracking-widest text-[#C9A24B] block mb-2">
-                Team
+                {t('nav_team')}
               </span>
               <p>
                 <span className="text-[#F5F1E6]/90 font-semibold">Team Pantheon Eternal</span>
               </p>
               <p>
-                <span className="text-[#F5F1E6]/75">Smart India Hackathon (SIH26091)</span>
+                <span className="text-[#F5F1E6]/75">{t('home_footer_sih')}</span>
               </p>
               <p>
-                <span className="text-[#F5F1E6]/75">Ministry of Social Justice & Empowerment</span>
+                <span className="text-[#F5F1E6]/75">{t('home_footer_ministry')}</span>
               </p>
               <p>
                 <a
@@ -1030,7 +1024,7 @@ export default function ShowcaseHomePage() {
                   rel="noopener noreferrer"
                   className="text-[#C9A24B] hover:underline"
                 >
-                  Source Code on GitHub
+                  {t('home_footer_source')}
                 </a>
               </p>
             </div>
@@ -1038,26 +1032,26 @@ export default function ShowcaseHomePage() {
             {/* Column 4: Resources */}
             <div className="space-y-3 text-xs">
               <span className="font-bold uppercase tracking-widest text-[#C9A24B] block mb-2">
-                Resources
+                {t('home_footer_resources')}
               </span>
               <p>
                 <Link href="/dashboard/schemes" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Yojana Kendra (15+ Schemes)
+                  {t('home_footer_yojana')}
                 </Link>
               </p>
               <p>
                 <Link href="/dashboard/business-guide" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Business Transformation Guide
+                  {t('home_footer_guide')}
                 </Link>
               </p>
               <p>
                 <Link href="/facilitator" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Facilitator & SHG Hub
+                  {t('home_footer_facilitator')}
                 </Link>
               </p>
               <p>
                 <Link href="/folio" className="text-[#C9A24B] hover:underline">
-                  Stitch Archival Exhibition Folio
+                  {t('home_footer_folio')}
                 </Link>
               </p>
             </div>
@@ -1065,13 +1059,13 @@ export default function ShowcaseHomePage() {
 
           {/* Bottom Bar */}
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#F5F1E6]/60">
-            <p>© 2026 Pantheon Eternal · SIH26091 · All Rights Reserved.</p>
+            <p>{t('home_footer_copyright')}</p>
             <div className="flex items-center gap-6">
-              <span className="hover:text-[#F5F1E6] cursor-pointer">Privacy</span>
+              <span className="hover:text-[#F5F1E6] cursor-pointer">{t('home_footer_privacy')}</span>
               <span>·</span>
-              <span className="hover:text-[#F5F1E6] cursor-pointer">Terms</span>
+              <span className="hover:text-[#F5F1E6] cursor-pointer">{t('home_footer_terms')}</span>
               <span>·</span>
-              <span className="hover:text-[#F5F1E6] cursor-pointer">Accessibility</span>
+              <span className="hover:text-[#F5F1E6] cursor-pointer">{t('home_footer_accessibility')}</span>
             </div>
           </div>
         </div>
@@ -1088,7 +1082,7 @@ export default function ShowcaseHomePage() {
               className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#25D366] text-white shadow-xl hover:opacity-95 transition-all text-xs font-bold"
             >
               <span>💬</span>
-              <span>WhatsApp Advisory</span>
+              <span>{t('home_fab_whatsapp')}</span>
             </a>
             <button
               onClick={() => {
@@ -1098,7 +1092,7 @@ export default function ShowcaseHomePage() {
               className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#0B1E33] text-[#C9A24B] border border-[#C9A24B] shadow-xl hover:bg-[#142D4B] transition-all text-xs font-bold"
             >
               <span>🎙️</span>
-              <span>Voice Assistant</span>
+              <span>{t('home_fab_voice')}</span>
             </button>
           </div>
         )}

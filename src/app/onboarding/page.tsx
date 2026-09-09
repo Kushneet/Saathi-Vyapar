@@ -19,8 +19,10 @@ import Link from 'next/link';
 import VoiceOnboardingModal, { OnboardingData } from '@/components/VoiceOnboardingModal';
 import { supabaseClient } from '@/lib/supabase/client';
 import LanguageToggleButton from '@/components/LanguageToggleButton';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function OnboardingPage() {
+  const { t } = useLanguage();
   const router = useRouter();
 
   // Browser voice support state
@@ -146,23 +148,23 @@ export default function OnboardingPage() {
 
     // Step validations
     if (currentStep === 1 && !formData.name.trim()) {
-      setErrorMessage('कृपया अपना नाम दर्ज करें (Please enter your name)');
+      setErrorMessage(t('onboarding_err_name'));
       return;
     }
 
     if (currentStep === 2 && !formData.district.trim()) {
-      setErrorMessage('कृपया अपना Village or District दर्ज करें (Please enter district)');
+      setErrorMessage(t('onboarding_err_district'));
       return;
     }
 
     if (currentStep === 3 && !formData.sector.trim()) {
-      setErrorMessage('कृपया अपने काम या व्यापार का क्षेत्र चुनें या लिखें');
+      setErrorMessage(t('onboarding_err_sector'));
       return;
     }
 
     if (currentStep === 4) {
       if (formData.monthly_revenue_est <= 0) {
-        setErrorMessage('कृपया अनुमानित मासिक कमाई (Revenue) दर्ज करें');
+        setErrorMessage(t('onboarding_err_revenue'));
         return;
       }
     }
@@ -175,12 +177,12 @@ export default function OnboardingPage() {
       }
 
       if (!email.trim() || !password) {
-        setErrorMessage('कृपया अपना ईमेल और पासवर्ड दर्ज करें अथवा Google से जारी रखें (Please enter email & password or continue with Google)');
+        setErrorMessage(t('onboarding_err_credentials'));
         return;
       }
 
       if (password.length < 6) {
-        setErrorMessage('पासवर्ड कम से कम 6 अक्षरों का होना चाहिए (Password must be at least 6 characters)');
+        setErrorMessage(t('onboarding_err_password'));
         return;
       }
 
@@ -304,7 +306,7 @@ export default function OnboardingPage() {
               href="/login"
               className="text-xs font-semibold text-[#0B1E33] px-4 py-2 rounded-full border border-[#C9A24B]/40 bg-white hover:bg-[#F5F1E6] transition-all"
             >
-              Sign In
+              {t('onboarding_login')}
             </Link>
           </div>
         </div>
@@ -324,34 +326,20 @@ export default function OnboardingPage() {
           <div className="space-y-1 text-center sm:text-left border-b border-[#E5E2E1] pb-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-widest text-[#0B1E33]/50">
-                चरण {currentStep} / 8 • Step {currentStep} of 8
+                {t('onboarding_step')} {currentStep} {t('onboarding_of')}
               </span>
               {hasVoiceSupport === false && (
                 <span className="text-[11px] bg-[#F5F1E6] text-[#0B1E33]/60 px-2.5 py-0.5 rounded-full border border-[#C9A24B]/20 font-medium">
-                  टेक्स्ट मोड (Standard Mode)
+                  {t('onboarding_text_mode')}
                 </span>
               )}
             </div>
 
             <h1 className="font-['Playfair_Display',Georgia,serif] text-xl sm:text-2xl font-bold text-[#0B1E33]">
-              {currentStep === 1 && '1. आपका शुभ नाम क्या है?'}
-              {currentStep === 2 && '2. आपका Village or District कौन सा है?'}
-              {currentStep === 3 && '3. आप क्या काम या व्यापार करते हैं?'}
-              {currentStep === 4 && '4. मासिक कमाई और खर्च का विवरण'}
-              {currentStep === 5 && '5. क्या आपके ऊपर कोई पुराना लोन या कर्ज है?'}
-              {currentStep === 6 && '6. विवरण की पुष्टि करें'}
-              {currentStep === 7 && '7. अपना ईमेल और पासवर्ड दर्ज करें'}
-              {currentStep === 8 && '8. डेटा सुरक्षा सहमति (DPDP Act)'}
+              {t(`onboarding_step${currentStep}_heading`)}
             </h1>
             <p className="text-xs text-[#0B1E33]/50 leading-relaxed">
-              {currentStep === 1 && 'What is your full name?'}
-              {currentStep === 2 && 'Which village or district are you located in?'}
-              {currentStep === 3 && 'What trade or work do you do? (e.g. Kirana, Tailoring, Dairy...)'}
-              {currentStep === 4 && 'Roughly how much do you earn and spend monthly in ₹?'}
-              {currentStep === 5 && 'Do you have any existing loans or debts?'}
-              {currentStep === 6 && 'Review your business profile summary'}
-              {currentStep === 7 && 'Enter your email & password or sign in with Google'}
-              {currentStep === 8 && 'Plain-language consent before saving data'}
+              {t(`onboarding_step${currentStep}_sub`)}
             </p>
           </div>
 
@@ -369,7 +357,7 @@ export default function OnboardingPage() {
             {currentStep === 1 && (
               <div className="space-y-2">
                 <label htmlFor="name" className="block text-sm font-bold text-[#0B1E33]">
-                  उद्यमी का नाम / Full Name <span className="text-[#FF416C]">*</span>
+                  {t('onboarding_name_label')} <span className="text-[#FF416C]">*</span>
                 </label>
                 <input
                   id="name"
@@ -388,7 +376,7 @@ export default function OnboardingPage() {
             {currentStep === 2 && (
               <div className="space-y-2">
                 <label htmlFor="district" className="block text-sm font-bold text-[#0B1E33]">
-                  Village / District / Village or District <span className="text-[#FF416C]">*</span>
+                  {t('onboarding_district_label')} <span className="text-[#FF416C]">*</span>
                 </label>
                 <input
                   id="district"
@@ -407,7 +395,7 @@ export default function OnboardingPage() {
             {currentStep === 3 && (
               <div className="space-y-3">
                 <label htmlFor="sector" className="block text-sm font-bold text-[#0B1E33]">
-                  व्यापार का क्षेत्र / Business Sector <span className="text-[#FF416C]">*</span>
+                  {t('onboarding_sector_label')} <span className="text-[#FF416C]">*</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                   {[
@@ -437,7 +425,7 @@ export default function OnboardingPage() {
 
                 <div className="pt-2">
                   <label htmlFor="customSector" className="block text-xs text-[#0B1E33]/50 mb-1">
-                    या विवरण खुद लिखें (Or type custom trade):
+                    {t('onboarding_custom_sector')}
                   </label>
                   <input
                     id="customSector"
@@ -456,7 +444,7 @@ export default function OnboardingPage() {
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label htmlFor="rev" className="block text-sm font-bold text-[#0B1E33]">
-                    औसत मासिक कमाई (बिक्री) / Monthly Revenue (₹) <span className="text-[#FF416C]">*</span>
+                    {t('onboarding_revenue_label')} <span className="text-[#FF416C]">*</span>
                   </label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-3 text-[#0B1E33] font-bold">₹</span>
@@ -478,7 +466,7 @@ export default function OnboardingPage() {
 
                 <div className="space-y-1.5">
                   <label htmlFor="exp" className="block text-sm font-bold text-[#0B1E33]">
-                    औसत Monthly Expense / Monthly Expenses (₹) <span className="text-[#FF416C]">*</span>
+                    {t('onboarding_expense_label')} <span className="text-[#FF416C]">*</span>
                   </label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-3 text-[#C9A24B] font-bold">₹</span>
@@ -502,7 +490,7 @@ export default function OnboardingPage() {
             {currentStep === 5 && (
               <div className="space-y-3">
                 <label className="block text-sm font-bold text-[#0B1E33]">
-                  क्या आपके ऊपर कोई सक्रिय बैंक या समूह का लोन है? / Any Existing Loans?
+                  {t('onboarding_loans_label')}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -514,7 +502,7 @@ export default function OnboardingPage() {
                         : 'bg-[#F5F1E6] border-[#C9A24B]/20 text-[#0B1E33] hover:bg-[#EDE9DA]'
                     }`}
                   >
-                    हाँ (Yes, have loans)
+                    {t('onboarding_yes_loans')}
                   </button>
                   <button
                     type="button"
@@ -525,7 +513,7 @@ export default function OnboardingPage() {
                         : 'bg-[#F5F1E6] border-[#C9A24B]/20 text-[#0B1E33] hover:bg-[#EDE9DA]'
                     }`}
                   >
-                    नहीं (No loans)
+                    {t('onboarding_no_loans')}
                   </button>
                 </div>
               </div>
@@ -539,19 +527,19 @@ export default function OnboardingPage() {
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <span className="text-[#0B1E33]/50 block text-xs">उद्यमी का नाम:</span>
+                    <span className="text-[#0B1E33]/50 block text-xs">{t('onboarding_name_field')}</span>
                     <strong className="text-[#0B1E33] text-base">{formData.name}</strong>
                   </div>
                   <div>
-                    <span className="text-[#0B1E33]/50 block text-xs">स्थान (जिला):</span>
+                    <span className="text-[#0B1E33]/50 block text-xs">{t('onboarding_location_field')}</span>
                     <strong className="text-[#0B1E33] text-base">{formData.district}</strong>
                   </div>
                   <div>
-                    <span className="text-[#0B1E33]/50 block text-xs">व्यवसाय का क्षेत्र:</span>
+                    <span className="text-[#0B1E33]/50 block text-xs">{t('onboarding_sector_field')}</span>
                     <strong className="text-[#0B1E33] text-base capitalize">{formData.sector}</strong>
                   </div>
                   <div>
-                    <span className="text-[#0B1E33]/50 block text-xs">सक्रिय लोन:</span>
+                    <span className="text-[#0B1E33]/50 block text-xs">{t('onboarding_loan_field')}</span>
                     <strong className={formData.existing_loans ? 'text-[#FF416C]' : 'text-emerald-700'}>
                       {formData.existing_loans ? 'हाँ (Active Loan)' : 'नहीं (No Loans)'}
                     </strong>
@@ -580,19 +568,19 @@ export default function OnboardingPage() {
                     <div className="flex items-center gap-2.5">
                       <span className="text-xl">✅</span>
                       <div>
-                        <p className="font-bold text-[#0B1E33]">खाता लिंक हो चुका है (Account Linked)</p>
+                        <p className="font-bold text-[#0B1E33]">{t('onboarding_account_linked')}</p>
                         <p className="text-xs text-[#0B1E33]/50 font-mono">{authUserEmail}</p>
                       </div>
                     </div>
                     <span className="text-[11px] bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-emerald-200">
-                      सत्यापित / Linked
+                      {t('onboarding_verified')}
                     </span>
                   </div>
                 ) : (
                   <>
                     <div>
                       <label htmlFor="email" className="block text-sm font-bold text-[#0B1E33] mb-1.5">
-                        Email Address <span className="text-[#FF416C]">*</span>
+                        {t('onboarding_email_label')} <span className="text-[#FF416C]">*</span>
                       </label>
                       <input
                         id="email"
@@ -609,14 +597,14 @@ export default function OnboardingPage() {
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label htmlFor="password" className="block text-sm font-bold text-[#0B1E33]">
-                          Password <span className="text-[#FF416C]">*</span>
+                          {t('onboarding_password_label')} <span className="text-[#FF416C]">*</span>
                         </label>
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
                           className="text-xs text-[#0B1E33]/50 hover:text-[#C9A24B] font-medium cursor-pointer transition-colors"
                         >
-                          {showPassword ? 'छुपाएं (Hide)' : 'दिखाएं (Show)'}
+                          {showPassword ? t('onboarding_hide') : t('onboarding_show')}
                         </button>
                       </div>
                       <input
@@ -629,12 +617,12 @@ export default function OnboardingPage() {
                         className="w-full bg-[#F4F3EF] text-[#151515] placeholder-[#8C8880] border border-[#E5E2E1] rounded-2xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:bg-white focus:border-[#151515]"
                       />
                       <p className="text-xs text-[#0B1E33]/50 mt-1">
-                        न्यूनतम 6 अक्षर (Minimum 6 characters)
+                        {t('onboarding_min6')}
                       </p>
                     </div>
 
                     <p className="text-xs text-[#0B1E33]/50">
-                      इस ईमेल व पासवर्ड अथवा Google खाते से आप भविष्य में कभी भी सुरक्षित रूप से लॉगिन कर सकेंगे।
+                      {t('onboarding_email_helper')}
                     </p>
 
                     <div className="relative my-3 text-center">
@@ -642,7 +630,7 @@ export default function OnboardingPage() {
                         <div className="w-full border-t border-[#C9A24B]/20" />
                       </div>
                       <span className="relative bg-white px-3 text-xs text-[#0B1E33]/50 font-bold uppercase">
-                        या / OR
+                        {t('onboarding_or')}
                       </span>
                     </div>
 
@@ -653,7 +641,7 @@ export default function OnboardingPage() {
                       className="w-full cursor-pointer bg-white hover:bg-[#F5F1E6] active:scale-[0.99] text-[#0B1E33] font-bold py-3 px-4 rounded-full flex items-center justify-center gap-3 transition-all shadow-sm disabled:opacity-60 border border-[#C9A24B]/30"
                     >
                       {isGoogleLoading ? (
-                        <span className="text-sm font-semibold text-[#0B1E33]">Connecting to Google...</span>
+                        <span className="text-sm font-semibold text-[#0B1E33]">{t('onboarding_google_loading')}</span>
                       ) : (
                         <>
                           <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
@@ -663,7 +651,7 @@ export default function OnboardingPage() {
                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                           </svg>
                           <span className="text-sm font-bold text-[#0B1E33]">
-                            Google से लिंक करें (Continue with Google)
+                            {t('onboarding_google')}
                           </span>
                         </>
                       )}
@@ -679,12 +667,12 @@ export default function OnboardingPage() {
                 <div className="p-4 rounded-2xl bg-[#F5F1E6] border border-[#C9A24B]/20 space-y-2.5">
                   <div className="flex items-center gap-2 text-[#0B1E33] font-bold text-sm">
                     <span className="text-lg">🛡️</span>
-                    <span>डेटा सुरक्षा एवं गोपनीयता सहमति (DPDP Act 2023)</span>
+                    <span>{t('onboarding_consent_title')}</span>
                   </div>
                   <p className="text-xs sm:text-sm text-[#0B1E33]/60 leading-relaxed">
                     &quot;Do you agree to let us store this information to give you advice?&quot;
                     <br />
-                    क्या आप हमें व्यापारिक सलाह (Break-even, Margin) और सरकारी सब्सिडी योजनाएं (PMEGP, Mudra) ढूंढने के लिए यह जानकारी सुरक्षित रूप से सेव करने की अनुमति देते हैं?
+                    {t('onboarding_consent_text')}
                   </p>
                 </div>
 
@@ -697,7 +685,7 @@ export default function OnboardingPage() {
                     className="w-5 h-5 mt-0.5 rounded accent-[#C9A24B] focus:ring-[#C9A24B]/20 border-[#C9A24B]/30"
                   />
                   <span className="text-xs sm:text-sm text-[#0B1E33] font-medium leading-relaxed">
-                    हाँ, मैं अपनी जानकारी सुरक्षित रूप से सेव करने की अनुमति देता/देती हूँ। (I give consent to store my data)
+                    {t('onboarding_consent_check')}
                   </span>
                 </label>
               </div>
@@ -722,14 +710,14 @@ export default function OnboardingPage() {
                   }}
                   className="px-5 py-2.5 rounded-full bg-[#F5F1E6] hover:bg-[#EDE9DA] text-[#0B1E33] text-xs sm:text-sm font-semibold border border-[#C9A24B]/30 transition-all cursor-pointer"
                 >
-                  ← पिछला (Back)
+                  {t('onboarding_back')}
                 </button>
               ) : (
                 <Link
                   href="/"
                   className="text-xs text-[#0B1E33]/50 hover:text-[#151515] underline"
                 >
-                  होमपेज (Home)
+                  {t('onboarding_home')}
                 </Link>
               )}
 
@@ -741,8 +729,8 @@ export default function OnboardingPage() {
                 {isSubmitting
                   ? '⏳ खाता तैयार हो रहा है...'
                   : currentStep === 8
-                  ? 'सहमति दें और खाता बनाएं (Complete) →'
-                  : 'आगे बढ़ें (Next) →'}
+                  ? t('onboarding_complete')
+                  : t('onboarding_next')}
               </button>
             </div>
           </form>
@@ -751,7 +739,7 @@ export default function OnboardingPage() {
 
       {/* ── Footer ────────────────────────────────────────────────── */}
       <footer className="border-t border-[#E5E2E1] py-4 text-center text-xs text-[#0B1E33]/50">
-        Saathi Vyapar • सुरक्षित एवं पारदर्शी ग्रामीण वित्तीय प्रणाली
+        {t('onboarding_footer')}
       </footer>
     </div>
   );

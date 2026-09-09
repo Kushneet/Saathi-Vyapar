@@ -58,3 +58,6 @@ bluepront.md
 .mcp.json
 # Supabase CLI temp
 supabase/.temp/
+
+# Python scratch from tooling
+__pycache__/

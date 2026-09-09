@@ -14,6 +14,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase/client';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export type OnboardingStep =
   | 'auth'
@@ -151,6 +152,7 @@ export default function VoiceOnboardingModal({
   onClose,
   onSwitchToText,
 }: VoiceOnboardingModalProps) {
+  const { language, t } = useLanguage();
   const router = useRouter();
 
   // Current conversational step
@@ -257,7 +259,7 @@ export default function VoiceOnboardingModal({
       if (preferredVoice) {
         utterance.voice = preferredVoice;
       }
-      utterance.lang = 'hi-IN';
+      utterance.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
 
       utterance.onstart = () => {
         setIsSpeaking(true);
@@ -275,7 +277,7 @@ export default function VoiceOnboardingModal({
 
       synth.speak(utterance);
     },
-    []
+    [language]
   );
 
   // 3. Speech Recognition: Start Listening
@@ -309,7 +311,8 @@ export default function VoiceOnboardingModal({
       recognitionRef.current = recognition;
       recognition.continuous = false;
       recognition.interimResults = true;
-      recognition.lang = 'hi-IN'; // Also handles Hinglish / Indian speech well
+      // en-IN still handles Hinglish well; hi-IN stays the default for Hindi.
+      recognition.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -345,7 +348,7 @@ export default function VoiceOnboardingModal({
       console.error('Failed to start speech recognition:', err);
       setIsListening(false);
     }
-  }, []);
+  }, [language]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
@@ -365,7 +368,7 @@ export default function VoiceOnboardingModal({
     const promptObj = STEP_PROMPTS[step];
     if (!promptObj) return;
 
-    let speechText = promptObj.hi;
+    let speechText = language === 'hi' ? promptObj.hi : promptObj.en;
 
     if (step === 'confirmation') {
       const loanText = formData.existing_loans ? 'सक्रिय लोन है' : 'कोई लोन नहीं';
@@ -381,6 +384,7 @@ export default function VoiceOnboardingModal({
     });
   }, [
     step,
+    language,
     isOpen,
     speakText,
     startListening,
@@ -557,13 +561,13 @@ export default function VoiceOnboardingModal({
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-[#0B1E33] flex items-center gap-2">
-              वॉइस ऑनबोर्डिंग (Voice Registration)
+              {t('voice_title')}
               <span className="text-[10px] font-bold bg-[#F5F1E6] text-[#0B1E33]/60 px-2.5 py-0.5 rounded-full border border-[#C9A24B]/20">
-                DPDP Compliant
+                {t('voice_dpdp')}
               </span>
             </h2>
             <p className="text-xs text-[#0B1E33]/50">
-              चरण: {currentPrompt?.short || 'पंजीकरण'}
+              {t('voice_step')}: {currentPrompt?.short || t('voice_step_default')}
             </p>
           </div>
         </div>
