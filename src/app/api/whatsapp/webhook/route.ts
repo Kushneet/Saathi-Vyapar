@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { handleIncomingMessage } from '@/lib/orchestrator/conversationOrchestrator';
+import { verifyWhatsAppSignature } from '@/lib/webhooks/verifySignature';
 
 const WHATSAPP_API_BASE = 'https://graph.facebook.com/v19.0';
 
@@ -41,10 +42,29 @@ export async function GET(request: NextRequest) {
 // ── Incoming messages (POST) ──────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-  let body: WhatsAppWebhookBody;
-
+  // The signature is computed over the raw bytes, so read text (not json())
+  // and parse afterwards — re-serializing would change the digest.
+  let rawBody: string;
   try {
-    body = await request.json();
+    rawBody = await request.text();
+  } catch {
+    return NextResponse.json({ error: 'Could not read request body' }, { status: 400 });
+  }
+
+  const verification = verifyWhatsAppSignature(
+    rawBody,
+    request.headers.get('x-hub-signature-256')
+  );
+  if (!verification.valid) {
+    // Unsigned deliveries could otherwise write rows for any phone number and
+    // make this app send WhatsApp messages from its own number on demand.
+    console.warn('Rejected WhatsApp webhook:', verification.reason);
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
+  }
+
+  let body: WhatsAppWebhookBody;
+  try {
+    body = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }

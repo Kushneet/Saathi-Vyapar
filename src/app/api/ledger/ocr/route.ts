@@ -11,6 +11,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Tesseract from 'tesseract.js';
 import { supabaseServer } from '@/lib/supabase/server';
+import { requireApiUser, resolveTargetUserId, forbidden } from '@/lib/auth/requireUser';
+
+/** Upload limits — OCR is expensive, so bound the work a single call can cause. */
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -92,6 +97,11 @@ function parseOcrText(rawText: string): ParsedEntry[] {
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
+  // Ledger writes land in someone's books — never accept an unauthenticated
+  // caller, and never take the owner's id from the form body.
+  const auth = await requireApiUser();
+  if (!auth.ok) return auth.response;
+
   let formData: FormData;
 
   try {
@@ -105,7 +115,12 @@ export async function POST(request: NextRequest) {
 
   // ── 1. Extract image file ──────────────────────────────────────────────────
   const imageFile = formData.get('image') as File | null;
-  const userId = formData.get('user_id') as string | null;
+
+  // A supplied user_id is only a request to write into a linked entrepreneur's
+  // ledger; the default and the fallback are always the session user.
+  const requestedUserId = (formData.get('user_id') as string | null) || null;
+  const userId = await resolveTargetUserId(auth.user, requestedUserId);
+  if (!userId) return forbidden();
 
   if (!imageFile) {
     return NextResponse.json(
@@ -114,10 +129,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!userId) {
+  if (imageFile.size > MAX_IMAGE_BYTES) {
     return NextResponse.json(
-      { error: 'Missing "user_id" field in form data' },
-      { status: 400 }
+      { error: 'Image is too large. Please upload a photo under 8 MB.' },
+      { status: 413 }
+    );
+  }
+
+  if (imageFile.type && !ALLOWED_MIME_TYPES.includes(imageFile.type.toLowerCase())) {
+    return NextResponse.json(
+      { error: 'Unsupported file type. Please upload a JPEG, PNG or WebP photo.' },
+      { status: 415 }
     );
   }
 

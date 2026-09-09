@@ -16,12 +16,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { GoogleGenAI } from '@google/genai';
 import { supabaseServer } from '@/lib/supabase/server';
+import { requireApiUser, resolveTargetUserId, forbidden } from '@/lib/auth/requireUser';
 import { generateFinancialSummary } from '@/lib/engines/financialEngine';
 import { matchSchemes, SchemeRecord, BusinessProfile } from '@/lib/engines/schemeMatcher';
 
 // ── Request validation schema ─────────────────────────────────────────────────
+// `user_id` is optional and no longer authoritative: the caller's identity
+// comes from the session cookie. Supplying it only means "act on this
+// entrepreneur's behalf", which is honoured for linked facilitators.
 const GeneratePlanSchema = z.object({
-  user_id: z.string().uuid('user_id must be a valid UUID'),
+  user_id: z.string().uuid('user_id must be a valid UUID').optional(),
 });
 
 // ── Gemini client initialization (lazy-safe) ──────────────────────────────────
@@ -50,6 +54,10 @@ const LANGUAGE_NAMES: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
+    // ── 0. Authenticate ────────────────────────────────────────────────────
+    const auth = await requireApiUser();
+    if (!auth.ok) return auth.response;
+
     // ── 1. Parse & validate request body ───────────────────────────────────
     let body: unknown;
     try {
@@ -66,7 +74,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { user_id } = parsed.data;
+    const user_id = await resolveTargetUserId(auth.user, parsed.data.user_id);
+    if (!user_id) return forbidden();
 
     // ── 2. Fetch user (for language preference) ────────────────────────────
     const { data: user, error: userError } = await supabaseServer
@@ -262,7 +271,7 @@ STRICT RULES:
   } catch (error) {
     console.error('Plan generation error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: String(error) },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

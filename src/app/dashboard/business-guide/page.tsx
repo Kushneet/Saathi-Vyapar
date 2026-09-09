@@ -125,32 +125,40 @@ function BusinessGuideContent() {
   useEffect(() => {
     async function loadData() {
       try {
-        let activeUserId: string | null = paramUserId || null;
+        // Prefer the signed-in user over the URL. `?user_id=` is only a
+        // facilitator hint; RLS decides whether the read is actually allowed.
+        let activeUserId: string | null = null;
 
-        if (!activeUserId) {
+        {
           const {
             data: { session },
           } = await supabaseClient.auth.getSession();
 
           if (session?.user) {
             activeUserId = session.user.id;
-          } else {
-            // Fallback to latest active user for demonstration
-            const { data: latestUsers } = await supabaseClient
-              .from('users')
-              .select('id, name')
-              .order('created_at', { ascending: false })
-              .limit(1);
-
-            if (latestUsers && latestUsers.length > 0) {
-              activeUserId = latestUsers[0].id;
-              setUserName(latestUsers[0].name || 'उद्यमी');
-            }
+          } else if (paramUserId) {
+            // No session: the only id worth trying is the one in the URL, and
+            // RLS will refuse it unless the viewer is entitled to it. The old
+            // "fall back to the newest user in the table" branch is gone.
+            activeUserId = paramUserId;
           }
         }
 
         if (activeUserId) {
           setUserId(activeUserId);
+
+          // Header name: previously only ever set by the removed
+          // "latest user in the table" branch, so a signed-in user always
+          // saw the placeholder.
+          const { data: userRow } = await supabaseClient
+            .from('users')
+            .select('name')
+            .eq('id', activeUserId)
+            .maybeSingle();
+
+          if (userRow?.name) {
+            setUserName(userRow.name);
+          }
 
           // Fetch business profile
           const { data: profile } = await supabaseClient

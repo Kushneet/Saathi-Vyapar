@@ -10,33 +10,36 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { handleIncomingMessage } from '@/lib/orchestrator/conversationOrchestrator';
+import { verifyTwilioSignature } from '@/lib/webhooks/verifySignature';
 
 export async function POST(request: NextRequest) {
-  let from = '';
-  let body = '';
-
+  // Read the body once as text: it is both the form payload and the input to
+  // the signature check, and consuming it twice is not possible.
+  let rawText: string;
   try {
-    // Twilio sends application/x-www-form-urlencoded
-    const formData = await request.formData();
-    from = (formData.get('From') as string) || '';
-    body = (formData.get('Body') as string) || '';
+    rawText = await request.text();
   } catch {
-    try {
-      // Fallback: parse raw text body manually
-      const rawText = await request.text();
-      const params = new URLSearchParams(rawText);
-      from = params.get('From') || '';
-      body = params.get('Body') || '';
-    } catch {
-      return new NextResponse(
-        twimlResponse('System error: could not parse request.'),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'text/xml' },
-        }
-      );
-    }
+    return new NextResponse(twimlResponse('System error: could not parse request.'), {
+      status: 400,
+      headers: { 'Content-Type': 'text/xml' },
+    });
   }
+
+  const params: Record<string, string> = {};
+  new URLSearchParams(rawText).forEach((value, key) => {
+    params[key] = value;
+  });
+
+  // Reject anything Twilio did not sign — an unsigned POST could otherwise
+  // drive the state machine and write rows as any phone number.
+  const verification = verifyTwilioSignature(request, params);
+  if (!verification.valid) {
+    console.warn('Rejected SMS webhook:', verification.reason);
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
+  }
+
+  const from = params.From || '';
+  const body = params.Body || '';
 
   if (!from) {
     return new NextResponse(twimlResponse('Missing sender phone number.'), {

@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { GoogleGenAI } from '@google/genai';
 import { supabaseServer } from '@/lib/supabase/server';
+import { requireApiUser, resolveTargetUserId, forbidden } from '@/lib/auth/requireUser';
 
 const FIXED_STAGES = [
   'Cost Optimization',
@@ -36,8 +37,11 @@ export interface RoadmapStageItem {
   impact_milestone: string;
 }
 
+// `user_id` is optional and not authoritative — identity comes from the
+// session cookie; passing an id is a request to act for that entrepreneur,
+// honoured only for a linked facilitator.
 const GenerateGuideSchema = z.object({
-  user_id: z.string().uuid('user_id must be a valid UUID'),
+  user_id: z.string().uuid('user_id must be a valid UUID').optional(),
   challenge_text: z.string().min(3, 'Please describe your business challenge'),
 });
 
@@ -118,6 +122,9 @@ function generateFallbackRoadmap(
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireApiUser();
+    if (!auth.ok) return auth.response;
+
     let body: unknown;
     try {
       body = await request.json();
@@ -133,7 +140,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { user_id, challenge_text } = parsed.data;
+    const { challenge_text } = parsed.data;
+
+    const user_id = await resolveTargetUserId(auth.user, parsed.data.user_id);
+    if (!user_id) return forbidden();
 
     // 1. Fetch user & business profile from Supabase
     const { data: profile } = await supabaseServer
@@ -279,7 +289,7 @@ Generate the 5-stage transformation roadmap in JSON format matching this schema:
   } catch (error) {
     console.error('Business guide generate error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: String(error) },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

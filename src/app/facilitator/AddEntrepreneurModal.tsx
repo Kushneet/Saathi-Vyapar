@@ -10,11 +10,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-interface Props {
-  facilitatorId?: string;
-}
-
-export default function AddEntrepreneurModal({ facilitatorId }: Props) {
+export default function AddEntrepreneurModal() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
@@ -34,11 +30,11 @@ export default function AddEntrepreneurModal({ facilitatorId }: Props) {
       const res = await fetch('/api/facilitator/add-entrepreneur', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // The acting facilitator comes from the session cookie server-side.
         body: JSON.stringify({
           name: name.trim(),
           phone: phone.trim(),
           sector: sector.trim(),
-          facilitator_id: facilitatorId,
         }),
       });
 

@@ -7,7 +7,9 @@
  */
 
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
+import { requirePageUser, listLinkedEntrepreneurIds } from '@/lib/auth/requireUser';
 import AddEntrepreneurModal from './AddEntrepreneurModal';
 
 interface EntrepreneurViewItem {
@@ -25,12 +27,33 @@ interface EntrepreneurViewItem {
 export const dynamic = 'force-dynamic';
 
 export default async function FacilitatorPage() {
-  // 1. Fetch all users who have the role of entrepreneur
-  const { data: usersData } = await supabaseServer
+  // This portal lists names, phone numbers and monthly finances. It used to
+  // render for anyone who knew the URL, over *every* entrepreneur in the
+  // database. It now requires a facilitator session and shows only the
+  // entrepreneurs explicitly linked to that facilitator.
+  const sessionUser = await requirePageUser('/facilitator');
+
+  if (sessionUser.role !== 'facilitator' && sessionUser.role !== 'admin') {
+    redirect('/dashboard');
+  }
+
+  const linkedIds =
+    sessionUser.role === 'admin' ? null : await listLinkedEntrepreneurIds(sessionUser.id);
+
+  // 1. Fetch the entrepreneurs this facilitator is responsible for
+  let usersQuery = supabaseServer
     .from('users')
     .select('id, name, phone, language, created_at')
     .eq('role', 'entrepreneur')
     .order('created_at', { ascending: false });
+
+  if (linkedIds !== null) {
+    usersQuery = usersQuery.in('id', linkedIds);
+  }
+
+  const { data: usersData } = linkedIds !== null && linkedIds.length === 0
+    ? { data: [] }
+    : await usersQuery;
 
   const entrepreneurs: EntrepreneurViewItem[] = [];
 

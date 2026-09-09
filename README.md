@@ -211,6 +211,9 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 WHATSAPP_ACCESS_TOKEN=your-whatsapp-cloud-access-token
 WHATSAPP_PHONE_NUMBER_ID=your-whatsapp-phone-number-id
 WHATSAPP_VERIFY_TOKEN=your-custom-webhook-verify-token
+# App Secret from Meta > App Settings > Basic. Required in production: inbound
+# webhooks are rejected unless their X-Hub-Signature-256 verifies against it.
+WHATSAPP_APP_SECRET=your-meta-app-secret
 
 # Twilio SMS Configuration
 TWILIO_ACCOUNT_SID=your-twilio-account-sid

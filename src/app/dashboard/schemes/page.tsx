@@ -338,30 +338,22 @@ function YojanaKendraContent() {
     async function loadData() {
       setIsLoading(true);
       try {
-        let activeId = paramUserId;
+        // Prefer the signed-in user; `?user_id=` is only a facilitator hint,
+        // and RLS decides whether the read is actually permitted.
+        let activeId: string | null = null;
 
-        if (!activeId) {
+        {
           const {
             data: { session },
           } = await supabaseClient.auth.getSession();
           if (session?.user) {
             activeId = session.user.id;
+          } else if (paramUserId) {
+            activeId = paramUserId;
           }
         }
 
-        // Fallback to most recent user if none in session
-        if (!activeId) {
-          const { data: latestUsers } = await supabaseClient
-            .from('users')
-            .select('id, name, phone')
-            .order('created_at', { ascending: false })
-            .limit(1);
-
-          if (latestUsers && latestUsers.length > 0) {
-            activeId = latestUsers[0].id;
-            setUser({ name: latestUsers[0].name, phone: latestUsers[0].phone });
-          }
-        } else {
+        if (activeId) {
           const { data: userData } = await supabaseClient
             .from('users')
             .select('name, phone')

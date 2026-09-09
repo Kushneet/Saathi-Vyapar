@@ -12,8 +12,9 @@
  */
 
 import Link from 'next/link';
-import { cookies } from 'next/headers';
-import { supabaseServer, createSupabaseRouteClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { supabaseServer } from '@/lib/supabase/server';
+import { requirePageUser, resolveTargetUserId } from '@/lib/auth/requireUser';
 import { calculateMarginPercent, assessCashFlowRisk } from '@/lib/engines/financialEngine';
 import { matchSchemes, SchemeRecord } from '@/lib/engines/schemeMatcher';
 import LogoutButton from './LogoutButton';
@@ -111,111 +112,65 @@ export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
-  const targetUserId = resolvedParams.user_id;
+
+  // Identity comes from the session cookie. This page previously accepted
+  // `?user_id=` from anyone, then fell back to "the most recently registered
+  // user in the database", then to a hard-coded demo entrepreneur — so a
+  // logged-out visitor was shown a real person's finances.
+  const sessionUser = await requirePageUser('/dashboard');
+
+  // A `user_id` in the URL is a facilitator viewing a linked entrepreneur.
+  // Anyone else asking for someone else's id is sent back to their own view.
+  const targetUserId = await resolveTargetUserId(sessionUser, resolvedParams.user_id);
+  if (!targetUserId) {
+    redirect('/dashboard');
+  }
 
   let user: { id: string; name: string | null; phone: string; language: string } | null = null;
 
-  // 1. Check for active authenticated user session from cookies
   try {
-    const cookieStore = await cookies();
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    const { data: dbUser } = await supabaseServer
+      .from('users')
+      .select('id, name, phone, language')
+      .eq('id', targetUserId)
+      .maybeSingle();
 
-    if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('placeholder')) {
-      const supabase = await createSupabaseRouteClient(cookieStore);
+    user = dbUser;
+  } catch (dbErr) {
+    console.warn('Dashboard user lookup warning:', dbErr);
+  }
 
-      const { data: authData } = await supabase.auth.getUser();
-      if (authData?.user) {
-        const authUser = authData.user;
-        const userName =
-          authUser.user_metadata?.full_name ||
-          authUser.user_metadata?.name ||
-          authUser.email?.split('@')[0] ||
-          'Entrepreneur';
-        const userContact =
-          authUser.phone ||
-          authUser.email ||
-          `+91${authUser.id.replace(/\D/g, '').padEnd(10, '0').slice(0, 10)}`;
+  // First visit for this account: public.users has no row yet (auth.users
+  // does). Create it, but only ever for the signed-in user themselves.
+  if (!user && targetUserId === sessionUser.id) {
+    const fallbackName = sessionUser.email?.split('@')[0] || 'Entrepreneur';
 
-        user = {
-          id: authUser.id,
-          name: userName,
-          phone: userContact,
+    const { data: newUser } = await supabaseServer
+      .from('users')
+      .upsert(
+        {
+          id: sessionUser.id,
+          name: fallbackName,
+          email: sessionUser.email || undefined,
           language: 'hi',
-        };
+          role: 'entrepreneur',
+        },
+        { onConflict: 'id' }
+      )
+      .select('id, name, phone, language')
+      .maybeSingle();
 
-        // Try syncing with public.users table if accessible
-        try {
-          const { data: dbUser } = await supabaseServer
-            .from('users')
-            .select('id, name, phone, language')
-            .eq('id', authUser.id)
-            .maybeSingle();
-
-          if (dbUser) {
-            user = dbUser;
-          } else {
-            const { data: newUser } = await supabaseServer
-              .from('users')
-              .upsert(
-                {
-                  id: authUser.id,
-                  name: userName,
-                  phone: userContact.slice(0, 20),
-                  language: 'hi',
-                  role: 'entrepreneur',
-                },
-                { onConflict: 'id' }
-              )
-              .select('id, name, phone, language')
-              .maybeSingle();
-
-            if (newUser) user = newUser;
-          }
-        } catch (dbErr) {
-          console.warn('Dashboard DB user sync warning:', dbErr);
-        }
-      }
-    }
-  } catch (err) {
-    console.warn('Dashboard session resolution note:', err);
-  }
-
-  // 2. Query targetUserId if explicitly provided
-  if (!user && targetUserId) {
-    try {
-      const { data } = await supabaseServer
-        .from('users')
-        .select('id, name, phone, language')
-        .eq('id', targetUserId)
-        .maybeSingle();
-      if (data) user = data;
-    } catch { /* fallback */ }
-  }
-
-  // 3. Fallback to latest active user in DB
-  if (!user) {
-    try {
-      const { data: latestUsers } = await supabaseServer
-        .from('users')
-        .select('id, name, phone, language')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (latestUsers && latestUsers.length > 0) {
-        user = latestUsers[0];
-      }
-    } catch { /* fallback */ }
-  }
-
-  // 4. Default active demo user (guarantees dashboard ALWAYS renders and never fails)
-  if (!user) {
-    user = {
-      id: 'demo-entrepreneur-001',
-      name: 'Ramesh Kumar',
-      phone: '+91 98765 43210',
+    user = newUser ?? {
+      id: sessionUser.id,
+      name: fallbackName,
+      phone: '',
       language: 'hi',
     };
+  }
+
+  // A linked entrepreneur with no row is a genuine 404 for the facilitator.
+  if (!user) {
+    redirect('/dashboard');
   }
 
   // ── 1. Fetch latest business profile ─────────────────────────────

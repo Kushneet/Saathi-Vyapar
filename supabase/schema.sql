@@ -1,3 +1,14 @@
+-- ⚠️ DEPRECATED — DO NOT APPLY THIS FILE.
+--
+-- This snapshot disagrees with supabase/migrations/ (it has no `conversations`
+-- and no `facilitators_entrepreneurs`, and defines an unused `facilitators`
+-- table instead). Applying it is what left the deployed database unable to
+-- serve the WhatsApp/SMS orchestrator.
+--
+-- Source of truth: supabase/migrations/, applied in order, ending with
+-- 005_reconcile_schema.sql. Kept only as a record of what was pushed on
+-- 2026-09 (commit 45e0edb).
+
 -- ============================================================
 --  Saathi Vyapar — Complete Supabase Database Schema
 --  Project: Saathi-Vyapar
