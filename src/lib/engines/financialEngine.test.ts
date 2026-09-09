@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   calculateBreakEven,
+  calculateNetProfit,
   calculateBreakEvenRevenue,
   calculateMarginPercent,
   assessCashFlowRisk,
@@ -137,6 +138,21 @@ describe('assessCashFlowRisk', () => {
 // ─────────────────────────────────────────────────────────
 // generateFinancialSummary
 // ─────────────────────────────────────────────────────────
+describe('calculateNetProfit', () => {
+  it('returns what is left after expenses', () => {
+    expect(calculateNetProfit(30000, 20000)).toBe(10000);
+  });
+
+  it('goes negative when expenses exceed revenue', () => {
+    expect(calculateNetProfit(5000, 7000)).toBe(-2000);
+  });
+
+  it('is zero at break-even', () => {
+    expect(calculateNetProfit(20000, 20000)).toBe(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────
 describe('calculateBreakEvenRevenue', () => {
   it('equals fixed costs when no variable-cost split is known', () => {
     expect(calculateBreakEvenRevenue(20000)).toBe(20000);
@@ -227,6 +243,16 @@ describe('generateFinancialSummary', () => {
     // The old code returned 20000/30000 = 0.67 and stored it as "units".
     expect(result.breakEvenRevenue).toBe(20000);
     expect(result.explanation).toContain('₹20000');
+  });
+
+  it('reports profit in rupees alongside the percentage', () => {
+    const result = generateFinancialSummary({
+      monthlyRevenueEst: 30000,
+      monthlyExpenseEst: 20000,
+      existingLoans: false,
+    });
+    expect(result.netProfit).toBe(10000);
+    expect(result.explanation).toContain('₹10000');
   });
 
   it('marginPercent is negative when expenses exceed revenue', () => {

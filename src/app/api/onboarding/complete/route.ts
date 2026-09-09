@@ -149,6 +149,8 @@ export async function POST(request: NextRequest) {
       benefit_summary: s.benefit_summary,
       eligibility_rules: s.eligibility_rules || {},
       application_link: s.application_link,
+      sponsoring_body: s.sponsoring_body,
+      required_documents: s.required_documents || [],
     }));
 
     const businessProfile: BusinessProfile = {

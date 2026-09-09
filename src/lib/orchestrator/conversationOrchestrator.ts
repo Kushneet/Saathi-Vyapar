@@ -12,11 +12,14 @@
 
 import { supabaseServer } from '@/lib/supabase/server';
 import { runLedgerOcr, OcrFailedError } from '@/lib/ledger/ocrService';
+import { transcribeAudio } from '@/lib/voice/transcribeAudio';
 
-/** An image that arrived with an inbound message, already downloaded. */
+/** Media that arrived with an inbound message, already downloaded. */
 export interface InboundMedia {
   buffer: Buffer;
   mimeType?: string;
+  /** 'image' runs OCR; 'audio' is transcribed and re-enters as text. */
+  kind: 'image' | 'audio';
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -79,6 +82,9 @@ function t(lang: string, key: string): string {
         '❌ फोटो पढ़ने में दिक्कत हुई। कृपया साफ फोटो भेजें।',
       ocr_none:
         '❌ फोटो में कोई रकम नहीं मिली। पन्ना सीधा रखकर, अच्छी रोशनी में साफ फोटो भेजें।',
+      voice_failed:
+        '❌ आवाज़ समझ नहीं आई। कृपया दोबारा बोलें या टाइप करके भेजें।',
+      voice_heard: '🎙️ आपने कहा:',
     },
     en: {
       ask_sector:
@@ -102,6 +108,9 @@ function t(lang: string, key: string): string {
         '❌ Could not read the photo. Please send a clearer image.',
       ocr_none:
         '❌ No amounts found in the photo. Keep the page flat, use good light and send a clearer image.',
+      voice_failed:
+        '❌ Could not make out the voice message. Please try again or send it as text.',
+      voice_heard: '🎙️ You said:',
     },
   };
 
@@ -262,12 +271,27 @@ export async function handleIncomingMessage(
       .eq('id', conversation!.id);
   }
 
-  // ── 3. Handle OCR (media) — available in any state ───────────────────────
+  // ── 3a. Voice notes — transcribe, then continue as if it were typed ──────
+  // WhatsApp `audio` messages used to be dropped on the floor: no OCR branch
+  // matched them, so the sender received no reply at all.
+  let voiceTranscript: string | null = null;
+
+  if (media?.kind === 'audio') {
+    const transcription = await transcribeAudio(media.buffer, media.mimeType);
+
+    if (!transcription) {
+      return t(lang, 'voice_failed');
+    }
+
+    voiceTranscript = transcription.text;
+  }
+
+  // ── 3b. Handle OCR (media) — available in any state ──────────────────────
   // This used to answer "reading your bill…" and then discard the image: no
   // OCR was ever run on the WhatsApp path and no reply ever followed. Now the
   // photo is read inline and the entries are staged (unconfirmed) exactly as
   // the web upload stages them.
-  if (media) {
+  if (media?.kind === 'image') {
     try {
       const result = await runLedgerOcr(media.buffer, user.id, 'whatsapp');
 
@@ -320,7 +344,11 @@ export async function handleIncomingMessage(
     }
   }
 
-  const text = (messageText || '').trim();
+  const text = (voiceTranscript || messageText || '').trim();
+
+  /** Prefix replies to a voice note with what we heard, so it can be corrected. */
+  const echo = (reply: string) =>
+    voiceTranscript ? `${t(lang, 'voice_heard')} "${voiceTranscript}"\n\n${reply}` : reply;
 
   // ── 4. State machine ──────────────────────────────────────────────────────
 
@@ -328,56 +356,56 @@ export async function handleIncomingMessage(
     // ── idle: First contact — greet and ask for sector ──────────────────────
     case 'idle': {
       await updateConversation('awaiting_sector', context);
-      return greet(lang);
+      return echo(greet(lang));
     }
 
     // ── awaiting_sector ──────────────────────────────────────────────────────
     case 'awaiting_sector': {
       if (!text) {
-        return t(lang, 'ask_sector');
+        return echo(t(lang, 'ask_sector'));
       }
       const newContext = { ...context, sector: text };
       await updateConversation('awaiting_district', newContext);
-      return t(lang, 'ask_district');
+      return echo(t(lang, 'ask_district'));
     }
 
     // ── awaiting_district ────────────────────────────────────────────────────
     case 'awaiting_district': {
       if (!text) {
-        return t(lang, 'ask_district');
+        return echo(t(lang, 'ask_district'));
       }
       const newContext = { ...context, district: text };
       await updateConversation('awaiting_revenue', newContext);
-      return t(lang, 'ask_revenue');
+      return echo(t(lang, 'ask_revenue'));
     }
 
     // ── awaiting_revenue ─────────────────────────────────────────────────────
     case 'awaiting_revenue': {
       const amount = parseAmount(text);
       if (amount === null) {
-        return t(lang, 'invalid_number');
+        return echo(t(lang, 'invalid_number'));
       }
       const newContext = { ...context, monthly_revenue: amount };
       await updateConversation('awaiting_expenses', newContext);
-      return t(lang, 'ask_expenses');
+      return echo(t(lang, 'ask_expenses'));
     }
 
     // ── awaiting_expenses ────────────────────────────────────────────────────
     case 'awaiting_expenses': {
       const amount = parseAmount(text);
       if (amount === null) {
-        return t(lang, 'invalid_number');
+        return echo(t(lang, 'invalid_number'));
       }
       const newContext = { ...context, monthly_expense: amount };
       await updateConversation('awaiting_loans', newContext);
-      return t(lang, 'ask_loans');
+      return echo(t(lang, 'ask_loans'));
     }
 
     // ── awaiting_loans — final onboarding step ───────────────────────────────
     case 'awaiting_loans': {
       const hasLoans = parseYesNo(text);
       if (hasLoans === null) {
-        return t(lang, 'invalid_yesno');
+        return echo(t(lang, 'invalid_yesno'));
       }
 
       const newContext = { ...context, existing_loans: hasLoans };
@@ -415,7 +443,7 @@ export async function handleIncomingMessage(
       }
 
       await updateConversation('complete', newContext);
-      return t(lang, 'complete');
+      return echo(t(lang, 'complete'));
     }
 
     // ── complete — handle PLAN command or other messages ─────────────────────
@@ -435,7 +463,7 @@ export async function handleIncomingMessage(
           }
         });
 
-        return generatingMsg;
+        return echo(generatingMsg);
       }
 
       // Media handled above; any other text gets plan reminder
@@ -443,12 +471,12 @@ export async function handleIncomingMessage(
         lang === 'hi'
           ? 'अपना वित्तीय प्लान देखने के लिए *PLAN* भेजें, या बिल की फोटो भेजें।'
           : 'Send *PLAN* to see your financial plan, or send a photo of your bill.';
-      return planReminder;
+      return echo(planReminder);
     }
 
     default: {
       await updateConversation('idle', {});
-      return greet(lang);
+      return echo(greet(lang));
     }
   }
 }

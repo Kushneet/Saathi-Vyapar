@@ -359,6 +359,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // Monthly sales needed to cover costs. Prefer the stored plan value; fall
   // back to current expenses, which is the same quantity the engine computes.
   // `break_even_units` is deliberately not consulted: it held a ratio.
+  // Net profit in rupees — the figure the deck calls the "profit picture".
+  const netProfit =
+    (Number(profile.monthly_revenue_est) || 0) - (Number(profile.monthly_expense_est) || 0);
+
   const storedBreakEven = Number(latestPlan?.break_even_revenue);
   const breakEvenRevenue = isFinite(storedBreakEven) && storedBreakEven > 0
     ? storedBreakEven
@@ -507,15 +511,24 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             {/* Card 1: Profit Margin */}
             <div className="bg-white border border-[#C9A24B]/20 rounded-2xl p-5 shadow-[0_8px_24px_rgba(11,30,51,0.05)] flex flex-col justify-between">
               <span className="text-[#0B1E33]/50 text-xs font-bold uppercase tracking-wider">
-                {t('dashboard_margin')}
+                {t('dashboard_profit')}
               </span>
               <div className="my-2">
-                <span className={`text-4xl font-bold ${Number(latestPlan?.margin_percent || 0) >= 0 ? 'text-[#0B1E33]' : 'text-rose-600'}`}>
-                  {latestPlan?.margin_percent !== undefined ? `${Number(latestPlan.margin_percent).toFixed(1)}%` : '—'}
+                {/* Rupees first: a shopkeeper checks what is left at month end,
+                    not a percentage. The margin stays visible underneath. */}
+                <span className={`text-4xl font-bold ${netProfit >= 0 ? 'text-[#0B1E33]' : 'text-rose-600'}`}>
+                  {netProfit >= 0
+                    ? `₹${netProfit.toLocaleString('en-IN')}`
+                    : `−₹${Math.abs(netProfit).toLocaleString('en-IN')}`}
+                </span>
+                <span className="block text-xs font-semibold text-[#0B1E33]/60 mt-1">
+                  {t('dashboard_profit_margin_note', {
+                    margin: Number(latestPlan?.margin_percent ?? 0).toFixed(1),
+                  })}
                 </span>
               </div>
               <p className="text-xs text-[#0B1E33]/50">
-                {Number(latestPlan?.margin_percent || 0) >= 0 ? t('dashboard_profit_ok') : t('dashboard_profit_loss')}
+                {netProfit >= 0 ? t('dashboard_profit_ok') : t('dashboard_profit_loss')}
               </p>
             </div>
 

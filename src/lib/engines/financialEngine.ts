@@ -29,6 +29,21 @@ export function calculateBreakEven(
 }
 
 /**
+ * Calculate net profit in rupees for the period.
+ *
+ * The deck and the UI both talk about a "profit picture", but only a margin
+ * percentage and a break-even target were ever computed. A percentage is not
+ * what a shopkeeper checks at the end of the month; the rupee figure is.
+ *
+ * @param revenue - Total revenue for the period (₹)
+ * @param expenses - Total expenses for the period (₹)
+ * @returns Net profit (₹). Negative when running at a loss.
+ */
+export function calculateNetProfit(revenue: number, expenses: number): number {
+  return revenue - expenses;
+}
+
+/**
  * Calculate the break-even point in RUPEES of monthly sales.
  *
  * Break-even revenue = Fixed Costs / Contribution Margin Ratio
@@ -120,6 +135,8 @@ export interface FinancialSummaryInput {
 
 /** Output from financial summary generation */
 export interface FinancialSummaryOutput {
+  /** Net profit for the month in rupees; negative when at a loss. */
+  netProfit: number;
   /**
    * Monthly sales needed to cover costs, in RUPEES.
    *
@@ -164,6 +181,7 @@ export function generateFinancialSummary(
   // the old formula returned Infinity in exactly that case.
   const breakEvenRevenue = calculateBreakEvenRevenue(monthlyExpenseEst);
 
+  const netProfit = calculateNetProfit(monthlyRevenueEst, monthlyExpenseEst);
   const marginPercent = calculateMarginPercent(monthlyRevenueEst, monthlyExpenseEst);
   const cashFlowRisk = assessCashFlowRisk(monthlyRevenueEst, monthlyExpenseEst, existingLoans);
 
@@ -180,9 +198,9 @@ export function generateFinancialSummary(
     : '';
 
   const marginNote =
-    marginPercent >= 0
-      ? `Your current profit margin is ${marginPercent.toFixed(1)}%.`
-      : `You are currently operating at a loss of ${Math.abs(marginPercent).toFixed(1)}%.`;
+    netProfit >= 0
+      ? `You are keeping about ₹${netProfit.toFixed(0)} a month, a margin of ${marginPercent.toFixed(1)}%.`
+      : `You are short by about ₹${Math.abs(netProfit).toFixed(0)} a month, a loss of ${Math.abs(marginPercent).toFixed(1)}%.`;
 
   const breakEvenNote = isFinite(breakEvenRevenue)
     ? `You need at least ₹${breakEvenRevenue.toFixed(0)} in monthly sales to cover your costs.`
@@ -194,6 +212,7 @@ export function generateFinancialSummary(
     `Monthly Revenue: ₹${monthlyRevenueEst.toFixed(0)}, Monthly Expenses: ₹${monthlyExpenseEst.toFixed(0)}.`;
 
   return {
+    netProfit: parseFloat(netProfit.toFixed(2)),
     breakEvenRevenue: isFinite(breakEvenRevenue)
       ? parseFloat(breakEvenRevenue.toFixed(2))
       : Infinity,

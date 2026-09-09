@@ -215,10 +215,35 @@ const SEED_SCHEMES_FALLBACK: SchemeRecord[] = [
 ];
 
 // ── Sponsoring Body & Document Checklist Helper ───────────────────────────────
-function getSchemeDetails(schemeName: string): {
+interface SchemeDetails {
   sponsoringBody: string;
   requiredDocuments: string[];
-} {
+}
+
+/**
+ * Resolve a scheme's sponsoring body and document checklist.
+ *
+ * These now live on the scheme row (migration 007), which is what makes
+ * "add a scheme without redeploying" true. The name-matched table below is
+ * kept only as a fallback for rows written before that migration, and for
+ * the local FALLBACK_SCHEMES used when the database is unreachable.
+ */
+function getSchemeDetails(scheme: {
+  name: string;
+  sponsoring_body?: string;
+  required_documents?: string[];
+}): SchemeDetails {
+  if (scheme.sponsoring_body && scheme.required_documents?.length) {
+    return {
+      sponsoringBody: scheme.sponsoring_body,
+      requiredDocuments: scheme.required_documents,
+    };
+  }
+
+  return getSchemeDetailsByName(scheme.name);
+}
+
+function getSchemeDetailsByName(schemeName: string): SchemeDetails {
   const lower = schemeName.toLowerCase();
 
   if (lower.includes('pmegp')) {
@@ -654,7 +679,7 @@ function YojanaKendraContent() {
             ) : (
               <div className="space-y-5">
                 {eligibleResults.map((item, idx) => {
-                  const details = getSchemeDetails(item.scheme.name);
+                  const details = getSchemeDetails(item.scheme);
                   const rank = idx + 1;
 
                   return (
@@ -799,7 +824,7 @@ function YojanaKendraContent() {
             {showIneligible && (
               <div className="space-y-4 pt-3 border-t border-[#C9A24B]/20 animate-in fade-in duration-200">
                 {ineligibleResults.map((item, idx) => {
-                  const details = getSchemeDetails(item.scheme.name);
+                  const details = getSchemeDetails(item.scheme);
 
                   return (
                     <div

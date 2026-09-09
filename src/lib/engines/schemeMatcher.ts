@@ -32,6 +32,10 @@ export interface SchemeRecord {
   benefit_summary?: string;
   eligibility_rules: EligibilityRules;
   application_link?: string;
+  /** Ministry or agency running the scheme (schemes.sponsoring_body). */
+  sponsoring_body?: string;
+  /** Applicant document checklist (schemes.required_documents). */
+  required_documents?: string[];
 }
 
 /** Business profile input for matching */

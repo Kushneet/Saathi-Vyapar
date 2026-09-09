@@ -86,10 +86,11 @@ export async function POST(request: NextRequest) {
 interface WhatsAppMessage {
   id: string;
   from: string;
-  type: 'text' | 'image' | 'audio' | 'video' | 'document' | 'interactive';
+  type: 'text' | 'image' | 'audio' | 'voice' | 'video' | 'document' | 'interactive';
   timestamp: string;
   text?: { body: string };
   image?: { id: string; mime_type: string; caption?: string };
+  audio?: { id: string; mime_type: string; voice?: boolean };
 }
 
 interface WhatsAppWebhookBody {
@@ -129,7 +130,22 @@ async function processWhatsAppMessages(body: WhatsAppWebhookBody): Promise<void>
         } else if (message.type === 'image' && message.image?.id) {
           // Download here rather than in the orchestrator: Meta media URLs are
           // short-lived and require this app's bearer token to fetch.
-          media = await downloadWhatsAppMedia(message.image.id, message.image.mime_type);
+          media = await downloadWhatsAppMedia(
+            message.image.id,
+            'image',
+            message.image.mime_type
+          );
+        } else if (
+          (message.type === 'audio' || message.type === 'voice') &&
+          message.audio?.id
+        ) {
+          // Voice notes arrive as `audio` (with voice: true for a recording
+          // rather than an attached file). Both used to be dropped silently.
+          media = await downloadWhatsAppMedia(
+            message.audio.id,
+            'audio',
+            message.audio.mime_type
+          );
         }
 
         // Call the orchestrator
@@ -159,6 +175,7 @@ const MAX_MEDIA_BYTES = 8 * 1024 * 1024;
  */
 async function downloadWhatsAppMedia(
   mediaId: string,
+  kind: 'image' | 'audio',
   mimeType?: string
 ): Promise<InboundMedia | null> {
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
@@ -187,7 +204,7 @@ async function downloadWhatsAppMedia(
       return null;
     }
 
-    return { buffer: Buffer.from(arrayBuffer), mimeType };
+    return { buffer: Buffer.from(arrayBuffer), mimeType, kind };
   } catch (err) {
     console.error('WhatsApp media download failed:', err);
     return null;
