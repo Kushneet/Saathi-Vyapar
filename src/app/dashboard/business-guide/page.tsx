@@ -17,6 +17,8 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase/client';
+import { useLanguage } from '@/contexts/LanguageContext';
+import LanguageToggleButton from '@/components/LanguageToggleButton';
 import { RoadmapStageItem } from '@/app/api/business-guide/generate/route';
 
 interface PastGuideItem {
@@ -95,6 +97,7 @@ interface IWindowWithSpeech {
 }
 
 function BusinessGuideContent() {
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const paramUserId = searchParams.get('user_id');
 
@@ -333,7 +336,7 @@ function BusinessGuideContent() {
             </Link>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-[#0B1E33] flex items-center gap-2">
-                व्यापारिक मार्गदर्शन रोडमैप (Business Transformation Guide)
+                {t('dashboard_business_guide')}
               </h1>
               <p className="text-xs sm:text-sm text-[#0B1E33]/50 mt-0.5">
                 {userName} • {userSector} • AI संचालित 5-चरणीय विकास योजना
@@ -342,6 +345,7 @@ function BusinessGuideContent() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            <LanguageToggleButton />
             <Link
               href={`/dashboard${userId ? `?user_id=${userId}` : ''}`}
               className="px-4 py-2 bg-white hover:bg-[#F5F1E6] text-[#0B1E33] text-xs font-semibold rounded-full border border-[#C9A24B]/20 shadow-xs transition-all"

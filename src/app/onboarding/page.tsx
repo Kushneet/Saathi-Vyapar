@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import VoiceOnboardingModal, { OnboardingData } from '@/components/VoiceOnboardingModal';
 import { supabaseClient } from '@/lib/supabase/client';
+import LanguageToggleButton from '@/components/LanguageToggleButton';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -287,6 +288,7 @@ export default function OnboardingPage() {
           </Link>
 
           <div className="flex items-center gap-2.5 sm:gap-3">
+            <LanguageToggleButton />
             {hasVoiceSupport && (
               <button
                 type="button"

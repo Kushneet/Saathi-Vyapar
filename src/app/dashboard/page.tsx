@@ -17,7 +17,10 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { requirePageUser, resolveTargetUserId } from '@/lib/auth/requireUser';
 import { calculateMarginPercent, assessCashFlowRisk } from '@/lib/engines/financialEngine';
 import { matchSchemes, SchemeRecord } from '@/lib/engines/schemeMatcher';
+import { getServerT } from '@/lib/i18n.server';
 import LogoutButton from './LogoutButton';
+import LanguageToggleButton from '@/components/LanguageToggleButton';
+import LedgerPhotoUpload from '@/components/LedgerPhotoUpload';
 
 interface PageProps {
   searchParams: Promise<{ user_id?: string }>;
@@ -118,6 +121,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // user in the database", then to a hard-coded demo entrepreneur — so a
   // logged-out visitor was shown a real person's finances.
   const sessionUser = await requirePageUser('/dashboard');
+
+  // Server components can't use the client language hook, so the language
+  // comes from the cookie the toggle writes. LanguageProvider calls
+  // router.refresh() on switch, which re-renders this page in the new one.
+  const { t } = await getServerT();
 
   // A `user_id` in the URL is a facilitator viewing a linked entrepreneur.
   // Anyone else asking for someone else's id is sent back to their own view.
@@ -340,9 +348,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // Risk styling helper
   const risk = planJson?.financialMetrics?.cashFlowRisk || 'low';
   const riskConfig = {
-    low: { bg: 'bg-white/95', border: 'border-emerald-200', text: 'text-emerald-700', label: 'Low Risk' },
-    medium: { bg: 'bg-white/95', border: 'border-amber-200', text: 'text-amber-700', label: 'Moderate Risk' },
-    high: { bg: 'bg-white/95', border: 'border-rose-200', text: 'text-rose-700', label: 'High Risk' },
+    low: { bg: 'bg-white/95', border: 'border-emerald-200', text: 'text-emerald-700', label: t('common_risk_low') },
+    medium: { bg: 'bg-white/95', border: 'border-amber-200', text: 'text-amber-700', label: t('common_risk_medium') },
+    high: { bg: 'bg-white/95', border: 'border-rose-200', text: 'text-rose-700', label: t('common_risk_high') },
   }[risk];
 
   return (
@@ -367,23 +375,24 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <LanguageToggleButton />
             <Link
               href={`/dashboard/schemes?user_id=${user.id}`}
               className="px-4 py-2 bg-white hover:bg-[#F5F1E6] text-[#0B1E33] text-xs font-semibold rounded-full border border-[#C9A24B]/30 transition-all"
             >
-              🏛️ Yojana Kendra
+              🏛️ {t('dashboard_yojana')}
             </Link>
             <Link
               href={`/dashboard/business-guide?user_id=${user.id}`}
               className="px-4 py-2 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] text-xs font-bold rounded-full shadow-sm transition-all"
             >
-              🧭 Business Roadmap
+              🧭 {t('dashboard_business_guide')}
             </Link>
             <Link
               href="/facilitator"
               className="px-4 py-2 bg-white hover:bg-[#F5F1E6] text-[#0B1E33] text-xs font-semibold rounded-full border border-[#C9A24B]/30 transition-colors"
             >
-              Facilitator
+              {t('dashboard_facilitator')}
             </Link>
             <LogoutButton />
           </div>
@@ -398,7 +407,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </div>
               <div className="space-y-1.5 flex-1">
                 <h2 className="text-xs sm:text-sm font-bold text-[#C9A24B] uppercase tracking-wider">
-                  Financial Advisory
+                  {t('dashboard_advisory_label')}
                 </h2>
                 <p className="text-[#0B1E33] text-base sm:text-lg leading-relaxed font-semibold">
                   {latestPlan?.summary_text ||
@@ -427,7 +436,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             {/* Card 1: Profit Margin */}
             <div className="bg-white border border-[#C9A24B]/20 rounded-2xl p-5 shadow-[0_8px_24px_rgba(11,30,51,0.05)] flex flex-col justify-between">
               <span className="text-[#0B1E33]/50 text-xs font-bold uppercase tracking-wider">
-                Profit Margin %
+                {t('dashboard_margin')}
               </span>
               <div className="my-2">
                 <span className={`text-4xl font-bold ${Number(latestPlan?.margin_percent || 0) >= 0 ? 'text-[#0B1E33]' : 'text-rose-600'}`}>
@@ -435,27 +444,27 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 </span>
               </div>
               <p className="text-xs text-[#0B1E33]/50">
-                {Number(latestPlan?.margin_percent || 0) >= 0 ? '✓ Currently profitable' : '⚠️ Currently at a loss'}
+                {Number(latestPlan?.margin_percent || 0) >= 0 ? t('dashboard_profit_ok') : t('dashboard_profit_loss')}
               </p>
             </div>
 
             {/* Card 2: Break-even target */}
             <div className="bg-white border border-[#C9A24B]/20 rounded-2xl p-5 shadow-[0_8px_24px_rgba(11,30,51,0.05)] flex flex-col justify-between">
               <span className="text-[#0B1E33]/50 text-xs font-bold uppercase tracking-wider">
-                Break-Even Target
+                {t('dashboard_break_even')}
               </span>
               <div className="my-2">
                 <span className="text-3xl sm:text-4xl font-bold text-[#0B1E33]">
                   ₹{profile?.monthly_expense_est ? Number(profile.monthly_expense_est).toLocaleString('en-IN') : '28,000'}
                 </span>
               </div>
-              <p className="text-xs text-[#0B1E33]/50">Minimum monthly sales needed</p>
+              <p className="text-xs text-[#0B1E33]/50">{t('dashboard_break_even_sub')}</p>
             </div>
 
             {/* Card 3: Cash Flow Risk */}
             <div className={`${riskConfig.bg} border ${riskConfig.border} rounded-2xl p-5 shadow-[0_8px_24px_rgba(27,27,27,0.04)] flex flex-col justify-between`}>
               <span className="text-[#0B1E33]/50 text-xs font-bold uppercase tracking-wider">
-                Cash Flow Risk
+                {t('dashboard_cash_risk')}
               </span>
               <div className="my-2">
                 <span className={`text-2xl sm:text-3xl font-extrabold ${riskConfig.text}`}>
@@ -463,7 +472,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 </span>
               </div>
               <p className="text-xs text-[#0B1E33]/50">
-                {profile?.existing_loans ? 'Active loan present' : 'No active loans'}
+                {profile?.existing_loans ? t('dashboard_loan_active') : t('dashboard_no_loan')}
               </p>
             </div>
           </section>
@@ -473,18 +482,18 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h3 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
-                  📊 30-Day Cash Flow
+                  📊 {t('dashboard_chart_title')}
                 </h3>
-                <p className="text-xs text-[#0B1E33]/50">Daily income & expenses trend</p>
+                <p className="text-xs text-[#0B1E33]/50">{t('dashboard_chart_sub')}</p>
               </div>
               <div className="flex items-center gap-4 text-xs font-semibold">
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-full bg-[#151515] inline-block"></span>
-                  <span className="text-[#0B1E33]">Total Income: ₹{totalIncome.toLocaleString('en-IN')}</span>
+                  <span className="text-[#0B1E33]">{t('dashboard_income_label')}: ₹{totalIncome.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-full bg-[#FF416C] inline-block"></span>
-                  <span className="text-[#C9A24B]">Total Expense: ₹{totalExpense.toLocaleString('en-IN')}</span>
+                  <span className="text-[#C9A24B]">{t('dashboard_expense_label')}: ₹{totalExpense.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
@@ -530,14 +539,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
-                  🏛️ Matched Government Schemes
+                  🏛️ {t('dashboard_schemes_title')}
                 </h3>
                 <p className="text-xs text-[#0B1E33]/50">
-                  Based on your profile, {eligibleCount} schemes matched
+                  {eligibleCount} {t('dashboard_schemes_sub')}
                 </p>
               </div>
               <span className="px-3 py-1 bg-[#F0EFEB] border border-[#E5E2E1] text-[#0B1E33] text-xs font-bold rounded-full">
-                {eligibleCount} Eligible
+                {eligibleCount} {t('dashboard_eligible')}
               </span>
             </div>
 
@@ -600,11 +609,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </div>
           </section>
 
+          {/* ── Bahi-Khata Photo → Ledger ─────────────────────────────── */}
+          <LedgerPhotoUpload userId={user.id === sessionUser.id ? undefined : user.id} />
+
           {/* ── Recent Ledger Entries ─────────────────────────────────── */}
           <section className="bg-white border border-[#C9A24B]/20 rounded-[32px] p-5 sm:p-6 shadow-[0_16px_40px_rgba(11,30,51,0.07)] space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
-                📝 Recent Transactions
+                📝 {t('dashboard_ledger_title')}
               </h3>
               <span className="text-xs text-[#0B1E33]/50 font-mono">
                 {ledgerEntries.length} Records

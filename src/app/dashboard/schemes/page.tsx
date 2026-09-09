@@ -18,6 +18,8 @@ import { useState, useEffect, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase/client';
+import { useLanguage } from '@/contexts/LanguageContext';
+import LanguageToggleButton from '@/components/LanguageToggleButton';
 import {
   matchSchemes,
   MatchResult,
@@ -319,6 +321,7 @@ function getSchemeDetails(schemeName: string): {
 }
 
 function YojanaKendraContent() {
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const paramUserId = searchParams.get('user_id');
 
@@ -478,7 +481,7 @@ function YojanaKendraContent() {
             </Link>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-[#0B1E33] flex items-center gap-2">
-                योजना केंद्र (Yojana Kendra)
+                {t('schemes_title')}
                 <span className="text-xs font-bold bg-[#F5F1E6] text-[#0B1E33] border border-[#C9A24B]/20 px-2.5 py-0.5 rounded-full">
                   {eligibleResults.length} योजनाएं योग्य
                 </span>
@@ -490,11 +493,12 @@ function YojanaKendraContent() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            <LanguageToggleButton />
             <Link
               href={`/dashboard${userId ? `?user_id=${userId}` : ''}`}
               className="px-4 py-2 bg-white hover:bg-[#F5F1E6] text-[#0B1E33] text-xs font-semibold rounded-full border border-[#C9A24B]/20 shadow-xs transition-all"
             >
-              ← मुख्य डैशबोर्ड (Dashboard)
+              ← {t('schemes_dashboard_back')}
             </Link>
           </div>
         </header>

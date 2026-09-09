@@ -172,6 +172,30 @@ export const translations: Record<Language, Record<string, string>> = {
     common_close: 'Close',
     common_submit: 'Submit',
     common_update: 'Update',
+
+    // ── Bahi-khata photo → ledger
+    photo_title: 'Bahi-Khata Photo',
+    photo_sub: 'Photograph a page of your notebook and we will read the entries',
+    photo_choose: '📷 Take or choose a photo',
+    photo_change: 'Choose a different photo',
+    photo_reading: 'Reading your notebook…',
+    photo_reading_note: 'This takes a few seconds. Please keep the page flat and well lit.',
+    photo_review_title: 'Check these entries',
+    photo_review_sub: 'Correct anything we misread, then save. Nothing is added until you save.',
+    photo_guessed: 'Please check',
+    photo_income: 'Income',
+    photo_expense: 'Expense',
+    photo_amount: 'Amount',
+    photo_description: 'Description',
+    photo_remove: 'Remove',
+    photo_save: 'Save to my ledger',
+    photo_saving: 'Saving…',
+    photo_saved: 'Saved to your ledger.',
+    photo_discard_all: 'Discard all',
+    photo_nothing_found: 'No amounts were found. Try a clearer, flatter photo in better light.',
+    photo_too_large: 'That photo is too large. Please use one under 8 MB.',
+    photo_failed: 'Could not read the photo. Please try again.',
+    photo_totals: 'Income ₹{income} · Expenses ₹{expense}',
   },
 
   hi: {
@@ -338,5 +362,67 @@ export const translations: Record<Language, Record<string, string>> = {
     common_close: 'बंद करें',
     common_submit: 'जमा करें',
     common_update: 'अपडेट करें',
+
+    // ── Bahi-khata photo → ledger
+    photo_title: 'बही-खाता फोटो',
+    photo_sub: 'अपनी कॉपी के पन्ने की फोटो खींचें, हम उसकी एंट्री पढ़ लेंगे',
+    photo_choose: '📷 फोटो खींचें या चुनें',
+    photo_change: 'दूसरी फोटो चुनें',
+    photo_reading: 'आपका बही-खाता पढ़ा जा रहा है…',
+    photo_reading_note: 'कुछ सेकंड लगेंगे। पन्ना सीधा रखें और रोशनी अच्छी रखें।',
+    photo_review_title: 'इन एंट्री को जाँच लें',
+    photo_review_sub: 'कुछ गलत पढ़ा हो तो ठीक कर लें, फिर सेव करें। सेव करने तक कुछ नहीं जुड़ेगा।',
+    photo_guessed: 'कृपया जाँचें',
+    photo_income: 'आय',
+    photo_expense: 'खर्च',
+    photo_amount: 'रकम',
+    photo_description: 'विवरण',
+    photo_remove: 'हटाएँ',
+    photo_save: 'मेरे खाते में सेव करें',
+    photo_saving: 'सेव हो रहा है…',
+    photo_saved: 'आपके खाते में सेव हो गया।',
+    photo_discard_all: 'सब हटाएँ',
+    photo_nothing_found: 'कोई रकम नहीं मिली। साफ़ और सीधी फोटो अच्छी रोशनी में लें।',
+    photo_too_large: 'फोटो बहुत बड़ी है। 8 MB से छोटी फोटो भेजें।',
+    photo_failed: 'फोटो पढ़ी नहीं जा सकी। कृपया फिर कोशिश करें।',
+    photo_totals: 'आय ₹{income} · खर्च ₹{expense}',
   },
 };
+
+/** Cookie the language preference is stored in, readable by server and client. */
+export const LANGUAGE_COOKIE = 'saathi_lang';
+
+/** One year — the toggle is a durable preference, not a per-visit setting. */
+export const LANGUAGE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+export const SUPPORTED_LANGUAGES: Language[] = ['en', 'hi'];
+
+/** Coerce anything (cookie value, DB column, URL param) to a supported language. */
+export function normalizeLanguage(value: string | null | undefined): Language {
+  return value === 'hi' ? 'hi' : 'en';
+}
+
+/**
+ * Build a translator for a language.
+ *
+ * Falls back to English and finally to the key itself, so a missing string
+ * shows readable English rather than a blank or a raw key. `vars` fills
+ * `{name}` placeholders.
+ */
+export function getTranslator(language: Language) {
+  return function t(key: string, vars?: Record<string, string | number>): string {
+    const table = translations[language] as Record<string, string>;
+    const fallback = translations.en as Record<string, string>;
+    let value = table[key] ?? fallback[key] ?? key;
+
+    if (vars) {
+      for (const [name, replacement] of Object.entries(vars)) {
+        value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), String(replacement));
+      }
+    }
+
+    return value;
+  };
+}
+
+export type Translator = ReturnType<typeof getTranslator>;

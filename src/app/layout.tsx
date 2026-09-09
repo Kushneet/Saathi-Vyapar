@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { getServerLanguage } from "@/lib/i18n.server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,14 +32,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Read the language on the server so the first paint is already in the
+  // visitor's language and <html lang> is correct for assistive tech.
+  const language = await getServerLanguage();
+
   return (
     <html
-      lang="en"
+      lang={language}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased light scroll-smooth`}
     >
       <head>
@@ -57,7 +62,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-[#F5F1E6] text-[#0B1E33] font-['Inter',sans-serif]">
-        <LanguageProvider>
+        <LanguageProvider initialLanguage={language}>
           {children}
         </LanguageProvider>
       </body>

@@ -11,6 +11,13 @@
  */
 
 import { supabaseServer } from '@/lib/supabase/server';
+import { runLedgerOcr, OcrFailedError } from '@/lib/ledger/ocrService';
+
+/** An image that arrived with an inbound message, already downloaded. */
+export interface InboundMedia {
+  buffer: Buffer;
+  mimeType?: string;
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -70,6 +77,8 @@ function t(lang: string, key: string): string {
         '📄 आपका बिल देख रहे हैं... कुछ सेकंड रुकें।',
       ocr_error:
         '❌ फोटो पढ़ने में दिक्कत हुई। कृपया साफ फोटो भेजें।',
+      ocr_none:
+        '❌ फोटो में कोई रकम नहीं मिली। पन्ना सीधा रखकर, अच्छी रोशनी में साफ फोटो भेजें।',
     },
     en: {
       ask_sector:
@@ -91,6 +100,8 @@ function t(lang: string, key: string): string {
       ocr_processing: '📄 Reading your bill... please wait.',
       ocr_error:
         '❌ Could not read the photo. Please send a clearer image.',
+      ocr_none:
+        '❌ No amounts found in the photo. Keep the page flat, use good light and send a clearer image.',
     },
   };
 
@@ -148,14 +159,16 @@ async function callPlanGenerate(userId: string): Promise<string> {
  * @param channel - 'whatsapp' or 'sms'
  * @param phone - E.164 phone number (e.g., +919876543210)
  * @param messageText - Text content of the message (null if media-only)
- * @param mediaUrl - URL of attached media (null if text-only)
+ * @param media - Already-downloaded image bytes (null if text-only). The
+ *                caller downloads, because each channel authenticates its
+ *                media differently (Meta bearer token vs Twilio basic auth).
  * @returns Reply text to send back to the user
  */
 export async function handleIncomingMessage(
   channel: 'whatsapp' | 'sms',
   phone: string,
   messageText: string | null,
-  mediaUrl: string | null
+  media: InboundMedia | null
 ): Promise<string> {
   // ── 1. Upsert user ────────────────────────────────────────────────────────
   let user: { id: string; language: string; name: string | null } | null = null;
@@ -250,10 +263,61 @@ export async function handleIncomingMessage(
   }
 
   // ── 3. Handle OCR (media) — available in any state ───────────────────────
-  if (mediaUrl) {
-    return t(lang, 'ocr_processing');
-    // Note: OCR processing is async and handled separately via /api/ledger/ocr
-    // The orchestrator acknowledges receipt; actual OCR reply is sent separately
+  // This used to answer "reading your bill…" and then discard the image: no
+  // OCR was ever run on the WhatsApp path and no reply ever followed. Now the
+  // photo is read inline and the entries are staged (unconfirmed) exactly as
+  // the web upload stages them.
+  if (media) {
+    try {
+      const result = await runLedgerOcr(media.buffer, user.id, 'whatsapp');
+
+      if (result.parsedEntries.length === 0) {
+        return t(lang, 'ocr_none');
+      }
+
+      const lines = result.parsedEntries
+        .slice(0, 8)
+        .map((entry) => {
+          const sign = entry.entry_type === 'income' ? '+' : '−';
+          const label =
+            lang === 'hi'
+              ? entry.entry_type === 'income'
+                ? 'आय'
+                : 'खर्च'
+              : entry.entry_type === 'income'
+                ? 'income'
+                : 'expense';
+          return `${sign} ₹${entry.amount.toLocaleString('en-IN')} — ${entry.description} (${label})`;
+        })
+        .join('\n');
+
+      const more = result.parsedEntries.length > 8
+        ? `\n… +${result.parsedEntries.length - 8}`
+        : '';
+
+      const header =
+        lang === 'hi'
+          ? `📄 आपके बही-खाते से ${result.parsedEntries.length} एंट्री मिलीं:`
+          : `📄 Found ${result.parsedEntries.length} entries in your notebook:`;
+
+      const totals =
+        lang === 'hi'
+          ? `\n\nकुल आय ₹${result.totals.income.toLocaleString('en-IN')} · कुल खर्च ₹${result.totals.expense.toLocaleString('en-IN')}`
+          : `\n\nTotal income ₹${result.totals.income.toLocaleString('en-IN')} · Total expenses ₹${result.totals.expense.toLocaleString('en-IN')}`;
+
+      const footer =
+        lang === 'hi'
+          ? '\n\n✅ ये एंट्री जाँच के लिए सेव हो गई हैं। डैशबोर्ड पर देखकर पक्का करें।'
+          : '\n\n✅ Saved for review. Open your dashboard to check and confirm them.';
+
+      return `${header}\n${lines}${more}${totals}${footer}`;
+    } catch (err) {
+      if (err instanceof OcrFailedError) {
+        return t(lang, 'ocr_error');
+      }
+      console.error('WhatsApp OCR handling failed:', err);
+      return t(lang, 'ocr_error');
+    }
   }
 
   const text = (messageText || '').trim();

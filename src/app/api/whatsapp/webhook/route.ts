@@ -10,7 +10,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { handleIncomingMessage } from '@/lib/orchestrator/conversationOrchestrator';
+import {
+  handleIncomingMessage,
+  type InboundMedia,
+} from '@/lib/orchestrator/conversationOrchestrator';
 import { verifyWhatsAppSignature } from '@/lib/webhooks/verifySignature';
 
 const WHATSAPP_API_BASE = 'https://graph.facebook.com/v19.0';
@@ -119,13 +122,14 @@ async function processWhatsAppMessages(body: WhatsAppWebhookBody): Promise<void>
         const phoneWithPlus = phone.startsWith('+') ? phone : `+${phone}`;
 
         let messageText: string | null = null;
-        let mediaUrl: string | null = null;
+        let media: InboundMedia | null = null;
 
         if (message.type === 'text' && message.text?.body) {
           messageText = message.text.body;
         } else if (message.type === 'image' && message.image?.id) {
-          // Resolve media URL from WhatsApp media ID
-          mediaUrl = await getWhatsAppMediaUrl(message.image.id);
+          // Download here rather than in the orchestrator: Meta media URLs are
+          // short-lived and require this app's bearer token to fetch.
+          media = await downloadWhatsAppMedia(message.image.id, message.image.mime_type);
         }
 
         // Call the orchestrator
@@ -133,7 +137,7 @@ async function processWhatsAppMessages(body: WhatsAppWebhookBody): Promise<void>
           'whatsapp',
           phoneWithPlus,
           messageText,
-          mediaUrl
+          media
         );
 
         // Send reply back via WhatsApp Cloud API
@@ -143,19 +147,49 @@ async function processWhatsAppMessages(body: WhatsAppWebhookBody): Promise<void>
   }
 }
 
+/** Largest photo we will pull down and run OCR over. */
+const MAX_MEDIA_BYTES = 8 * 1024 * 1024;
+
 /**
- * Fetch the download URL for a WhatsApp media object by its ID.
+ * Resolve a WhatsApp media id to its bytes.
+ *
+ * Two calls: the id resolves to a short-lived URL, and that URL still needs
+ * the app's bearer token to download. Returns null on any failure so the
+ * caller can answer with a "couldn't read that" message.
  */
-async function getWhatsAppMediaUrl(mediaId: string): Promise<string | null> {
+async function downloadWhatsAppMedia(
+  mediaId: string,
+  mimeType?: string
+): Promise<InboundMedia | null> {
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+  if (!accessToken) {
+    console.error('Missing WHATSAPP_ACCESS_TOKEN — cannot download media');
+    return null;
+  }
+
   try {
-    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-    const response = await fetch(`${WHATSAPP_API_BASE}/${mediaId}`, {
+    const lookup = await fetch(`${WHATSAPP_API_BASE}/${mediaId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data.url || null;
-  } catch {
+    if (!lookup.ok) return null;
+
+    const { url } = await lookup.json();
+    if (!url) return null;
+
+    const download = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!download.ok) return null;
+
+    const arrayBuffer = await download.arrayBuffer();
+    if (arrayBuffer.byteLength > MAX_MEDIA_BYTES) {
+      console.warn('WhatsApp media exceeds size limit; skipping OCR');
+      return null;
+    }
+
+    return { buffer: Buffer.from(arrayBuffer), mimeType };
+  } catch (err) {
+    console.error('WhatsApp media download failed:', err);
     return null;
   }
 }

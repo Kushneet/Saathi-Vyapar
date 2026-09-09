@@ -10,6 +10,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
 import { requirePageUser, listLinkedEntrepreneurIds } from '@/lib/auth/requireUser';
+import { getServerT } from '@/lib/i18n.server';
+import LanguageToggleButton from '@/components/LanguageToggleButton';
 import AddEntrepreneurModal from './AddEntrepreneurModal';
 
 interface EntrepreneurViewItem {
@@ -32,6 +34,7 @@ export default async function FacilitatorPage() {
   // database. It now requires a facilitator session and shows only the
   // entrepreneurs explicitly linked to that facilitator.
   const sessionUser = await requirePageUser('/facilitator');
+  const { t } = await getServerT();
 
   if (sessionUser.role !== 'facilitator' && sessionUser.role !== 'admin') {
     redirect('/dashboard');
@@ -111,17 +114,18 @@ export default async function FacilitatorPage() {
               </Link>
             </div>
             <p className="text-[#0B1E33]/50 text-xs sm:text-sm mt-0.5">
-              Field Assistant Portal for rural entrepreneur monitoring
+              {t('facilitator_sub')}
             </p>
           </div>
 
           <div className="flex items-center gap-3">
+            <LanguageToggleButton />
             <AddEntrepreneurModal />
             <Link
               href="/dashboard"
               className="px-4 py-2 bg-white hover:bg-[#F5F1E6] text-[#0B1E33] text-xs font-semibold rounded-full border border-[#C9A24B]/30 transition-all"
             >
-              ← Entrepreneur View
+              ← {t('dashboard_badge')}
             </Link>
           </div>
         </header>
@@ -179,7 +183,7 @@ export default async function FacilitatorPage() {
 
             {entrepreneurs.length === 0 ? (
               <div className="text-center py-12 text-[#0B1E33]/50 space-y-2">
-                <p className="text-lg font-semibold text-[#0B1E33]">No entrepreneurs registered yet.</p>
+                <p className="text-lg font-semibold text-[#0B1E33]">{t('facilitator_no_entrepreneurs')}</p>
                 <p className="text-xs text-[#0B1E33]/50">
                   Use the &quot;Add New Entrepreneur&quot; button above to add the first entrepreneur.
                 </p>

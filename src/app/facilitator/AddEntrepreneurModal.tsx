@@ -9,9 +9,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AddEntrepreneurModal() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -66,7 +68,7 @@ export default function AddEntrepreneurModal() {
         className="px-5 py-2.5 rounded-full bg-[#0B1E33] text-white font-bold text-xs shadow-md hover:opacity-95 transition-all flex items-center gap-2"
       >
         <span>➕</span>
-        <span>Add New Entrepreneur / Add Entrepreneur</span>
+        <span>{t('facilitator_add')}</span>
       </button>
 
       {isOpen && (
