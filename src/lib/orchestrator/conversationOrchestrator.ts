@@ -13,6 +13,7 @@
 import { supabaseServer } from '@/lib/supabase/server';
 import { runLedgerOcr, OcrFailedError } from '@/lib/ledger/ocrService';
 import { transcribeAudio } from '@/lib/voice/transcribeAudio';
+import { detectMessageLanguage } from './detectLanguage';
 
 /** Media that arrived with an inbound message, already downloaded. */
 export interface InboundMedia {
@@ -210,7 +211,11 @@ export async function handleIncomingMessage(
     user = existingUser;
   }
 
-  const lang = user.language || 'hi';
+  // Stored preference is the starting point; the message itself can override
+  // it below. On WhatsApp/SMS there is no toggle to press, so the default of
+  // 'hi' set at row creation would otherwise answer every English speaker in
+  // Hindi forever.
+  let lang = user.language || 'hi';
 
   // ── 2. Fetch or create conversation ──────────────────────────────────────
   interface ConversationRecord {
@@ -345,6 +350,30 @@ export async function handleIncomingMessage(
   }
 
   const text = (voiceTranscript || messageText || '').trim();
+
+  // Answer in the language the user actually just used. A confident reading
+  // is also stored, so the next message starts in the right language; an
+  // unconfident one ("haan", "15000") steers this reply only and never
+  // rewrites the preference.
+  if (text) {
+    const detected = detectMessageLanguage(text);
+
+    if (detected.language !== lang) {
+      lang = detected.language;
+
+      if (detected.confident) {
+        const { error: langError } = await supabaseServer
+          .from('users')
+          .update({ language: detected.language })
+          .eq('id', user.id);
+
+        if (langError) {
+          // Non-fatal: this turn still answers in the detected language.
+          console.warn('Could not persist detected language:', langError);
+        }
+      }
+    }
+  }
 
   /** Prefix replies to a voice note with what we heard, so it can be corrected. */
   const echo = (reply: string) =>

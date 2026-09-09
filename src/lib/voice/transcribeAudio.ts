@@ -17,6 +17,7 @@
  */
 
 import { GoogleGenAI } from '@google/genai';
+import { detectMessageLanguage } from '@/lib/orchestrator/detectLanguage';
 
 /** WhatsApp voice notes are opus in an ogg container; the rest are for files. */
 const SUPPORTED_AUDIO_TYPES = [
@@ -37,7 +38,8 @@ const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
 
 export interface TranscriptionResult {
   text: string;
-  language: 'hi' | 'en' | 'unknown';
+  /** Language of the transcript, from the shared detector. */
+  language: 'hi' | 'en';
 }
 
 function normalizeMimeType(mimeType?: string): string {
@@ -116,14 +118,9 @@ export async function transcribeAudio(
       return null;
     }
 
-    // Devanagari present → treat the reply as Hindi.
-    const language: TranscriptionResult['language'] = /[ऀ-ॿ]/.test(text)
-      ? 'hi'
-      : /[a-zA-Z]/.test(text)
-        ? 'en'
-        : 'unknown';
-
-    return { text, language };
+    // Same heuristic as typed messages — romanised Hindi ("mera dukan") must
+    // not be mistaken for English just because it is in Latin script.
+    return { text, language: detectMessageLanguage(text).language };
   } catch (err) {
     console.error('Voice transcription failed:', err);
     return null;
