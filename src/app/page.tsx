@@ -31,10 +31,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
 import VoiceOnboardingModal from '@/components/VoiceOnboardingModal';
 import LanguageToggleButton from '@/components/LanguageToggleButton';
 
 export default function ShowcaseHomePage() {
+  const { t, language } = useLanguage();
+  const tr = (en: string, hi: string) => (language === 'hi' ? hi : en);
   const [activePersona, setActivePersona] = useState<'vendor' | 'tailor' | 'artisan' | 'dairy'>('vendor');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isFabOpen, setIsFabOpen] = useState(false);
@@ -93,16 +96,16 @@ export default function ShowcaseHomePage() {
           {/* Center: Nav links in cream */}
           <nav className="hidden md:flex items-center gap-7 text-[#F5F1E6]/85 text-xs font-medium tracking-wide">
             <a href="#product" className="hover:text-[#C9A24B] transition-colors">
-              Product
+              {t('nav_product')}
             </a>
             <a href="#how-it-works" className="hover:text-[#C9A24B] transition-colors">
-              How It Works
+            {t('nav_how_it_works')}
             </a>
             <a href="#impact" className="hover:text-[#C9A24B] transition-colors">
-              Impact
+            {t('nav_impact')}
             </a>
             <a href="#team" className="hover:text-[#C9A24B] transition-colors">
-              Team
+            {t('nav_team')}
             </a>
           </nav>
 
@@ -113,13 +116,13 @@ export default function ShowcaseHomePage() {
               href="/login"
               className="hidden sm:inline-block text-xs text-[#F5F1E6]/80 hover:text-[#F5F1E6] font-medium px-3 py-1.5 transition-colors"
             >
-              Sign In
+              {t('nav_login')}
             </Link>
             <Link
               href="/onboarding"
               className="border border-[#C9A24B] text-[#C9A24B] hover:bg-[#C9A24B] hover:text-[#0B1E33] font-semibold text-xs sm:text-sm px-5 py-2 rounded-full transition-all duration-300 shadow-sm"
             >
-              Try the Demo
+            {t('nav_try_demo')}
             </Link>
           </div>
         </div>
@@ -133,23 +136,19 @@ export default function ShowcaseHomePage() {
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0B1E33]/5 border border-[#C9A24B]/30 mb-6">
           <span className="w-2 h-2 rounded-full bg-[#C9A24B] animate-pulse" />
           <p className="text-[11px] sm:text-xs font-bold text-[#C9A24B] tracking-[0.2em] uppercase font-sans">
-            SIH26091 / Ministry of Social Justice & Empowerment / Team Pantheon Eternal
+            {tr('SIH26091 / Ministry of Social Justice & Empowerment / Team Pantheon Eternal', 'SIH26091 / सामाजिक न्याय एवं अधिकारिता मंत्रालय / टीम पैंथियन इटरनल')}
           </p>
         </div>
 
         {/* Primary Serif Display Headline */}
         <h1 className="font-['Playfair_Display',Georgia,serif] text-4xl sm:text-6xl md:text-7xl font-bold text-[#0B1E33] tracking-tight leading-[1.1] mb-6">
-          Bring clarity to <br className="hidden sm:inline" />
-          <span className="italic text-[#0B1E33]">every rural business</span>
+          {t('hero_title_start')} <br className="hidden sm:inline" />
+          <span className="italic text-[#0B1E33]">{t('hero_title_end')}</span>
         </h1>
 
         {/* Subtitle */}
         <p className="text-[#0B1E33]/80 font-['Inter',sans-serif] text-base sm:text-xl max-w-3xl mx-auto leading-relaxed mb-10">
-          An AI-driven hyper-local business advisor for rural micro-entrepreneurs — providing
-          provably deterministic break-even calculations, handwritten ledger OCR, and instant
-          government scheme matching on <span className="font-semibold text-[#0B1E33]">WhatsApp</span>,{' '}
-          <span className="font-semibold text-[#0B1E33]">SMS</span>, or the{' '}
-          <span className="font-semibold text-[#0B1E33]">web</span>.
+          {t('hero_subtitle')}
         </p>
 
         {/* Action Button Group */}
@@ -158,20 +157,20 @@ export default function ShowcaseHomePage() {
             href="/onboarding"
             className="px-8 py-4 bg-[#0B1E33] hover:bg-[#142D4B] text-[#F5F1E6] font-semibold text-sm rounded-full shadow-[0_10px_30px_rgba(11,30,51,0.2)] hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
           >
-            Launch Advisory Demo
+            {tr('Launch Advisory Demo', 'सलाहकार डेमो शुरू करें')}
           </Link>
           <button
             onClick={() => setIsVoiceModalOpen(true)}
             className="px-7 py-4 bg-[#F5F1E6] border border-[#C9A24B] text-[#0B1E33] hover:bg-[#C9A24B] hover:text-[#0B1E33] font-semibold text-sm rounded-full transition-all duration-300 shadow-sm flex items-center gap-2"
           >
             <span>🎙️</span>
-            <span>Voice Registration</span>
+            <span>{tr('Voice Registration', 'वॉइस पंजीकरण')}</span>
           </button>
           <Link
             href="/facilitator"
             className="px-6 py-4 text-[#0B1E33]/80 hover:text-[#0B1E33] font-semibold text-sm rounded-full hover:bg-[#0B1E33]/5 transition-colors"
           >
-            Facilitator Hub →
+            {tr('Facilitator Hub →', 'सुविधाकर्ता केंद्र →')}
           </Link>
         </div>
 
@@ -193,20 +192,20 @@ export default function ShowcaseHomePage() {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#C9A24B]">
-                  Live Rural Deployment
+                  {tr('Live Rural Deployment', 'ग्रामीण क्षेत्र में लाइव तैनाती')}
                 </span>
               </div>
               <p className="font-['Playfair_Display',Georgia,serif] text-base sm:text-lg font-bold mt-1">
-                Ramesh General Store · Satara District
+                {tr('Ramesh General Store · Satara District', 'रमेश जनरल स्टोर · सतारा जिला')}
               </p>
               <p className="text-xs text-[#F5F1E6]/80 font-sans mt-0.5">
-                Break-Even: 12 units/day · Net Margin +28.4%
+                {tr('Break-Even: 12 units/day · Net Margin +28.4%', 'ब्रेक-ईवन: 12 यूनिट/दिन · शुद्ध मार्जिन +28.4%')}
               </p>
             </div>
 
             <div className="bg-[#0B1E33]/80 backdrop-blur-md border border-[#C9A24B]/40 px-4 py-2.5 rounded-full text-xs text-[#F5F1E6] flex items-center gap-2">
               <span className="text-[#C9A24B]">✓</span>
-              <span>Zero-Bandwidth WhatsApp & SMS Handshake Active</span>
+              <span>{tr('Zero-Bandwidth WhatsApp & SMS Handshake Active', 'कम नेटवर्क में WhatsApp और SMS कनेक्शन सक्रिय')}</span>
             </div>
           </div>
         </div>
@@ -218,30 +217,30 @@ export default function ShowcaseHomePage() {
       <section className="py-8 bg-[#F5F1E6] border-y border-[#C9A24B]/25 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 text-center mb-3">
           <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.28em] text-[#C9A24B]">
-            Connects you to
+            {tr('Connects you to', 'आपको इन योजनाओं से जोड़ता है')}
           </span>
         </div>
         <div className="relative w-full overflow-hidden flex items-center">
           <div className="animate-marquee whitespace-nowrap flex items-center gap-12 text-[#C9A24B] font-['Playfair_Display',Georgia,serif] text-sm sm:text-lg tracking-widest uppercase select-none">
-            <span>PMEGP · 35% Capital Subsidy</span>
+            <span>{tr('PMEGP · 35% Capital Subsidy', 'PMEGP · 35% पूंजी सब्सिडी')}</span>
             <span className="text-xs text-[#C9A24B]/60">◆</span>
-            <span>Mudra Shishu, Kishor & Tarun</span>
+            <span>{tr('Mudra Shishu, Kishor & Tarun', 'मुद्रा शिशु, किशोर और तरुण')}</span>
             <span className="text-xs text-[#C9A24B]/60">◆</span>
-            <span>Stand-Up India (SC/ST & Women)</span>
+            <span>{tr('Stand-Up India (SC/ST & Women)', 'स्टैंड-अप इंडिया (SC/ST और महिलाएं)')}</span>
             <span className="text-xs text-[#C9A24B]/60">◆</span>
-            <span>PM SVANidhi Micro-Credit</span>
+            <span>{tr('PM SVANidhi Micro-Credit', 'PM SVANidhi माइक्रो-क्रेडिट')}</span>
             <span className="text-xs text-[#C9A24B]/60">◆</span>
-            <span>NABARD SHG Credit-Linkage</span>
+            <span>{tr('NABARD SHG Credit-Linkage', 'NABARD SHG क्रेडिट-लिंकेज')}</span>
             <span className="text-xs text-[#C9A24B]/60">◆</span>
-            <span>PMEGP · 35% Capital Subsidy</span>
+            <span>{tr('PMEGP · 35% Capital Subsidy', 'PMEGP · 35% पूंजी सब्सिडी')}</span>
             <span className="text-xs text-[#C9A24B]/60">◆</span>
-            <span>Mudra Shishu, Kishor & Tarun</span>
+            <span>{tr('Mudra Shishu, Kishor & Tarun', 'मुद्रा शिशु, किशोर और तरुण')}</span>
             <span className="text-xs text-[#C9A24B]/60">◆</span>
-            <span>Stand-Up India (SC/ST & Women)</span>
+            <span>{tr('Stand-Up India (SC/ST & Women)', 'स्टैंड-अप इंडिया (SC/ST और महिलाएं)')}</span>
             <span className="text-xs text-[#C9A24B]/60">◆</span>
-            <span>PM SVANidhi Micro-Credit</span>
+            <span>{tr('PM SVANidhi Micro-Credit', 'PM SVANidhi माइक्रो-क्रेडिट')}</span>
             <span className="text-xs text-[#C9A24B]/60">◆</span>
-            <span>NABARD SHG Credit-Linkage</span>
+            <span>{tr('NABARD SHG Credit-Linkage', 'NABARD SHG क्रेडिट-लिंकेज')}</span>
           </div>
         </div>
       </section>
@@ -253,19 +252,19 @@ export default function ShowcaseHomePage() {
         {/* Background Large Serif Watermark Heading */}
         <div className="absolute inset-x-0 top-12 text-center pointer-events-none select-none z-0">
           <h2 className="font-['Playfair_Display',Georgia,serif] text-6xl sm:text-8xl md:text-9xl font-bold text-[#0B1E33]/[0.06] tracking-tight">
-            Financial Clarity
+            {tr('Financial Clarity', 'वित्तीय स्पष्टता')}
           </h2>
         </div>
 
         <div className="relative z-10 text-center max-w-2xl mx-auto mb-16">
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#C9A24B]">
-            Product Moments in Action
+            {tr('Product Moments in Action', 'उत्पाद की झलक')}
           </span>
           <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] mt-2">
-            Every Touchpoint Designed for Reality
+            {tr('Every Touchpoint Designed for Reality', 'हर संपर्क वास्तविक जरूरत के अनुसार')}
           </h3>
           <p className="text-sm sm:text-base text-[#0B1E33]/70 font-sans mt-3">
-            Layered advisory moments bridging conversational voice messages to formal banking readiness.
+            {tr('Layered advisory moments bridging conversational voice messages to formal banking readiness.', 'संवादात्मक वॉइस संदेशों से औपचारिक बैंकिंग तैयारी तक सलाह के चरण।')}
           </p>
         </div>
 
@@ -275,9 +274,10 @@ export default function ShowcaseHomePage() {
           <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#25D366] flex items-center gap-1.5 bg-[#25D366]/10 px-3 py-1 rounded-full">
-                <span>💬</span> WhatsApp Voice Ingestion
+                <span>💬</span> WhatsApp वॉइस इनपुट
               </span>
-              <span className="text-[10px] text-[#0B1E33]/50 font-mono">0.82s Latency</span>
+              <span className="text-[10px] text-[#0B1E33]/50 font-mono">{tr('0.82s Latency', '0.82 सेकंड विलंब')}
+              </span>
             </div>
             <div className="bg-[#EFECE4] p-4 rounded-[20px] space-y-2">
               <div className="flex items-center gap-3">
@@ -296,7 +296,7 @@ export default function ShowcaseHomePage() {
             </div>
             <div className="p-3 bg-[#0B1E33]/5 rounded-2xl border border-[#0B1E33]/10">
               <p className="text-xs font-semibold text-[#0B1E33]">
-                AI Extraction: +₹1,200 Revenue, -₹400 Expense → Daily Cash Flow Balanced.
+                {tr('AI Extraction: +₹1,200 Revenue, -₹400 Expense → Daily Cash Flow Balanced.', 'AI निष्कर्षण: +₹1,200 आय, -₹400 खर्च → दैनिक कैश फ्लो संतुलित।')}
               </p>
             </div>
           </div>
@@ -305,26 +305,26 @@ export default function ShowcaseHomePage() {
           <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#C9A24B] uppercase tracking-wider">
-                Deterministic Math
+                {tr('Deterministic Math', 'सटीक गणना')}
               </span>
               <span className="text-xs bg-[#0B1E33] text-white px-2.5 py-0.5 rounded-full font-mono">
-                Verified
+                {tr('Verified', 'सत्यापित')}
               </span>
             </div>
             <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold text-[#0B1E33]">
-              Break-Even: 12 units/day
+              {tr('Break-Even: 12 units/day', 'ब्रेक-ईवन: 12 यूनिट/दिन')}
             </h4>
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs font-medium text-[#0B1E33]/70">
-                <span>Daily Sales Progress (16 units)</span>
-                <span className="text-[#0B1E33] font-bold">133% Target</span>
+                <span>दैनिक बिक्री प्रगति (16 यूनिट)</span>
+                <span className="text-[#0B1E33] font-bold">133% लक्ष्य</span>
               </div>
               <div className="w-full bg-[#EFECE4] h-3 rounded-full overflow-hidden">
                 <div className="bg-[#C9A24B] h-full rounded-full w-[85%]" />
               </div>
             </div>
             <p className="text-xs text-[#0B1E33]/70 leading-relaxed">
-              Every unit sold above 12 yields ₹45 pure net contribution toward debt servicing.
+              {tr('Every unit sold above 12 yields ₹45 pure net contribution toward debt servicing.', '12 से अधिक हर यूनिट पर ऋण भुगतान के लिए ₹45 शुद्ध योगदान मिलता है।')}
             </p>
           </div>
 
@@ -333,53 +333,54 @@ export default function ShowcaseHomePage() {
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                Eligible Match · 94%
+                {tr('Eligible Match · 94%', 'पात्रता मिलान · 94%')}
               </span>
-              <span className="text-xs text-[#C9A24B] font-bold">Priority Scheme</span>
+              <span className="text-xs text-[#C9A24B] font-bold">{tr('Priority Scheme', 'प्राथमिक योजना')}</span>
             </div>
             <div>
               <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
                 PMEGP (KVIC)
               </h4>
               <p className="text-xs text-[#C9A24B] font-semibold mt-0.5">
-                35% Capital Subsidy for Rural Enterprises
+                {tr('35% Capital Subsidy for Rural Enterprises', 'ग्रामीण उद्यमों के लिए 35% पूंजी सब्सिडी')}
               </p>
             </div>
             <div className="bg-[#F5F1E6] p-3 rounded-2xl border border-[#C9A24B]/20 text-xs text-[#0B1E33]/80 space-y-1">
               <div className="flex justify-between">
-                <span>Max Loan Amount:</span>
+                <span>अधिकतम ऋण राशि:</span>
                 <span className="font-bold text-[#0B1E33]">₹10,00,000</span>
               </div>
               <div className="flex justify-between">
-                <span>Government Subsidy:</span>
-                <span className="font-bold text-emerald-700">₹3,50,000 (Non-repayable)</span>
+                <span>सरकारी सब्सिडी:</span>
+                <span className="font-bold text-emerald-700">₹3,50,000 (गैर-वापसी योग्य)</span>
               </div>
             </div>
           </div>
 
-          {/* Card 4: Notebook Photo to Ledger OCR */}
+          {/* Card 4: {tr('Notebook Photo to Ledger', 'नोटबुक फोटो से बही-खाता')} OCR */}
           <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#0B1E33] uppercase tracking-wider">
-                📸 Notebook OCR
+                {tr('📸 Notebook OCR', '📸 नोटबुक OCR')}
               </span>
-              <span className="text-xs text-[#C9A24B] font-mono">Bahi-Khata</span>
+              <span className="text-xs text-[#C9A24B] font-mono">{tr('Bahi-Khata', 'बही-खाता')}
+              </span>
             </div>
             <h4 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33]">
-              Photo to Structured Ledger
+              {tr('Photo to Structured Ledger', 'फोटो से संरचित बही-खाता')}
             </h4>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="bg-[#EFECE4] p-2.5 rounded-xl">
-                <span className="text-[10px] text-[#0B1E33]/60 block font-bold">RAW KHATA NOTEBOOK</span>
+                <span className="text-[10px] text-[#0B1E33]/60 block font-bold">{tr('RAW KHATA NOTEBOOK', 'मूल खाता नोटबुक')}</span>
                 <span className="italic text-[#0B1E33]/80 font-serif">“रोहन ₹240 जमा, तेल ₹180 बाकी”</span>
               </div>
               <div className="bg-[#0B1E33] p-2.5 rounded-xl text-white">
-                <span className="text-[10px] text-[#C9A24B] block font-bold">PARSED LEDGER</span>
+                <span className="text-[10px] text-[#C9A24B] block font-bold">{tr('PARSED LEDGER', 'प्रसंस्कृत बही-खाता')}</span>
                 <span className="font-mono text-[11px]">+₹240 In / -₹180 Rec</span>
               </div>
             </div>
             <p className="text-xs text-[#0B1E33]/70">
-              Scans handwritten Devanagari numerals directly into double-entry accounting.
+              {tr('Scans handwritten Devanagari numerals directly into double-entry accounting.', 'हस्तलिखित देवनागरी अंकों को सीधे डबल-एंट्री लेखांकन में बदलता है।')}
             </p>
           </div>
 
@@ -387,15 +388,15 @@ export default function ShowcaseHomePage() {
           <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300 md:col-span-2 lg:col-span-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#C9A24B] uppercase tracking-wider">
-                Field Facilitator Reality
+                {tr('Field Facilitator Reality', 'फील्ड सुविधाकर्ता की वास्तविकता')}
               </span>
               <span className="text-xs bg-[#0B1E33]/5 text-[#0B1E33] px-3 py-1 rounded-full font-bold">
-                1 SHG Worker : 50 Artisans
+                {tr('1 SHG Worker : 50 Artisans', '1 SHG कार्यकर्ता : 50 कारीगर')}
               </span>
             </div>
             <blockquote className="font-['Playfair_Display',Georgia,serif] text-lg sm:text-xl font-normal italic text-[#0B1E33] leading-relaxed">
-              “This changed how I support my entrepreneurs. Instead of guessing who qualifies for a loan,
-              we generate a verified financial dossier in 5 minutes and submit it directly to the rural bank branch.”
+              {tr('“This changed how I support my entrepreneurs. Instead of guessing who qualifies for a loan,', '“इससे उद्यमियों की मदद करने का मेरा तरीका बदल गया। ऋण के लिए कौन पात्र है इसका अनुमान लगाने के बजाय,')}
+              {tr('we generate a verified financial dossier in 5 minutes and submit it directly to the rural bank branch.”', 'हम 5 मिनट में सत्यापित वित्तीय दस्तावेज़ तैयार करके सीधे ग्रामीण बैंक शाखा में जमा करते हैं।”')}
             </blockquote>
             <div className="flex items-center gap-3 pt-2">
               <div className="w-10 h-10 rounded-full bg-[#0B1E33] text-[#C9A24B] flex items-center justify-center font-bold text-sm">
@@ -403,7 +404,7 @@ export default function ShowcaseHomePage() {
               </div>
               <div>
                 <p className="text-sm font-bold text-[#0B1E33]">Sunita Devi</p>
-                <p className="text-xs text-[#0B1E33]/70">SHG Prerak & Rural Banking Mitra, Satara Cluster</p>
+                <p className="text-xs text-[#0B1E33]/70">{tr('SHG Prerak & Rural Banking Mitra, Satara Cluster', 'SHG प्रेरक एवं ग्रामीण बैंकिंग मित्र, सतारा क्लस्टर')}</p>
               </div>
             </div>
           </div>
@@ -435,7 +436,7 @@ export default function ShowcaseHomePage() {
 
         <div className="mt-8 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-[0.25em] text-[#C9A24B]">
           <span className="w-8 h-px bg-[#C9A24B]/60" />
-          <span>The Sovereign Inclusion Manifesto</span>
+          <span>{tr('The Sovereign Inclusion Manifesto', 'सर्वसमावेशी विकास घोषणापत्र')}</span>
           <span className="w-8 h-px bg-[#C9A24B]/60" />
         </div>
       </section>
@@ -449,10 +450,10 @@ export default function ShowcaseHomePage() {
           <div className="lg:col-span-6 space-y-8">
             <div className="space-y-3">
               <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#C9A24B]">
-                Core Advisory Architecture
+                {tr('Core Advisory Architecture', 'मुख्य सलाहकार संरचना')}
               </span>
               <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] leading-tight">
-                An advisor that actually understands your business.
+                {tr('An advisor that actually understands your business.', 'ऐसा सलाहकार जो आपके व्यवसाय को वास्तव में समझता है।')}
               </h3>
             </div>
 
@@ -460,28 +461,28 @@ export default function ShowcaseHomePage() {
             <div className="border-l-2 border-[#C9A24B] pl-6 space-y-6">
               <div className="space-y-1.5">
                 <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                  Deterministic Financial Engine
+                  {tr('Deterministic Financial Engine', 'सटीक वित्तीय इंजन')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
-                  Break-even and margin math that is provably correct, built on rigorous accounting axioms, and never AI-guessed or hallucinated.
+                  {tr('Break-even and margin math that is provably correct, built on rigorous accounting axioms, and never AI-guessed or hallucinated.', 'ब्रेक-ईवन और मार्जिन की गणना कठोर लेखांकन सिद्धांतों पर आधारित और सत्यापन योग्य है; यह AI का अनुमान या कल्पना नहीं है।')}
                 </p>
               </div>
 
               <div className="space-y-1.5">
                 <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                  Notebook Photo to Ledger
+                  {tr('Notebook Photo to Ledger', 'नोटबुक फोटो से बही-खाता')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
-                  Optical Character Recognition reads handwritten sales notebooks and vernacular slates, transforming daily paper records into structured balance sheets.
+                  {tr('Optical Character Recognition reads handwritten sales notebooks and vernacular slates, transforming daily paper records into structured balance sheets.', 'OCR हस्तलिखित बिक्री नोटबुक और स्थानीय भाषा के रिकॉर्ड पढ़कर दैनिक कागजी विवरण को संरचित बैलेंस शीट में बदलता है।')}
                 </p>
               </div>
 
               <div className="space-y-1.5">
                 <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                  Explainable by Design
+                  {tr('Explainable by Design', 'डिज़ाइन से पारदर्शी')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
-                  Every recommendation shows why. Transparent logic breaks down monthly fixed costs, contribution margins, and credit repayment limits.
+                  {tr('Every recommendation shows why. Transparent logic breaks down monthly fixed costs, contribution margins, and credit repayment limits.', 'हर सुझाव का कारण स्पष्ट दिखता है। पारदर्शी तर्क मासिक स्थिर लागत, योगदान मार्जिन और ऋण भुगतान सीमा को समझाता है।')}
                 </p>
               </div>
             </div>
@@ -494,36 +495,36 @@ export default function ShowcaseHomePage() {
                 <div className="flex items-center justify-between pb-3 border-b border-[#E5E2E1]">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#C9A24B]">
-                      FINANCIAL STRUCTURING DOSSIER
+                      {tr('FINANCIAL STRUCTURING DOSSIER', 'वित्तीय संरचना दस्तावेज़')}
                     </span>
                     <h5 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33]">
                       Shree Ganesh Tailoring · Solapur
                     </h5>
                   </div>
                   <span className="text-xs bg-[#0B1E33] text-[#F5F1E6] font-bold px-3 py-1 rounded-full">
-                    Solvent · Grade A
+                    {tr('Solvent · Grade A', 'सक्षम · ग्रेड A')}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-[#F5F1E6] p-3.5 rounded-2xl">
-                    <span className="text-[10px] text-[#0B1E33]/60 uppercase font-bold">Monthly Revenue</span>
+                    <span className="text-[10px] text-[#0B1E33]/60 uppercase font-bold">{tr('Monthly Revenue', 'मासिक आय')}</span>
                     <p className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold text-[#0B1E33]">₹28,500</p>
-                    <span className="text-[10px] text-emerald-700 font-bold">+14% vs Last Month</span>
+                    <span className="text-[10px] text-emerald-700 font-bold">{tr('+14% vs Last Month', '+14% पिछले महीने की तुलना में')}</span>
                   </div>
                   <div className="bg-[#F5F1E6] p-3.5 rounded-2xl">
-                    <span className="text-[10px] text-[#0B1E33]/60 uppercase font-bold">Gross Margin</span>
+                    <span className="text-[10px] text-[#0B1E33]/60 uppercase font-bold">{tr('Gross Margin', 'सकल मार्जिन')}</span>
                     <p className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold text-[#C9A24B]">34.2%</p>
-                    <span className="text-[10px] text-[#0B1E33]/70">Healthy Unit Economics</span>
+                    <span className="text-[10px] text-[#0B1E33]/70">{tr('Healthy Unit Economics', 'स्वस्थ यूनिट अर्थशास्त्र')}</span>
                   </div>
                 </div>
 
                 <div className="p-3.5 bg-[#0B1E33] text-[#F5F1E6] rounded-2xl flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] uppercase text-[#C9A24B] font-bold">Break-Even Threshold</span>
-                    <p className="text-sm font-semibold">14 Garments per week to cover fixed costs</p>
+                    <span className="text-[10px] uppercase text-[#C9A24B] font-bold">{tr('Break-Even Threshold', 'ब्रेक-ईवन सीमा')}</span>
+                    <p className="text-sm font-semibold">{tr('14 Garments per week to cover fixed costs', 'स्थिर लागत पूरी करने के लिए प्रति सप्ताह 14 परिधान')}</p>
                   </div>
-                  <span className="text-xl font-bold text-[#C9A24B]">✓ Met</span>
+                  <span className="text-xl font-bold text-[#C9A24B]">{tr('✓ Met', '✓ पूरा')}</span>
                 </div>
               </div>
             </div>
@@ -543,38 +544,38 @@ export default function ShowcaseHomePage() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-[#C9A24B] uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    #1 Matched Scheme
+                    {tr('#1 Matched Scheme', '#1 मिलान की गई योजना')}
                   </span>
                   <span className="text-xs bg-emerald-900/60 text-emerald-300 font-bold px-2.5 py-0.5 rounded-full">
-                    96% Score
+                    {tr('96% Score', '96% स्कोर')}
                   </span>
                 </div>
 
                 <div>
                   <h5 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-white">
-                    PMEGP — Prime Minister Employment Generation Programme
+                    {tr('PMEGP — Prime Minister Employment Generation Programme', 'PMEGP — प्रधानमंत्री रोजगार सृजन कार्यक्रम')}
                   </h5>
                   <p className="text-xs text-[#C9A24B] font-semibold mt-1">
-                    35% Capital Subsidy for Special Category / Rural Area
+                    {tr('35% Capital Subsidy for Special Category / Rural Area', 'विशेष श्रेणी / ग्रामीण क्षेत्र के लिए 35% पूंजी सब्सिडी')}
                   </p>
                 </div>
 
                 <div className="bg-white/10 p-3.5 rounded-2xl space-y-2 text-xs">
                   <p className="font-bold text-white uppercase text-[10px] tracking-wider">
-                    Document Checklist Ready:
+                    {tr('Document Checklist Ready:', 'दस्तावेज़ सूची तैयार:')}
                   </p>
                   <div className="space-y-1 text-[#F5F1E6]/90">
                     <div className="flex items-center gap-2">
                       <span className="text-emerald-400 font-bold">✓</span>
-                      <span>Aadhaar Card linked with mobile number</span>
+                      <span>{tr('Aadhaar Card linked with mobile number', 'आधार कार्ड मोबाइल नंबर से लिंक है')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-emerald-400 font-bold">✓</span>
-                      <span>EDP Training Certificate (online course matched)</span>
+                      <span>{tr('EDP Training Certificate (online course matched)', 'EDP प्रशिक्षण प्रमाणपत्र (ऑनलाइन कोर्स मिलान)')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-emerald-400 font-bold">✓</span>
-                      <span>Detailed Project Report (Generated automatically by Saathi)</span>
+                      <span>{tr('Detailed Project Report (Generated automatically by Saathi)', 'विस्तृत परियोजना रिपोर्ट (साथी द्वारा स्वतः तैयार)')}</span>
                     </div>
                   </div>
                 </div>
@@ -583,7 +584,7 @@ export default function ShowcaseHomePage() {
                   href="/dashboard/schemes"
                   className="block text-center w-full py-3 rounded-full bg-[#C9A24B] hover:bg-[#d9b25a] text-[#0B1E33] font-bold text-xs uppercase tracking-wider transition-all"
                 >
-                  View Scheme Application Roadmap
+                  {tr('View Scheme Application Roadmap', 'योजना आवेदन रोडमैप देखें')}
                 </Link>
               </div>
             </div>
@@ -593,38 +594,38 @@ export default function ShowcaseHomePage() {
           <div className="lg:col-span-6 space-y-8 order-1 lg:order-2">
             <div className="space-y-3">
               <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#C9A24B]">
-                Welfare Scheme Allocation
+                {tr('Welfare Scheme Allocation', 'कल्याण योजना आवंटन')}
               </span>
               <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] leading-tight">
-                Government support, matched automatically.
+                {tr('Government support, matched automatically.', 'सरकारी सहायता अपने आप मिलान करें।')}
               </h3>
             </div>
 
             <div className="border-l-2 border-[#C9A24B] pl-6 space-y-6">
               <div className="space-y-1.5">
                 <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                  Curated & Verified Schemes
+                  {tr('Curated & Verified Schemes', 'चयनित और सत्यापित योजनाएं')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
-                  Not unreliable live scraping. 15+ Central and State welfare initiatives verified directly against official ministry guidelines.
+                  {tr('Not unreliable live scraping. 15+ Central and State welfare initiatives verified directly against official ministry guidelines.', 'अविश्वसनीय लाइव स्क्रैपिंग नहीं। 15+ केंद्रीय और राज्य कल्याण योजनाएं आधिकारिक मंत्रालय दिशानिर्देशों के आधार पर सत्यापित हैं।')}
                 </p>
               </div>
 
               <div className="space-y-1.5">
                 <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                  Plain-Language Eligibility
+                  {tr('Plain-Language Eligibility', 'सरल भाषा में पात्रता')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
-                  Why you qualify, clearly explained in your spoken vernacular without legal jargon or fine-print ambiguity.
+                  {tr('Why you qualify, clearly explained in your spoken vernacular without legal jargon or fine-print ambiguity.', 'आप पात्र क्यों हैं, यह आपकी स्थानीय भाषा में बिना कानूनी जटिल शब्दों के स्पष्ट बताया जाता है।')}
                 </p>
               </div>
 
               <div className="space-y-1.5">
                 <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                  Full Document Checklist
+                  {tr('Full Document Checklist', 'पूरी दस्तावेज़ सूची')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
-                  Know exactly what papers to gather before setting foot in a bank branch, cutting out wasted visits and mediator fees.
+                  {tr('Know exactly what papers to gather before setting foot in a bank branch, cutting out wasted visits and mediator fees.', 'बैंक जाने से पहले जरूरी कागजात की पूरी जानकारी पाएं, जिससे बेकार चक्कर और बिचौलिया शुल्क बचें।')}
                 </p>
               </div>
             </div>
@@ -638,13 +639,13 @@ export default function ShowcaseHomePage() {
       <section id="impact" className="py-24 px-4 sm:px-8 max-w-7xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#C9A24B]">
-            Hyper-Local Domain Diversity
+            {tr('Hyper-Local Domain Diversity', 'स्थानीय व्यवसायों की विविधता')}
           </span>
           <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] mt-2">
-            Built for every kind of entrepreneur.
+            {tr('Built for every kind of entrepreneur.', 'हर प्रकार के उद्यमी के लिए बनाया गया।')}
           </h3>
           <p className="text-sm sm:text-base text-[#0B1E33]/70 font-sans mt-3">
-            Whether running a roadside stall or a handloom guild, tailored advisory workflows align with your reality.
+            {tr('Whether running a roadside stall or a handloom guild, tailored advisory workflows align with your reality.', 'चाहे सड़क किनारे दुकान हो या हथकरघा समूह, सलाहकार कार्यप्रवाह आपकी वास्तविक जरूरत के अनुसार ढलते हैं।')}
           </p>
 
           {/* Filter Pill Buttons */}
@@ -657,7 +658,7 @@ export default function ShowcaseHomePage() {
                   : 'bg-transparent border border-[#0B1E33]/30 text-[#0B1E33] hover:border-[#0B1E33]'
               }`}
             >
-              Vendor
+              {tr('Vendor', 'विक्रेता')}
             </button>
             <button
               onClick={() => setActivePersona('tailor')}
@@ -667,7 +668,7 @@ export default function ShowcaseHomePage() {
                   : 'bg-transparent border border-[#0B1E33]/30 text-[#0B1E33] hover:border-[#0B1E33]'
               }`}
             >
-              Tailor
+              {tr('Tailor', 'दर्जी')}
             </button>
             <button
               onClick={() => setActivePersona('artisan')}
@@ -677,7 +678,7 @@ export default function ShowcaseHomePage() {
                   : 'bg-transparent border border-[#0B1E33]/30 text-[#0B1E33] hover:border-[#0B1E33]'
               }`}
             >
-              Artisan
+              {tr('Artisan', 'कारीगर')}
             </button>
             <button
               onClick={() => setActivePersona('dairy')}
@@ -687,14 +688,14 @@ export default function ShowcaseHomePage() {
                   : 'bg-transparent border border-[#0B1E33]/30 text-[#0B1E33] hover:border-[#0B1E33]'
               }`}
             >
-              Dairy Farmer
+              {tr('Dairy Farmer', 'डेयरी किसान')}
             </button>
           </div>
         </div>
 
         {/* 2x2 Grid of Large Rounded-Corner (32px) Image Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Card 1: Vegetable Vendor */}
+          {/* Card 1: Vegetable {tr('Vendor', 'विक्रेता')} */}
           <div
             className={`relative rounded-[32px] overflow-hidden shadow-lg border transition-all duration-300 min-h-[360px] flex flex-col justify-end p-8 group ${
               activePersona === 'vendor' ? 'border-[#C9A24B] ring-2 ring-[#C9A24B]/40' : 'border-[#0B1E33]/15'
@@ -703,23 +704,23 @@ export default function ShowcaseHomePage() {
             <div className="absolute inset-0 bg-gradient-to-t from-[#0B1E33] via-[#0B1E33]/60 to-transparent z-10" />
             <img
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUsioSc0kRYfrc8Vqifz2pkHNJqMGbYpgxMW2g73bisC0KXI_uOSyNFF4KU-H2z1LxVdnBysfhh2gPbL6n9Dhi6Pt7H6paQq2MdIsu08L1DVHTJasPLRuTtQZQv3MoFHV_QcKz3HTRlVpxhXeecMmtV7rDeUS6QKxvuO9gyeG_5SZaDnyogK9DJIfnuJCt8HVqV8pJ2cCQZnh2sKXGtWQXrwWXKBXr0_ObQC8sFvBbG-ZJ7UnplKeT"
-              alt="The Vegetable Vendor"
+              alt="{tr('The Vegetable Vendor', 'सब्जी विक्रेता')}"
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
             <div className="relative z-20 space-y-2 text-white">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A24B] bg-[#0B1E33]/80 px-3 py-1 rounded-full inline-block">
-                Daily Working Capital
+                {tr('Daily Working Capital', 'दैनिक कार्यशील पूंजी')}
               </span>
               <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold">
-                The Vegetable Vendor
+                {tr('The Vegetable Vendor', 'सब्जी विक्रेता')}
               </h4>
               <p className="text-sm text-[#F5F1E6]/90 font-sans leading-relaxed">
-                Pricing and daily cash-flow clarity, preventing wholesale market losses and debt traps.
+                {tr('Pricing and daily cash-flow clarity, preventing wholesale market losses and debt traps.', 'कीमत और दैनिक कैश फ्लो की स्पष्टता, थोक बाजार के नुकसान और कर्ज के जाल से बचाव।')}
               </p>
             </div>
           </div>
 
-          {/* Card 2: The Tailor */}
+          {/* Card 2: {tr('The Tailor', 'दर्जी')} */}
           <div
             className={`relative rounded-[32px] overflow-hidden shadow-lg border transition-all duration-300 min-h-[360px] flex flex-col justify-end p-8 group ${
               activePersona === 'tailor' ? 'border-[#C9A24B] ring-2 ring-[#C9A24B]/40' : 'border-[#0B1E33]/15'
@@ -728,23 +729,23 @@ export default function ShowcaseHomePage() {
             <div className="absolute inset-0 bg-gradient-to-t from-[#0B1E33] via-[#0B1E33]/60 to-transparent z-10" />
             <img
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlVItczi7mvsLqw-E4b8qcK2W_8FIz-RF52wVhdhXgbcaE2ofX5biw_61nRt71cjJdu9EhqH63mtKziLQHho4WTOrP5h7E6OJBYxjGily9DZW6qe1cnaPkk9-NXNAxxe7-gY07UEskPE8XEMKWYfdK0RSpaeonWMGGVgKLbSaTT0Hs8T2NIrwdePy4kOne6AmX3wdSUCeHAFatOY3225UwQAUx-3yF4h-HRAGQ17OyJKIuIJYW2r5q"
-              alt="The Tailor"
+              alt="{tr('The Tailor', 'दर्जी')}"
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
             <div className="relative z-20 space-y-2 text-white">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A24B] bg-[#0B1E33]/80 px-3 py-1 rounded-full inline-block">
-                Home Enterprise Scale
+                {tr('Home Enterprise Scale', 'घरेलू व्यवसाय विस्तार')}
               </span>
               <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold">
-                The Tailor
+                {tr('The Tailor', 'दर्जी')}
               </h4>
               <p className="text-sm text-[#F5F1E6]/90 font-sans leading-relaxed">
-                Knowing which loan actually fits a home business without predatory interest rates.
+                {tr('Knowing which loan actually fits a home business without predatory interest rates.', 'बिना शोषणकारी ब्याज दरों के यह जानना कि घरेलू व्यवसाय के लिए कौन सा ऋण सही है।')}
               </p>
             </div>
           </div>
 
-          {/* Card 3: The Artisan */}
+          {/* Card 3: {tr('The Artisan', 'कारीगर')} */}
           <div
             className={`relative rounded-[32px] overflow-hidden shadow-lg border transition-all duration-300 min-h-[360px] flex flex-col justify-end p-8 group ${
               activePersona === 'artisan' ? 'border-[#C9A24B] ring-2 ring-[#C9A24B]/40' : 'border-[#0B1E33]/15'
@@ -753,23 +754,23 @@ export default function ShowcaseHomePage() {
             <div className="absolute inset-0 bg-gradient-to-t from-[#0B1E33] via-[#0B1E33]/60 to-transparent z-10" />
             <img
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuByVJTa3ExygCjPQOasIN5gEOOAJ1PZGEgQF-lU1-yCpPXWVzLWDYcrgNEi90O7oohUVCZcEcm9dTKZqSDQWvAsAES32J4Iu8MHYpVdpINkE10XV3tH115xYxcBRj3CrsxazF7PrnEjQPhS9qBu09BpOXXOKwSx33kjTqEGkjMCZdT1st3Y0ughPozKNNtkFeLkR-a4kWwBVA2Y5QcXhE7OTihAMkbqnIixGIXc6EBhWnCyldDPuYjE"
-              alt="The Artisan"
+              alt="{tr('The Artisan', 'कारीगर')}"
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
             <div className="relative z-20 space-y-2 text-white">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A24B] bg-[#0B1E33]/80 px-3 py-1 rounded-full inline-block">
-                Heritage Trade Formalization
+                {tr('Heritage Trade Formalization', 'पारंपरिक व्यापार का औपचारिकीकरण')}
               </span>
               <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold">
-                The Artisan
+                {tr('The Artisan', 'कारीगर')}
               </h4>
               <p className="text-sm text-[#F5F1E6]/90 font-sans leading-relaxed">
-                Turning informal skill into a registered, fundable trade linked with Vishwakarma and Mudra.
+                {tr('Turning informal skill into a registered, fundable trade linked with Vishwakarma and Mudra.', 'अनौपचारिक कौशल को पंजीकृत और वित्तपोषण योग्य व्यापार में बदलना, जिसे विश्वकर्मा और मुद्रा से जोड़ा जा सके।')}
               </p>
             </div>
           </div>
 
-          {/* Card 4: The Dairy Farmer */}
+          {/* Card 4: {tr('The Dairy Farmer', 'डेयरी किसान')} */}
           <div
             className={`relative rounded-[32px] overflow-hidden shadow-lg border transition-all duration-300 min-h-[360px] flex flex-col justify-end p-8 group ${
               activePersona === 'dairy' ? 'border-[#C9A24B] ring-2 ring-[#C9A24B]/40' : 'border-[#0B1E33]/15'
@@ -778,18 +779,18 @@ export default function ShowcaseHomePage() {
             <div className="absolute inset-0 bg-gradient-to-t from-[#0B1E33] via-[#0B1E33]/60 to-transparent z-10" />
             <img
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuChTAgtYZtqb5QrOwbpjiKpva6RfBwGeKSYGVsSgKw9MsCWrr85e3PMr79a4EJ2-H7BKEyEtOxHEBn_OwWOxtslx-WVfkFnNzXYFNEgO2P11PMFN3zllUbfdOc2IzP2aO4dBw6gNW-EDYF1GYi6Y2aqzeWfyULQA9Evgcfxq9H47w3U5JLBBri9eRp3XS6YTAlGfyRvGgmb8hUXXwmqaQysPFl5GI7r6SZVM_fys2ScPF0_ajlsVvJl"
-              alt="The Dairy Farmer"
+              alt="{tr('The Dairy Farmer', 'डेयरी किसान')}"
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
             <div className="relative z-20 space-y-2 text-white">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A24B] bg-[#0B1E33]/80 px-3 py-1 rounded-full inline-block">
-                Agrarian Risk Buffer
+                {tr('Agrarian Risk Buffer', 'कृषि जोखिम सुरक्षा')}
               </span>
               <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold">
-                The Dairy Farmer
+                {tr('The Dairy Farmer', 'डेयरी किसान')}
               </h4>
               <p className="text-sm text-[#F5F1E6]/90 font-sans leading-relaxed">
-                Seasonal risk planning made simple, hedging milk yield cycles against cattle feed outlays.
+                {tr('Seasonal risk planning made simple, hedging milk yield cycles against cattle feed outlays.', 'मौसमी जोखिम योजना को सरल बनाना और पशु चारे के खर्च के मुकाबले दूध उत्पादन चक्र को संतुलित करना।')}
               </p>
             </div>
           </div>
@@ -815,7 +816,7 @@ export default function ShowcaseHomePage() {
           </div>
           <p className="text-sm font-bold text-[#0B1E33]">Ramesh Patil</p>
           <p className="text-xs text-[#0B1E33]/60 italic">
-            Illustrative user persona, based on target entrepreneur research
+            {tr('Illustrative user persona, based on target entrepreneur research', 'लक्षित उद्यमी शोध पर आधारित उदाहरणात्मक उपयोगकर्ता व्यक्तित्व')}
           </p>
         </div>
       </section>
@@ -827,36 +828,36 @@ export default function ShowcaseHomePage() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-12">
           <div>
             <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#C9A24B]">
-              The Horizon
+              {tr('The Horizon', 'क्षितिज')}
             </span>
             <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] mt-1">
-              Where this is headed
+              {tr('Where this is headed', 'आगे की दिशा')}
             </h3>
           </div>
           <Link
             href="/dashboard/business-guide"
             className="text-xs sm:text-sm font-bold text-[#0B1E33] hover:text-[#C9A24B] flex items-center gap-1.5 transition-colors border-b border-[#0B1E33]/30 pb-0.5"
           >
-            <span>View Full Roadmap</span>
+            <span>{tr('View Full Roadmap', 'पूरा रोडमैप देखें')}</span>
             <span>→</span>
           </Link>
         </div>
 
-        {/* 3-Card Grid for Future Scope */}
+        {/* 3-Card Grid for {tr('Future Scope', 'भविष्य की योजना')} */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Item 1 */}
           <div className="bg-white rounded-[32px] p-7 border border-[#C9A24B]/25 shadow-md space-y-4 hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
               <span className="text-2xl">🗣️</span>
               <span className="text-[10px] font-bold uppercase tracking-wider bg-[#0B1E33]/5 text-[#0B1E33] px-3 py-1 rounded-full border border-[#0B1E33]/15">
-                Future Scope
+                {tr('Future Scope', 'भविष्य की योजना')}
               </span>
             </div>
             <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-              Voice Assistant Onboarding
+              {tr('Voice Assistant Onboarding', 'वॉइस असिस्टेंट पंजीकरण')}
             </h4>
             <p className="text-sm text-[#0B1E33]/70 leading-relaxed">
-              Talk instead of type to register. Full conversational voice registration in Marathi, Tamil, Bengali, and 12 regional dialects.
+              {tr('Talk instead of type to register. Full conversational voice registration in Marathi, Tamil, Bengali, and 12 regional dialects.', 'टाइप करने के बजाय बोलकर पंजीकरण करें। मराठी, तमिल, बंगाली और 12 क्षेत्रीय बोलियों में पूर्ण संवादात्मक वॉइस पंजीकरण।')}
             </p>
           </div>
 
@@ -865,14 +866,14 @@ export default function ShowcaseHomePage() {
             <div className="flex items-center justify-between">
               <span className="text-2xl">👥</span>
               <span className="text-[10px] font-bold uppercase tracking-wider bg-[#0B1E33]/5 text-[#0B1E33] px-3 py-1 rounded-full border border-[#0B1E33]/15">
-                Future Scope
+                {tr('Future Scope', 'भविष्य की योजना')}
               </span>
             </div>
             <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-              Facilitator Network
+              {tr('Facilitator Network', 'सुविधाकर्ता नेटवर्क')}
             </h4>
             <p className="text-sm text-[#0B1E33]/70 leading-relaxed">
-              One SHG worker, many entrepreneurs. Village-level animators driving batch enrollment and multi-firm subsidy tracking.
+              {tr('One SHG worker, many entrepreneurs. Village-level animators driving batch enrollment and multi-firm subsidy tracking.', 'एक SHG कार्यकर्ता, कई उद्यमी। गांव स्तर के कार्यकर्ता समूह पंजीकरण और कई व्यवसायों की सब्सिडी ट्रैकिंग संभालेंगे।')}
             </p>
           </div>
 
@@ -881,14 +882,14 @@ export default function ShowcaseHomePage() {
             <div className="flex items-center justify-between">
               <span className="text-2xl">🏛️</span>
               <span className="text-[10px] font-bold uppercase tracking-wider bg-[#0B1E33]/5 text-[#0B1E33] px-3 py-1 rounded-full border border-[#0B1E33]/15">
-                Future Scope
+                {tr('Future Scope', 'भविष्य की योजना')}
               </span>
             </div>
             <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-              Full Scheme Coverage
+              {tr('Full Scheme Coverage', 'सभी योजनाओं का कवरेज')}
             </h4>
             <p className="text-sm text-[#0B1E33]/70 leading-relaxed">
-              Expanding beyond the initial curated dataset via official state-level data partnerships and automated portal linkages.
+              {tr('Expanding beyond the initial curated dataset via official state-level data partnerships and automated portal linkages.', 'प्रारंभिक चयनित डेटा से आगे बढ़कर आधिकारिक राज्य-स्तरीय डेटा साझेदारी और स्वचालित पोर्टल लिंक के माध्यम से विस्तार।')}
             </p>
           </div>
         </div>
@@ -908,10 +909,10 @@ export default function ShowcaseHomePage() {
 
           <div className="space-y-4 max-w-2xl mx-auto">
             <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] leading-tight">
-              Experience business advisory, reimagined for rural India.
+              {tr('Experience business advisory, reimagined for rural India.', 'ग्रामीण भारत के लिए नए रूप में व्यवसाय सलाह का अनुभव करें।')}
             </h3>
             <p className="text-sm sm:text-base text-[#0B1E33]/75 font-sans leading-relaxed">
-              Available today via zero-bandwidth SMS, WhatsApp voice note, or the web portal.
+              {tr('Available today via zero-bandwidth SMS, WhatsApp voice note, or the web portal.', 'आज ही कम नेटवर्क वाले SMS, WhatsApp वॉइस नोट या वेब पोर्टल के माध्यम से उपलब्ध।')}
             </p>
           </div>
 
@@ -920,7 +921,7 @@ export default function ShowcaseHomePage() {
               href="/onboarding"
               className="px-8 py-4 bg-[#0B1E33] hover:bg-[#142D4B] text-[#F5F1E6] font-semibold text-sm rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
             >
-              Watch the Demo
+              {tr('Watch the Demo', 'डेमो देखें')}
             </Link>
             <a
               href="https://github.com/dev-lover-codes/Saathi-Vyapar"
@@ -928,7 +929,7 @@ export default function ShowcaseHomePage() {
               rel="noopener noreferrer"
               className="px-8 py-4 bg-transparent border border-[#C9A24B] text-[#0B1E33] hover:bg-[#C9A24B] hover:text-[#0B1E33] font-semibold text-sm rounded-full transition-all"
             >
-              View on GitHub
+              {tr('View on GitHub', 'GitHub पर देखें')}
             </a>
           </div>
         </div>
@@ -954,7 +955,7 @@ export default function ShowcaseHomePage() {
                 </span>
               </div>
               <p className="text-xs text-[#F5F1E6]/75 leading-relaxed">
-                AI-driven hyper-local business advisory and financial structuring for India’s 63+ million rural micro-enterprises.
+                {tr('AI-driven hyper-local business advisory and financial structuring for India’s 63+ million rural micro-enterprises.', 'भारत के 6.3 करोड़ से अधिक ग्रामीण सूक्ष्म उद्यमों के लिए AI-संचालित स्थानीय व्यवसाय सलाह और वित्तीय संरचना।')}
               </p>
               <div className="flex items-center gap-3 pt-2">
                 <a
@@ -985,26 +986,26 @@ export default function ShowcaseHomePage() {
             {/* Column 2: Project */}
             <div className="space-y-3 text-xs">
               <span className="font-bold uppercase tracking-widest text-[#C9A24B] block mb-2">
-                Project
+                {tr('Project', 'प्रोजेक्ट')}
               </span>
               <p>
                 <a href="#product" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Product Overview
+                  {tr('Product Overview', 'उत्पाद अवलोकन')}
                 </a>
               </p>
               <p>
                 <a href="#how-it-works" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Architecture & Engines
+                  {tr('Architecture & Engines', 'आर्किटेक्चर और इंजन')}
                 </a>
               </p>
               <p>
                 <a href="#impact" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Impact & Personas
+                  {tr('Impact & Personas', 'प्रभाव और उपयोगकर्ता')}
                 </a>
               </p>
               <p>
                 <Link href="/dashboard" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Live Dashboard
+                  {tr('Live Dashboard', 'लाइव डैशबोर्ड')}
                 </Link>
               </p>
             </div>
@@ -1012,16 +1013,16 @@ export default function ShowcaseHomePage() {
             {/* Column 3: Team */}
             <div className="space-y-3 text-xs">
               <span className="font-bold uppercase tracking-widest text-[#C9A24B] block mb-2">
-                Team
+                {tr('Team', 'टीम')}
               </span>
               <p>
-                <span className="text-[#F5F1E6]/90 font-semibold">Team Pantheon Eternal</span>
+                <span className="text-[#F5F1E6]/90 font-semibold">{tr('Team', 'टीम')} Pantheon Eternal</span>
               </p>
               <p>
                 <span className="text-[#F5F1E6]/75">Smart India Hackathon (SIH26091)</span>
               </p>
               <p>
-                <span className="text-[#F5F1E6]/75">Ministry of Social Justice & Empowerment</span>
+                <span className="text-[#F5F1E6]/75">{tr('Ministry of Social Justice & Empowerment', 'सामाजिक न्याय एवं अधिकारिता मंत्रालय')}</span>
               </p>
               <p>
                 <a
@@ -1030,7 +1031,7 @@ export default function ShowcaseHomePage() {
                   rel="noopener noreferrer"
                   className="text-[#C9A24B] hover:underline"
                 >
-                  Source Code on GitHub
+                  {tr('Source Code on GitHub', 'GitHub पर सोर्स कोड')}
                 </a>
               </p>
             </div>
@@ -1038,26 +1039,26 @@ export default function ShowcaseHomePage() {
             {/* Column 4: Resources */}
             <div className="space-y-3 text-xs">
               <span className="font-bold uppercase tracking-widest text-[#C9A24B] block mb-2">
-                Resources
+                {tr('Resources', 'संसाधन')}
               </span>
               <p>
                 <Link href="/dashboard/schemes" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Yojana Kendra (15+ Schemes)
+                  {tr('Yojana Kendra (15+ Schemes)', 'योजना केंद्र (15+ योजनाएं)')}
                 </Link>
               </p>
               <p>
                 <Link href="/dashboard/business-guide" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Business Transformation Guide
+                  {tr('Business Transformation Guide', 'व्यवसाय परिवर्तन गाइड')}
                 </Link>
               </p>
               <p>
                 <Link href="/facilitator" className="text-[#F5F1E6]/75 hover:text-white transition-colors">
-                  Facilitator & SHG Hub
+                  {tr('Facilitator & SHG Hub', 'सुविधाकर्ता और SHG केंद्र')}
                 </Link>
               </p>
               <p>
                 <Link href="/folio" className="text-[#C9A24B] hover:underline">
-                  Stitch Archival Exhibition Folio
+                  {tr('Stitch Archival Exhibition Folio', 'स्टिच अभिलेखीय प्रदर्शनी फोलियो')}
                 </Link>
               </p>
             </div>
@@ -1065,13 +1066,13 @@ export default function ShowcaseHomePage() {
 
           {/* Bottom Bar */}
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#F5F1E6]/60">
-            <p>© 2026 Pantheon Eternal · SIH26091 · All Rights Reserved.</p>
+            <p>© 2026 Pantheon Eternal · SIH26091 · सर्वाधिकार सुरक्षित।</p>
             <div className="flex items-center gap-6">
-              <span className="hover:text-[#F5F1E6] cursor-pointer">Privacy</span>
+              <span className="hover:text-[#F5F1E6] cursor-pointer">{tr('Privacy', 'गोपनीयता')}</span>
               <span>·</span>
-              <span className="hover:text-[#F5F1E6] cursor-pointer">Terms</span>
+              <span className="hover:text-[#F5F1E6] cursor-pointer">{tr('Terms', 'नियम')}</span>
               <span>·</span>
-              <span className="hover:text-[#F5F1E6] cursor-pointer">Accessibility</span>
+              <span className="hover:text-[#F5F1E6] cursor-pointer">{tr('Accessibility', 'सुलभता')}</span>
             </div>
           </div>
         </div>
@@ -1088,7 +1089,7 @@ export default function ShowcaseHomePage() {
               className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#25D366] text-white shadow-xl hover:opacity-95 transition-all text-xs font-bold"
             >
               <span>💬</span>
-              <span>WhatsApp Advisory</span>
+              <span>{tr('WhatsApp Advisory', 'WhatsApp सलाह')}</span>
             </a>
             <button
               onClick={() => {
@@ -1098,7 +1099,7 @@ export default function ShowcaseHomePage() {
               className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#0B1E33] text-[#C9A24B] border border-[#C9A24B] shadow-xl hover:bg-[#142D4B] transition-all text-xs font-bold"
             >
               <span>🎙️</span>
-              <span>Voice Assistant</span>
+              <span>{tr('Voice Assistant', 'वॉइस असिस्टेंट')}</span>
             </button>
           </div>
         )}

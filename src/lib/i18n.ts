@@ -22,6 +22,9 @@ export const translations: Record<Language, Record<string, string>> = {
     nav_login: 'Login',
     nav_register: 'Register',
     nav_language_toggle: 'हिन्दी',
+    hero_title_start: 'Bring clarity to',
+hero_title_end: 'every rural business',
+hero_subtitle: 'An AI-driven hyper-local business advisor for rural micro-entrepreneurs – providing provably deterministic break-even calculations, handwritten ledger OCR, and instant government scheme matching on WhatsApp, SMS, or the web.',
 
     // ── Login page
     login_title: 'Entrepreneur Portal',
@@ -188,6 +191,9 @@ export const translations: Record<Language, Record<string, string>> = {
     nav_login: 'लॉगिन',
     nav_register: 'पंजीकरण',
     nav_language_toggle: 'English',
+    hero_title_start: 'स्पष्टता लाएँ',
+hero_title_end: 'हर ग्रामीण व्यवसाय में',
+hero_subtitle: 'ग्रामीण सूक्ष्म उद्यमियों के लिए एक AI-संचालित हाइपर-लोकल बिज़नेस सलाहकार – सटीक ब्रेक-ईवन गणना, हस्तलिखित बही-खाते की OCR सुविधा और WhatsApp, SMS या वेब के माध्यम से तुरंत सरकारी योजना मिलान प्रदान करता है।',
 
     // ── Login page
     login_title: 'उद्यमी पोर्टल',
