@@ -17,7 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { GoogleGenAI } from '@google/genai';
+import { generateText, resolveLlmConfig } from '@/lib/llm/provider';
 import { supabaseServer } from '@/lib/supabase/server';
 import { requireApiUser, resolveTargetUserId, forbidden } from '@/lib/auth/requireUser';
 
@@ -44,12 +44,6 @@ const GenerateGuideSchema = z.object({
   user_id: z.string().uuid('user_id must be a valid UUID').optional(),
   challenge_text: z.string().min(3, 'Please describe your business challenge'),
 });
-
-function getGeminiClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-  return new GoogleGenAI({ apiKey });
-}
 
 // Deterministic fallback generator if Gemini is unavailable
 function generateFallbackRoadmap(
@@ -169,10 +163,10 @@ export async function POST(request: NextRequest) {
     const revenue = Number(profile.monthly_revenue_est) || 0;
     const expense = Number(profile.monthly_expense_est) || 0;
 
-    const ai = getGeminiClient();
     let roadmap: RoadmapStageItem[];
 
-    if (!ai) {
+    // No model configured — Gemini or self-hosted — so use the written roadmap.
+    if (!resolveLlmConfig()) {
       roadmap = generateFallbackRoadmap(sector, revenue, expense, challenge_text);
     } else {
       const systemInstruction = `You are an expert rural enterprise growth strategist for Saathi Vyapar in India.
@@ -243,17 +237,13 @@ Generate the 5-stage transformation roadmap in JSON format matching this schema:
 ]`;
 
       try {
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt,
-          config: {
+        const rawJson =
+          (await generateText({
+            prompt,
             systemInstruction,
-            responseMimeType: 'application/json',
             temperature: 0.2,
-          },
-        });
-
-        const rawJson = response.text?.trim() || '[]';
+            json: true,
+          })) || '[]';
         const parsedRoadmap: RoadmapStageItem[] = JSON.parse(rawJson);
 
         // Ensure 5 fixed stages are present and validated

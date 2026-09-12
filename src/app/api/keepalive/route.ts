@@ -10,6 +10,7 @@
 
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
+import { describeLlm } from '@/lib/llm/provider';
 
 export async function GET() {
   let schemeCount = 0;
@@ -42,6 +43,8 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       scheme_count: schemeCount,
       db: dbStatus,
+      // Which model is serving, so a demo can be checked at a glance.
+      llm: describeLlm(),
     },
     {
       status: 200,

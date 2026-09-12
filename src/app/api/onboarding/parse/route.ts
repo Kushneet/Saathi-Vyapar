@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { GoogleGenAI } from '@google/genai';
+import { generateText, resolveLlmConfig } from '@/lib/llm/provider';
 
 /** Longest spoken answer we will forward. Real answers are a sentence. */
 const MAX_TRANSCRIPT_CHARS = 1000;
@@ -57,12 +57,6 @@ interface ParsedResult {
   consent_given?: boolean | null;
   raw_extracted?: Record<string, unknown>;
   confidence?: 'high' | 'medium' | 'low';
-}
-
-function getGeminiClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-  return new GoogleGenAI({ apiKey });
 }
 
 // ── Fallback deterministic parser ─────────────────────────────────────────────
@@ -173,10 +167,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ai = getGeminiClient();
-
-    // If Gemini is not configured, use the fallback parser
-    if (!ai) {
+    // If no model is configured, use the fallback parser. resolveLlmConfig()
+    // covers both Gemini and a self-hosted endpoint.
+    if (!resolveLlmConfig()) {
       const fallbackResult = fallbackParser(step, trimmedTranscript);
       return NextResponse.json({
         success: true,
@@ -241,23 +234,19 @@ ${fencedTranscript}
 Extract the structured fields from the transcript above strictly in JSON.`;
 
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
+      const responseText =
+        (await generateText({
+          prompt,
           systemInstruction,
-          responseMimeType: 'application/json',
           temperature: 0.1,
-        },
-      });
-
-      const responseText = response.text?.trim() || '{}';
+          json: true,
+        })) || '{}';
       const validated = ParsedResultSchema.safeParse(JSON.parse(responseText));
 
       if (!validated.success) {
         // The model returned something outside the contract; the local parser
         // is deterministic and cannot be talked into anything.
-        console.warn('Gemini returned an unexpected shape, using fallback parser');
+        console.warn('Model returned an unexpected shape, using fallback parser');
         return NextResponse.json({
           success: true,
           source: 'fallback',
@@ -267,11 +256,11 @@ Extract the structured fields from the transcript above strictly in JSON.`;
 
       return NextResponse.json({
         success: true,
-        source: 'gemini',
+        source: 'llm',
         parsed: validated.data as ParsedResult,
       });
     } catch (llmError) {
-      console.warn('Gemini extraction error, falling back to local parser:', llmError);
+      console.warn('LLM extraction failed, falling back to local parser:', llmError);
       const fallbackResult = fallbackParser(step, trimmedTranscript);
       return NextResponse.json({
         success: true,

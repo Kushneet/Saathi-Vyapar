@@ -14,8 +14,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { GoogleGenAI } from '@google/genai';
 import { supabaseServer } from '@/lib/supabase/server';
+import { generateText } from '@/lib/llm/provider';
 import { requireApiUser, resolveTargetUserId, forbidden } from '@/lib/auth/requireUser';
 import { generateFinancialSummary } from '@/lib/engines/financialEngine';
 import { matchSchemes, SchemeRecord, BusinessProfile } from '@/lib/engines/schemeMatcher';
@@ -27,15 +27,6 @@ import { matchSchemes, SchemeRecord, BusinessProfile } from '@/lib/engines/schem
 const GeneratePlanSchema = z.object({
   user_id: z.string().uuid('user_id must be a valid UUID').optional(),
 });
-
-// ── Gemini client initialization (lazy-safe) ──────────────────────────────────
-function getGeminiClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return null;
-  }
-  return new GoogleGenAI({ apiKey });
-}
 
 // ── Language display names for system prompt ──────────────────────────────────
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -162,8 +153,7 @@ export async function POST(request: NextRequest) {
       .join(', ');
 
     try {
-      const ai = getGeminiClient();
-      if (ai) {
+      {
         const promptContent = `Here is the financial summary for a business:
 - Monthly Revenue: ₹${profile.monthly_revenue_est}
 - Monthly Expenses: ₹${profile.monthly_expense_est}
@@ -174,28 +164,26 @@ export async function POST(request: NextRequest) {
 
 Please translate and summarize this into 2-3 short, encouraging sentences in ${languageName} for the entrepreneur.`;
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: promptContent,
-          config: {
-            systemInstruction: `You are a warm, encouraging financial advisor for rural micro-entrepreneurs in India.
+        const text = await generateText({
+          prompt: promptContent,
+          temperature: 0.3,
+          systemInstruction: `You are a warm, encouraging financial advisor for rural micro-entrepreneurs in India.
 Your task is to phrase the provided financial summary and matched government schemes into 2-3 short plain-language sentences in ${languageName}.
 STRICT RULES:
 - Do NOT change any numbers (amounts in ₹, percentages, units) — keep them exactly as given.
 - Never output PII or fabricate new numbers.
 - Keep the response to 2-3 simple sentences.
 - Return only the plain text response without markdown formatting or introductory fluff.`,
-            temperature: 0.3,
-          },
         });
 
-        if (response.text) {
-          llmSummaryText = response.text.trim();
+        // null means no model configured, or the call failed or timed out.
+        // The deterministic explanation is already in llmSummaryText.
+        if (text) {
+          llmSummaryText = text;
         }
       }
     } catch (llmError) {
-      console.error('Gemini LLM call failed, using deterministic fallback:', llmError);
-      // Non-fatal: continue with deterministic explanation
+      console.error('LLM phrasing failed, using deterministic fallback:', llmError);
     }
 
     // ── 7. Save plan to database ───────────────────────────────────────────
