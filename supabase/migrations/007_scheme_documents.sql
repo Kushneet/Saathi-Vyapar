@@ -100,15 +100,24 @@ UPDATE public.schemes SET
 WHERE name ILIKE '%sakhi%' OR name ILIKE '%nrlm%';
 
 -- Anything the component would have shown its generic fallback for.
+--
+-- The condition is "has no checklist", not "has no sponsoring body". Projects
+-- created from schema.sql declare sponsoring_body with
+-- DEFAULT 'Government of India', so every row is already non-null there and a
+-- NULL test silently skips them — leaving 8 of 15 schemes with no documents.
 UPDATE public.schemes SET
-  sponsoring_body = '🏛️ Government of India / State Directorate of Industries',
+  sponsoring_body = COALESCE(
+    NULLIF(sponsoring_body, 'Government of India'),
+    '🏛️ Government of India / State Directorate of Industries'
+  ),
   required_documents = '[
     "आधार कार्ड (Aadhaar Card)",
     "पैन कार्ड / फॉर्म 60 (PAN Card)",
     "बैंक खाता पासबुक (Bank Account Details)",
     "उद्यम आधार (Udyam MSME Registration, if available)"
   ]'::jsonb
-WHERE sponsoring_body IS NULL;
+WHERE required_documents IS NULL
+   OR jsonb_array_length(required_documents) = 0;
 
 DO $$
 DECLARE missing INT;
