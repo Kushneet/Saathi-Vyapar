@@ -11,8 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { handleIncomingMessage } from '@/lib/orchestrator/conversationOrchestrator';
-
-const WHATSAPP_API_BASE = 'https://graph.facebook.com/v19.0';
+import { sendWhatsAppText, getWhatsAppMediaUrl } from '@/lib/whatsapp';
 
 // ── Verification (GET) ────────────────────────────────────────────────────────
 
@@ -117,69 +116,8 @@ async function processWhatsAppMessages(body: WhatsAppWebhookBody): Promise<void>
         );
 
         // Send reply back via WhatsApp Cloud API
-        await sendWhatsAppMessage(phoneWithPlus, reply);
+        await sendWhatsAppText(phoneWithPlus, reply);
       }
     }
-  }
-}
-
-/**
- * Fetch the download URL for a WhatsApp media object by its ID.
- */
-async function getWhatsAppMediaUrl(mediaId: string): Promise<string | null> {
-  try {
-    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-    const response = await fetch(`${WHATSAPP_API_BASE}/${mediaId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data.url || null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Send a text message via WhatsApp Cloud API.
- */
-async function sendWhatsAppMessage(to: string, text: string): Promise<void> {
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-
-  if (!accessToken || !phoneNumberId) {
-    console.error('Missing WhatsApp credentials — cannot send message');
-    return;
-  }
-
-  // Remove leading + for WhatsApp API (expects 919876543210, not +919876543210)
-  const toNumber = to.startsWith('+') ? to.slice(1) : to;
-
-  const payload = {
-    messaging_product: 'whatsapp',
-    to: toNumber,
-    type: 'text',
-    text: { body: text },
-  };
-
-  try {
-    const response = await fetch(
-      `${WHATSAPP_API_BASE}/${phoneNumberId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`WhatsApp send failed (${response.status}):`, errorBody);
-    }
-  } catch (err) {
-    console.error('WhatsApp API request failed:', err);
   }
 }

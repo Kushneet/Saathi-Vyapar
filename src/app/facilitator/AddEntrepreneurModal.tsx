@@ -47,7 +47,11 @@ export default function AddEntrepreneurModal({ facilitatorId }: Props) {
         throw new Error(data.error || 'Failed to add entrepreneur');
       }
 
-      setSuccess('उद्यमी Added successfully! (Entrepreneur added)');
+      setSuccess(
+        data.whatsappNotified
+          ? 'उद्यमी Added successfully! WhatsApp welcome message sent.'
+          : 'उद्यमी Added successfully! (WhatsApp welcome could not be sent — check credentials/recipient.)'
+      );
       setTimeout(() => {
         setIsOpen(false);
         setName('');

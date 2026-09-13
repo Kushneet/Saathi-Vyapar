@@ -11,6 +11,8 @@
  */
 
 import { supabaseServer } from '@/lib/supabase/server';
+import { sendWhatsAppText, downloadWhatsAppMedia } from '@/lib/whatsapp';
+import { processReceiptImage } from '@/lib/ledger/ocr';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -119,7 +121,7 @@ function parseYesNo(text: string): boolean | null {
 
 // ── Call internal plan generate API ──────────────────────────────────────────
 
-async function callPlanGenerate(userId: string): Promise<string> {
+async function callPlanGenerate(userId: string): Promise<string | null> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const response = await fetch(`${baseUrl}/api/plan/generate`, {
@@ -129,13 +131,61 @@ async function callPlanGenerate(userId: string): Promise<string> {
     });
 
     if (!response.ok) {
-      return null as unknown as string;
+      return null;
     }
 
     const data = await response.json();
     return data.plan?.summaryText || null;
   } catch {
-    return null as unknown as string;
+    return null;
+  }
+}
+
+// ── Send an async follow-up message back to the user ─────────────────────────
+// PLAN generation and OCR both take longer than a single webhook round-trip,
+// so their result is delivered as a separate follow-up message once ready.
+
+async function notify(channel: 'whatsapp' | 'sms', phone: string, text: string): Promise<void> {
+  if (channel === 'whatsapp') {
+    const result = await sendWhatsAppText(phone, text);
+    if (!result.ok) {
+      console.error('Failed to send WhatsApp follow-up:', result.error);
+    }
+  } else {
+    // No outbound Twilio credentials are configured yet — SMS follow-ups for
+    // PLAN/OCR results can't be delivered until that's wired up.
+    console.warn('SMS follow-up not sent (outbound SMS not configured):', text);
+  }
+}
+
+// ── Process a bill photo: download, OCR, save ledger entries, notify ─────────
+
+async function processReceiptAsync(
+  channel: 'whatsapp' | 'sms',
+  phone: string,
+  lang: string,
+  userId: string,
+  mediaUrl: string
+): Promise<void> {
+  try {
+    const imageBuffer = await downloadWhatsAppMedia(mediaUrl);
+    if (!imageBuffer) {
+      await notify(channel, phone, t(lang, 'ocr_error'));
+      return;
+    }
+
+    const result = await processReceiptImage(imageBuffer, userId);
+    const message =
+      result.parsedEntries.length > 0
+        ? lang === 'hi'
+          ? `✅ बिल पढ़ लिया! ${result.savedCount} एंट्री मिलीं। डैशबोर्ड में जाकर पुष्टि करें।`
+          : `✅ Bill read! Found ${result.savedCount} entries. Please confirm them in your dashboard.`
+        : t(lang, 'ocr_error');
+
+    await notify(channel, phone, message);
+  } catch (err) {
+    console.error('Receipt OCR processing failed:', err);
+    await notify(channel, phone, t(lang, 'ocr_error'));
   }
 }
 
@@ -251,9 +301,12 @@ export async function handleIncomingMessage(
 
   // ── 3. Handle OCR (media) — available in any state ───────────────────────
   if (mediaUrl) {
+    // Acknowledge immediately; OCR runs async and its result arrives as a
+    // separate follow-up message once processReceiptAsync finishes.
+    processReceiptAsync(channel, phone, lang, user.id, mediaUrl).catch((err) =>
+      console.error('processReceiptAsync failed:', err)
+    );
     return t(lang, 'ocr_processing');
-    // Note: OCR processing is async and handled separately via /api/ledger/ocr
-    // The orchestrator acknowledges receipt; actual OCR reply is sent separately
   }
 
   const text = (messageText || '').trim();
@@ -362,14 +415,13 @@ export async function handleIncomingMessage(
       if (upperText === 'PLAN' || upperText === 'PLAN CHAHIYE' || upperText === 'प्लान') {
         const generatingMsg = t(lang, 'plan_generating');
 
-        // Run plan generation asynchronously
-        callPlanGenerate(user.id).then(async (summaryText) => {
-          if (!summaryText) {
-            // Can't easily send a delayed message back in this architecture
-            // The user will see the generating message; plan is saved in DB
-            console.log('Plan generation failed for user:', user!.id);
-          }
-        });
+        // Run plan generation asynchronously and deliver the result as a follow-up
+        callPlanGenerate(user.id)
+          .then((summaryText) => notify(channel, phone, summaryText || t(lang, 'plan_error')))
+          .catch((err) => {
+            console.error('Plan generation failed for user:', user!.id, err);
+            notify(channel, phone, t(lang, 'plan_error'));
+          });
 
         return generatingMsg;
       }

@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase/client';
 import { RoadmapStageItem } from '@/app/api/business-guide/generate/route';
+import { speakText } from '@/lib/voice/speak';
 
 interface PastGuideItem {
   id: string;
@@ -120,6 +121,16 @@ function BusinessGuideContent() {
     ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)
   );
   const recognitionRef = useRef<{ stop: () => void; start?: () => void } | null>(null);
+
+  // Follow-up Q&A State
+  const [followupText, setFollowupText] = useState('');
+  const [isSubmittingFollowup, setIsSubmittingFollowup] = useState(false);
+  const [followupError, setFollowupError] = useState<string | null>(null);
+  const [isListeningFollowup, setIsListeningFollowup] = useState(false);
+  const [followupHistory, setFollowupHistory] = useState<
+    Array<{ id: string; question: string; answer: string }>
+  >([]);
+  const followupRecognitionRef = useRef<{ stop: () => void; start?: () => void } | null>(null);
 
   // 1. Fetch User Profile & Past Guides on Mount
   useEffect(() => {
@@ -254,7 +265,17 @@ function BusinessGuideContent() {
     }
   }
 
-  // 3. Generate Roadmap Submit Handler
+  // 3. Spoken Summary: Read out the five stage titles in sequence
+  function speakRoadmapSummary(roadmap: RoadmapStageItem[] | null) {
+    if (!roadmap || roadmap.length === 0) return;
+    const stageTitles = roadmap
+      .map((item, idx) => `चरण ${idx + 1}: ${item.title_hi || item.stage}`)
+      .join('। ');
+    const spokenMessage = `व्यापार परिवर्तन के 5 चरण हैं: ${stageTitles}।`;
+    speakText(spokenMessage, 'hi-IN');
+  }
+
+  // 4. Generate Roadmap Submit Handler
   async function handleGenerateRoadmap(e: React.FormEvent) {
     e.preventDefault();
     if (!challengeText.trim()) {
@@ -290,6 +311,9 @@ function BusinessGuideContent() {
       setCurrentRoadmap(newRoadmap);
       setSelectedGuideId(data.guideId);
 
+      // Speak short summary of the five stage titles in sequence
+      speakRoadmapSummary(newRoadmap);
+
       // Add to past guides list
       const newGuideEntry: PastGuideItem = {
         id: data.guideId || `temp-${Date.now()}`,
@@ -305,6 +329,119 @@ function BusinessGuideContent() {
       );
     } finally {
       setIsGenerating(false);
+    }
+  }
+
+  // 5. Follow-up Voice Input Handler
+  function toggleFollowupVoiceListening() {
+    if (typeof window === 'undefined') return;
+
+    const win = window as unknown as IWindowWithSpeech;
+    const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setFollowupError('इस ब्राउज़र में वॉइस इनपुट समर्थित नहीं है।');
+      return;
+    }
+
+    if (isListeningFollowup) {
+      if (followupRecognitionRef.current) {
+        try {
+          followupRecognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+      setIsListeningFollowup(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      followupRecognitionRef.current = recognition;
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'hi-IN';
+
+      recognition.onstart = () => {
+        setIsListeningFollowup(true);
+        setFollowupError(null);
+      };
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        setFollowupText(transcript);
+      };
+
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        setIsListeningFollowup(false);
+        if (event.error !== 'no-speech') {
+          setFollowupError('माइक इनपुट में समस्या आई। कृपया लिखकर पूछें।');
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListeningFollowup(false);
+      };
+
+      recognition.start();
+    } catch (err) {
+      console.error('Follow-up speech recognition error:', err);
+      setIsListeningFollowup(false);
+    }
+  }
+
+  // 6. Follow-up Submit Handler (Gemini Contextual Q&A)
+  async function handleSendFollowup(e?: React.FormEvent, presetQuestion?: string) {
+    if (e) e.preventDefault();
+    const query = (presetQuestion || followupText).trim();
+    if (!query) {
+      setFollowupError('कृपया अपना सवाल दर्ज करें।');
+      return;
+    }
+    if (!currentRoadmap || currentRoadmap.length === 0) {
+      setFollowupError('पहले रोडमैप तैयार करें।');
+      return;
+    }
+
+    setIsSubmittingFollowup(true);
+    setFollowupError(null);
+
+    try {
+      const response = await fetch('/api/business-guide/followup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roadmap: currentRoadmap,
+          question: query,
+          user_id: userId,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to answer follow-up question');
+      }
+
+      const answer = (data.answer as string) || '';
+      setFollowupHistory((prev) => [
+        ...prev,
+        { id: `fu-${Date.now()}`, question: query, answer },
+      ]);
+      setFollowupText('');
+
+      // Automatically speak the response using speakText()
+      speakText(answer, 'hi-IN');
+    } catch (err: unknown) {
+      console.error('Follow-up error:', err);
+      setFollowupError(
+        err instanceof Error ? err.message : 'सवाल का जवाब पाने में समस्या आई।'
+      );
+    } finally {
+      setIsSubmittingFollowup(false);
     }
   }
 
@@ -468,7 +605,7 @@ function BusinessGuideContent() {
           {/* ── 5 Numbered Roadmap Cards Display ─────────────────────── */}
           {currentRoadmap && currentRoadmap.length === 5 && (
             <section className="space-y-5 animate-in fade-in duration-300">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#C9A24B]/20 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#C9A24B]/20 pb-3">
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-[#0B1E33] flex items-center gap-2">
                     🗺️ 5-चरणीय व्यवसाय परिवर्तन रोडमैप
@@ -478,9 +615,19 @@ function BusinessGuideContent() {
                   </p>
                 </div>
 
-                <span className="px-3 py-1 bg-[#F5F1E6] border border-[#C9A24B]/20 text-[#0B1E33] text-xs font-bold rounded-full w-fit">
-                  ✓ 5 चरण सक्रिय
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => speakRoadmapSummary(currentRoadmap)}
+                    className="px-3.5 py-1.5 bg-[#0B1E33] hover:bg-[#152e4d] text-white text-xs font-semibold rounded-full flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                    title="रोडमैप के 5 चरणों को बोलकर सुनें"
+                  >
+                    🔊 बोलकर सुनें (Read Aloud)
+                  </button>
+                  <span className="px-3 py-1 bg-[#F5F1E6] border border-[#C9A24B]/20 text-[#0B1E33] text-xs font-bold rounded-full w-fit">
+                    ✓ 5 चरण सक्रिय
+                  </span>
+                </div>
               </div>
 
               {/* The 5 Cards Grid */}
@@ -544,6 +691,144 @@ function BusinessGuideContent() {
                     </div>
                   );
                 })}
+              </div>
+
+              {/* ── Follow-up Question Section (Gemini Voice/Text Contextual Q&A) ── */}
+              <div className="bg-white border border-[#C9A24B]/30 rounded-[32px] p-5 sm:p-7 shadow-[0_16px_40px_rgba(11,30,51,0.06)] space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3.5">
+                    <div className="p-3 bg-[#F5F1E6] border border-[#C9A24B]/20 rounded-2xl text-2xl shrink-0 shadow-xs">
+                      💬
+                    </div>
+                    <div>
+                      <h4 className="text-base sm:text-lg font-bold text-[#0B1E33]">
+                        रोडमैप के बारे में सवाल पूछें (Ask a follow-up question about your roadmap)
+                      </h4>
+                      <p className="text-xs text-[#0B1E33]/60 mt-0.5">
+                        रोडमैप के किसी भी चरण पर बोलकर या लिखकर सवाल पूछें। Gemini AI आपको 2-4 वाक्यों में सीधा बोलकर जवाब देगा।
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Suggestion Chips */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[11px] font-bold text-[#0B1E33]/50 uppercase tracking-wider">
+                    सुझाए गए सवाल (Suggested Questions):
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      'उद्यम आधार कैसे रजिस्टर करें?',
+                      'थोक में कच्चा माल सस्ता कहां मिलेगा?',
+                      'WhatsApp कैटलॉग से ग्राहक कैसे जोड़ें?',
+                      'मुद्रा लोन के लिए कौन से दस्तावेज चाहिए?',
+                    ].map((sug, sIdx) => (
+                      <button
+                        key={sIdx}
+                        type="button"
+                        onClick={() => {
+                          setFollowupText(sug);
+                          handleSendFollowup(undefined, sug);
+                        }}
+                        className="px-3.5 py-1.5 rounded-full bg-[#F5F1E6] hover:bg-[#EDE9DA] border border-[#C9A24B]/20 text-xs text-[#0B1E33] font-medium transition-all cursor-pointer"
+                      >
+                        {sug}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Follow-up Form */}
+                <form onSubmit={(e) => handleSendFollowup(e)} className="space-y-3 pt-2">
+                  <div className="relative">
+                    <textarea
+                      rows={2}
+                      value={followupText}
+                      onChange={(e) => setFollowupText(e.target.value)}
+                      placeholder="उदा. क्या मैं तीसरे चरण को पहले शुरू कर सकता हूँ? या सप्लायर ढूंढने का सबसे आसान तरीका क्या है?"
+                      className="w-full bg-[#F5F1E6] text-[#0B1E33] placeholder-[#8C8880] border border-[#C9A24B]/20 rounded-2xl p-4 text-sm sm:text-base focus:outline-none focus:bg-white focus:border-[#C9A24B] transition-all"
+                    />
+
+                    {hasVoiceSupport && (
+                      <button
+                        type="button"
+                        onClick={toggleFollowupVoiceListening}
+                        className={`absolute right-3.5 bottom-3.5 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+                          isListeningFollowup
+                            ? 'bg-red-600 text-white animate-pulse'
+                            : 'bg-white hover:bg-[#EDE9DA] text-[#0B1E33] border border-[#C9A24B]/30'
+                        }`}
+                        title="माइक से बोलकर सवाल पूछें"
+                      >
+                        {isListeningFollowup ? '🔴 सुन रहे हैं...' : '🎙️ बोलें (Speak)'}
+                      </button>
+                    )}
+                  </div>
+
+                  {followupError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                      ⚠️ {followupError}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                    <span className="text-[11px] text-[#0B1E33]/50">
+                      🔒 Gemini AI रोडमैप संदर्भ के साथ 2-4 वाक्यों में बोलकर उत्तर देगा
+                    </span>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingFollowup || !followupText.trim()}
+                      className="px-6 py-2.5 rounded-full bg-[#0B1E33] text-white text-xs sm:text-sm font-bold shadow-xs hover:opacity-95 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                    >
+                      {isSubmittingFollowup ? '⏳ जवाब तैयार हो रहा है...' : 'सवाल पूछें (Ask) →'}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Follow-up Q&A Feed */}
+                {followupHistory.length > 0 && (
+                  <div className="space-y-3 pt-3 border-t border-[#C9A24B]/20">
+                    <span className="text-[11px] font-bold text-[#0B1E33]/50 uppercase tracking-wider block">
+                      चर्चा व उत्तर (Q&A History):
+                    </span>
+                    <div className="space-y-3">
+                      {followupHistory.map((item) => (
+                        <div
+                          key={item.id}
+                          className="bg-[#F5F1E6] rounded-2xl p-4 border border-[#C9A24B]/20 space-y-2.5"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="text-xs font-bold text-[#0B1E33] bg-white px-2 py-0.5 rounded-md border border-[#C9A24B]/20 shrink-0">
+                              सवाल:
+                            </span>
+                            <p className="text-xs sm:text-sm font-semibold text-[#0B1E33]">
+                              {item.question}
+                            </p>
+                          </div>
+
+                          <div className="bg-white rounded-xl p-3 border border-[#C9A24B]/15 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-bold text-[#C9A24B] uppercase tracking-wider flex items-center gap-1">
+                                ✨ Gemini AI उत्तर:
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => speakText(item.answer, 'hi-IN')}
+                                className="px-2.5 py-1 bg-[#F5F1E6] hover:bg-[#EDE9DA] text-[#0B1E33] text-[11px] font-medium rounded-full border border-[#C9A24B]/20 flex items-center gap-1 transition-all cursor-pointer"
+                                title="उत्तर को दोबारा सुनें"
+                              >
+                                🔊 दोबारा सुनें
+                              </button>
+                            </div>
+                            <p className="text-xs sm:text-sm text-[#0B1E33]/80 leading-relaxed">
+                              {item.answer}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           )}
