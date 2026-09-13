@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
+import { sendWhatsAppNamedTemplate } from '@/lib/whatsapp';
 
 const AddEntrepreneurSchema = z.object({
   phone: z.string().min(10, 'Phone must be at least 10 digits'),
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Find or create user
     let user: { id: string } | null = null;
+    let isNewUser = false;
     const { data: existingUser } = await supabaseServer
       .from('users')
       .select('id')
@@ -64,6 +66,7 @@ export async function POST(request: NextRequest) {
         );
       }
       user = newUser;
+      isNewUser = true;
     }
 
     // 2. Upsert business profile with sector
@@ -90,9 +93,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 3. Send a WhatsApp welcome so the entrepreneur knows to start chatting with the bot.
+    // A user who hasn't messaged the bot yet is outside WhatsApp's 24h customer-service
+    // window, so this must go through a pre-approved template — free text would be rejected.
+    // Template: "saathi_vyapar_welcome" (see scripts/create-whatsapp-template.mjs). Sending
+    // will fail with a clear error until Meta finishes approving it (status starts PENDING).
+    let whatsappNotified = false;
+    if (isNewUser) {
+      const templateName = process.env.WHATSAPP_WELCOME_TEMPLATE_NAME || 'saathi_vyapar_welcome';
+      const templateLang = process.env.WHATSAPP_WELCOME_TEMPLATE_LANG || 'hi';
+      const result = await sendWhatsAppNamedTemplate(phone, templateName, templateLang, {
+        name: name || 'उद्यमी',
+      });
+      whatsappNotified = result.ok;
+      if (!result.ok) {
+        console.warn('WhatsApp welcome message not sent:', result.error);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       userId: user.id,
+      whatsappNotified,
       message: 'Entrepreneur registered and linked successfully',
     });
   } catch (error) {

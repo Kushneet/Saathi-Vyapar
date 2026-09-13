@@ -58,3 +58,6 @@ bluepront.md
 .mcp.json
 # Supabase CLI temp
 supabase/.temp/
+image.png
+# Local screenshots/exports that may contain live credentials
+whatsaap.png
