@@ -132,6 +132,13 @@ CREATE INDEX IF NOT EXISTS idx_business_guides_created_at ON public.business_gui
 CREATE TABLE IF NOT EXISTS public.business_profiles_duplicates_backup
   (LIKE public.business_profiles INCLUDING ALL);
 
+-- This holds copies of real business profiles — revenue, expenses, district,
+-- social category. Supabase publishes every public-schema table over
+-- PostgREST, so without RLS the backup would be readable with nothing but the
+-- anon key: the same leak the dropped views caused. RLS on with no policies
+-- means only the service role can reach it, which is what a backup wants.
+ALTER TABLE public.business_profiles_duplicates_backup ENABLE ROW LEVEL SECURITY;
+
 WITH ranked AS (
   SELECT id,
          ROW_NUMBER() OVER (
