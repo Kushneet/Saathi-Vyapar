@@ -39,6 +39,8 @@ export interface OnboardingData {
   monthly_revenue_est: number;
   monthly_expense_est: number;
   existing_loans: boolean;
+  /** Outstanding amount across all loans; only meaningful when existing_loans is true. */
+  loan_amount?: number;
   consent_given: boolean;
 }
 

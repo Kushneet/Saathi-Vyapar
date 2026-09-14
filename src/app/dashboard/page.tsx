@@ -590,7 +590,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 </span>
               </div>
               <p className="text-xs text-[#0B1E33]/50">
-                {profile?.existing_loans ? t('dashboard_loan_active') : t('dashboard_no_loan')}
+                {profile?.existing_loans
+                  ? Number(profile.loan_amount) > 0
+                    ? `${t('dashboard_loan_active')} · ₹${Number(profile.loan_amount).toLocaleString('en-IN')}`
+                    : t('dashboard_loan_active')
+                  : t('dashboard_no_loan')}
               </p>
               <p className="text-[11px] text-[#0B1E33]/45 leading-snug mt-2 pt-2 border-t border-[#C9A24B]/15">{t('help_risk')}</p>
             </div>

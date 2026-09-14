@@ -58,6 +58,7 @@ export default function OnboardingPage() {
     monthly_revenue_est: 0,
     monthly_expense_est: 0,
     existing_loans: false,
+    loan_amount: 0,
     consent_given: false,
   });
 
@@ -514,6 +515,33 @@ export default function OnboardingPage() {
                     {t('onboarding_no_loans')}
                   </button>
                 </div>
+
+                {/* How much is outstanding. Only asked once "yes" is chosen:
+                    a figure lets the dashboard say what the loan is, not just
+                    that one exists. */}
+                {formData.existing_loans && (
+                  <div className="pt-2">
+                    <label htmlFor="loan" className="block text-sm font-bold text-[#0B1E33] mb-1.5">
+                      {t('onboarding_loan_amount_label')}
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-3 text-[#0B1E33] font-bold">₹</span>
+                      <input
+                        id="loan"
+                        type="number"
+                        min="0"
+                        value={formData.loan_amount || ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, loan_amount: parseFloat(e.target.value) || 0 })
+                        }
+                        placeholder={t('ph_loan_amount')}
+                        className="w-full bg-[#F5F1E6] text-[#0B1E33] placeholder-[#0B1E33]/40 pl-8 pr-4 py-3 border border-[#C9A24B]/30 rounded-2xl text-sm sm:text-base focus:outline-none focus:bg-white focus:border-[#C9A24B] transition-all"
+                        autoFocus
+                      />
+                    </div>
+                    <p className="text-[11px] text-[#0B1E33]/50 mt-1.5">{t('onboarding_loan_amount_hint')}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -539,7 +567,11 @@ export default function OnboardingPage() {
                   <div>
                     <span className="text-[#0B1E33]/50 block text-xs">{t('onboarding_loan_field')}</span>
                     <strong className={formData.existing_loans ? 'text-[#FF416C]' : 'text-emerald-700'}>
-                      {formData.existing_loans ? t('summary_loan_yes') : t('summary_loan_no')}
+                      {formData.existing_loans
+                        ? (formData.loan_amount ?? 0) > 0
+                          ? `${t('summary_loan_yes')} · ₹${(formData.loan_amount ?? 0).toLocaleString('en-IN')}`
+                          : t('summary_loan_yes')
+                        : t('summary_loan_no')}
                     </strong>
                   </div>
                   <div>
