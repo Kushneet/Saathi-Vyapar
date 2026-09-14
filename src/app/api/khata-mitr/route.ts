@@ -263,6 +263,14 @@ Current Time: ${new Date().toISOString()}`;
         break;
       }
 
+      // Preserve the model's actual response content (including any thoughtSignature
+      // Gemini 3.x attaches to function-call parts) rather than reconstructing a bare
+      // functionCall — replaying without it is rejected with an INVALID_ARGUMENT error.
+      const modelTurn = response.candidates?.[0]?.content ?? {
+        role: 'model',
+        parts: functionCalls.map((fc) => ({ functionCall: fc })),
+      };
+
       const call = functionCalls[0];
       const name = call.name ?? '';
       const args = (call.args as Record<string, unknown>) || {};
@@ -381,7 +389,7 @@ Current Time: ${new Date().toISOString()}`;
 
       currentContents = [
         ...currentContents,
-        { role: 'model', parts: [{ functionCall: call }] },
+        modelTurn,
         { role: 'user', parts: [{ functionResponse: { name, response: toolResponse } }] },
       ];
     }
