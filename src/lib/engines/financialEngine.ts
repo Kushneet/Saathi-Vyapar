@@ -238,11 +238,14 @@ export function explainPoints(
   const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
   const { netProfit, marginPercent, breakEvenRevenue, cashFlowRisk } = summary;
   const be = isFinite(breakEvenRevenue) ? inr(breakEvenRevenue) : null;
+  // "₹100 of every ₹100" is what 99.9% rounds to, and it reads as nonsense.
+  // Whole rupees normally; one decimal when rounding would say "all of it".
+  const per100 = marginPercent >= 99.5 && marginPercent < 100 ? marginPercent.toFixed(1) : marginPercent.toFixed(0);
 
   if (lang === 'hi') {
     const points = [
       netProfit >= 0
-        ? `इस महीने ${inr(netProfit)} बचे — हर ₹100 में से ₹${marginPercent.toFixed(0)}।`
+        ? `इस महीने ${inr(netProfit)} बचे — हर ₹100 में से ₹${per100}।`
         : `इस महीने ${inr(Math.abs(netProfit))} कम पड़े — खर्च कमाई से ज़्यादा है।`,
     ];
     if (be) points.push(`खर्च निकालने के लिए हर महीने कम से कम ${be} की बिक्री चाहिए।`);
@@ -258,7 +261,7 @@ export function explainPoints(
 
   const points = [
     netProfit >= 0
-      ? `You kept ${inr(netProfit)} this month — ₹${marginPercent.toFixed(0)} of every ₹100.`
+      ? `You kept ${inr(netProfit)} this month — ₹${per100} of every ₹100.`
       : `You were short by ${inr(Math.abs(netProfit))} this month — costs are more than sales.`,
   ];
   if (be) points.push(`You need at least ${be} in sales every month to cover costs.`);

@@ -285,6 +285,11 @@ describe('explainPlain', () => {
     expect(text).not.toMatch(/instalment/);
   });
 
+  it('never says "₹100 of every ₹100" for a margin just under 100', () => {
+    const text = explainPlain({ ...summary, marginPercent: 99.93 }, 'en');
+    expect(text).toContain('₹99.9 of every ₹100');
+  });
+
   it('describes a loss as a shortfall', () => {
     expect(explainPlain({ ...summary, netProfit: -500, marginPercent: -5 }, 'en')).toMatch(/short by ₹500/);
   });
