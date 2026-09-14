@@ -25,6 +25,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSpeechSupported } from '@/lib/hooks/useSpeechSupported';
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
@@ -69,9 +70,7 @@ export default function LedgerPhotoUpload({ userId }: Props) {
   const [heard, setHeard] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
-  const speechSupported =
-    typeof window !== 'undefined' &&
-    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+  const speechSupported = useSpeechSupported();
 
   const reset = useCallback(() => {
     setPhase('idle');

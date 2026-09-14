@@ -19,6 +19,7 @@ import Link from 'next/link';
 import VoiceOnboardingModal, { OnboardingData } from '@/components/VoiceOnboardingModal';
 import { supabaseClient } from '@/lib/supabase/client';
 import LanguageToggleButton from '@/components/LanguageToggleButton';
+import { useSpeechSupported } from '@/lib/hooks/useSpeechSupported';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function OnboardingPage() {
@@ -26,16 +27,12 @@ export default function OnboardingPage() {
   const router = useRouter();
 
   // Browser voice support state
-  const [hasVoiceSupport] = useState<boolean | null>(() =>
-    typeof window !== 'undefined'
-      ? 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
-      : false
-  );
-  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(() =>
-    typeof window !== 'undefined'
-      ? 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
-      : false
-  );
+  const hasVoiceSupport = useSpeechSupported();
+  // Closed by default. The voice flow used to open itself the moment the page
+  // loaded and start listening immediately, which startles someone opening the
+  // app for the first time and hides the plain form behind a modal. The form
+  // is now what you land on, and voice is one tap away from it.
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
 
   // Text Form Step State (1 to 8)
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -297,8 +294,7 @@ export default function OnboardingPage() {
                 onClick={() => setIsVoiceModalOpen(true)}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#C9A24B] hover:bg-[#B8912A] text-white text-xs font-bold shadow-sm hover:scale-105 transition-all cursor-pointer"
               >
-                <span>🎙️ बोलकर भरें</span>
-                <span className="hidden sm:inline">(Voice Mode)</span>
+                <span>{t('onboarding_voice_mode')}</span>
               </button>
             )}
 
@@ -677,7 +673,6 @@ export default function OnboardingPage() {
                     <span>{t('onboarding_consent_title')}</span>
                   </div>
                   <p className="text-xs sm:text-sm text-[#0B1E33]/60 leading-relaxed">
-                    &quot;Do you agree to let us store this information to give you advice?&quot;
                     <br />
                     {t('onboarding_consent_text')}
                   </p>
