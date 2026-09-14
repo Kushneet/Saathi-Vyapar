@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS business_profiles (
   existing_loans BOOLEAN DEFAULT FALSE,
   category VARCHAR(50),
   gender VARCHAR(20),
+  shg_membership VARCHAR(50) DEFAULT 'none',
+  is_shg_member BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

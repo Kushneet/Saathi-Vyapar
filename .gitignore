@@ -46,6 +46,7 @@ next-env.d.ts
 # Firebase Studio / Project IDX
 .idx/
 
+/Khata-mitr-main/
 # AI instructions & blueprints
 AGENTS.md
 agents.md
