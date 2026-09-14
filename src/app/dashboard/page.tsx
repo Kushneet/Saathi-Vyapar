@@ -21,6 +21,7 @@ import { getServerT } from '@/lib/i18n.server';
 import LogoutButton from './LogoutButton';
 import LanguageToggleButton from '@/components/LanguageToggleButton';
 import LedgerPhotoUpload from '@/components/LedgerPhotoUpload';
+import ChatPanel from '@/components/ChatPanel';
 
 interface PageProps {
   searchParams: Promise<{ user_id?: string }>;
@@ -744,6 +745,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </section>
         </main>
       </div>
+
+      {/* Asking is easier than navigating for someone who finds a dashboard
+          hard to read, and every figure it quotes comes from the same engines
+          these cards use. */}
+      <ChatPanel userId={user.id === sessionUser.id ? undefined : user.id} />
     </div>
   );
 }
