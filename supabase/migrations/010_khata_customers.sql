@@ -1,5 +1,5 @@
 -- ============================================================
--- Migration: 005_khata_customers.sql
+-- Migration: 010_khata_customers.sql
 -- Description: Per-customer credit/debit account book ("khata") for
 -- Khata Mitra. Lets an entrepreneur track running balances with named
 -- customers (e.g. "Raaj owes ₹500"), distinct from the entrepreneur's

@@ -8,13 +8,20 @@
  * (ledger_entries, business_profiles, schemes) instead of Khata Mitr's
  * original (profiles/relationships/transactions) schema.
  *
- * POST body: { userId, inputType: 'text' | 'audio', textPayload?, audioPayload?, history? }
+ * POST body: { userId?, inputType: 'text' | 'audio', textPayload?, audioPayload?, history? }
+ *
+ * Who the entries are written for comes from the session cookie, not from
+ * the body. `userId` only means "act on this entrepreneur's behalf" and is
+ * honoured for a linked facilitator or an admin — the same rule every other
+ * route follows. Without this, any caller could add entries (or customers
+ * and udhaar) to any user's khata just by guessing an id.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, Type } from '@google/genai';
 import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
+import { requireApiUser, resolveTargetUserId, forbidden } from '@/lib/auth/requireUser';
 import { matchSchemes, SchemeRecord } from '@/lib/engines/schemeMatcher';
 
 function getAI() {
@@ -179,7 +186,7 @@ const khataMitraTools = [
 // ── Request validation ───────────────────────────────────────────────────
 
 const requestSchema = z.object({
-  userId: z.string().uuid('Invalid user ID'),
+  userId: z.string().uuid('Invalid user ID').optional(),
   inputType: z.enum(['text', 'audio']),
   textPayload: z.string().optional(),
   audioPayload: z
@@ -233,18 +240,26 @@ const FALLBACK_SCHEMES: SchemeRecord[] = [
 ];
 
 export async function POST(req: NextRequest) {
-  if (!process.env.GEMINI_API_KEY) {
-    return NextResponse.json({ error: 'GEMINI_API_KEY is not configured on the server.' }, { status: 500 });
-  }
-
   try {
+    // Identity first: an anonymous caller gets 401 whether or not the
+    // model is configured, and learns nothing about the server's setup.
+    const auth = await requireApiUser();
+    if (!auth.ok) return auth.response;
+
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ error: 'GEMINI_API_KEY is not configured on the server.' }, { status: 500 });
+    }
+
     const body = await req.json();
     const parseResult = requestSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json({ error: parseResult.error.issues[0].message }, { status: 400 });
     }
 
-    const { userId, inputType, textPayload, audioPayload, history = [] } = parseResult.data;
+    const { inputType, textPayload, audioPayload, history = [] } = parseResult.data;
+
+    const userId = await resolveTargetUserId(auth.user, parseResult.data.userId);
+    if (!userId) return forbidden();
 
     // 1. Resolve user + business profile context
     const { data: user } = await supabaseServer
