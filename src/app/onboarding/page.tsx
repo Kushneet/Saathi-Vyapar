@@ -60,6 +60,7 @@ export default function OnboardingPage() {
     existing_loans: false,
     loan_amount: 0,
     loan_monthly_payment: 0,
+    loan_interest_rate: 0,
     consent_given: false,
   });
 
@@ -560,6 +561,27 @@ export default function OnboardingPage() {
                       />
                     </div>
                     <p className="text-[11px] text-[#0B1E33]/50 mt-1.5">{t('onboarding_loan_emi_hint')}</p>
+
+                    <label htmlFor="rate" className="block text-sm font-bold text-[#0B1E33] mb-1.5 mt-4">
+                      {t('onboarding_loan_rate_label')}
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="rate"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        value={formData.loan_interest_rate || ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, loan_interest_rate: parseFloat(e.target.value) || 0 })
+                        }
+                        placeholder={t('ph_loan_rate')}
+                        className="w-full bg-[#F5F1E6] text-[#0B1E33] placeholder-[#0B1E33]/40 pl-4 pr-20 py-3 border border-[#C9A24B]/30 rounded-2xl text-sm sm:text-base focus:outline-none focus:bg-white focus:border-[#C9A24B] transition-all"
+                      />
+                      <span className="absolute right-3.5 top-3 text-sm text-[#0B1E33]/60 font-semibold">{t('per_year_short')}</span>
+                    </div>
+                    <p className="text-[11px] text-[#0B1E33]/50 mt-1.5">{t('onboarding_loan_rate_hint')}</p>
                   </div>
                 )}
               </div>
@@ -593,6 +615,9 @@ export default function OnboardingPage() {
                             (formData.loan_amount ?? 0) > 0 ? `₹${(formData.loan_amount ?? 0).toLocaleString('en-IN')}` : null,
                             (formData.loan_monthly_payment ?? 0) > 0
                               ? `₹${(formData.loan_monthly_payment ?? 0).toLocaleString('en-IN')}${t('per_month_short')}`
+                              : null,
+                            (formData.loan_interest_rate ?? 0) > 0
+                              ? `${formData.loan_interest_rate}% ${t('per_year_short')}`
                               : null,
                           ]
                             .filter(Boolean)

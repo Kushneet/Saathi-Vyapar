@@ -43,6 +43,8 @@ export interface OnboardingData {
   loan_amount?: number;
   /** What goes out every month towards those loans (EMI). */
   loan_monthly_payment?: number;
+  /** Percent per year. */
+  loan_interest_rate?: number;
   consent_given: boolean;
 }
 

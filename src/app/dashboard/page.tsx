@@ -597,6 +597,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                       Number(profile.loan_monthly_payment) > 0
                         ? `₹${Number(profile.loan_monthly_payment).toLocaleString('en-IN')}${t('per_month_short')}`
                         : null,
+                      Number(profile.loan_interest_rate) > 0
+                        ? `${Number(profile.loan_interest_rate)}% ${t('per_year_short')}`
+                        : null,
                     ]
                       .filter(Boolean)
                       .join(' · ')

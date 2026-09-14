@@ -29,6 +29,7 @@ const OnboardingCompleteSchema = z.object({
   existing_loans: z.boolean().default(false),
   loan_amount: z.number().min(0).optional(),
   loan_monthly_payment: z.number().min(0).optional(),
+  loan_interest_rate: z.number().min(0).max(100).optional(),
   category: z.string().optional(),
   gender: z.string().optional(),
   shg_membership: z.union([z.boolean(), z.string()]).optional(),
@@ -114,6 +115,7 @@ export async function POST(request: NextRequest) {
       // Only meaningful with a loan; a stray figure without one is dropped.
       loan_amount: data.existing_loans ? data.loan_amount ?? null : null,
       loan_monthly_payment: data.existing_loans ? data.loan_monthly_payment ?? null : null,
+      loan_interest_rate: data.existing_loans ? data.loan_interest_rate ?? null : null,
       category: data.category || 'general',
       gender: data.gender || 'other',
       shg_membership: data.shg_membership ?? (data.is_shg_member ? 'shg_member' : 'none'),
