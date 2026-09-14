@@ -365,7 +365,7 @@ export default function OnboardingPage() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="उदा. रमेश कुमार (e.g. Ramesh Kumar)"
+                  placeholder={t('ph_name')}
                   className="w-full bg-[#F5F1E6] text-[#0B1E33] placeholder-[#0B1E33]/40 border border-[#C9A24B]/30 rounded-2xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:bg-white focus:border-[#C9A24B] focus:ring-2 focus:ring-[#C9A24B]/20 transition-all"
                   autoFocus
                 />
@@ -384,7 +384,7 @@ export default function OnboardingPage() {
                   required
                   value={formData.district}
                   onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                  placeholder="उदा. वाराणसी, उत्तर प्रदेश (e.g. Varanasi)"
+                  placeholder={t('ph_district')}
                   className="w-full bg-[#F5F1E6] text-[#0B1E33] placeholder-[#0B1E33]/40 border border-[#C9A24B]/30 rounded-2xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:bg-white focus:border-[#C9A24B] focus:ring-2 focus:ring-[#C9A24B]/20 transition-all"
                   autoFocus
                 />
@@ -432,7 +432,7 @@ export default function OnboardingPage() {
                     type="text"
                     value={formData.sector}
                     onChange={(e) => setFormData({ ...formData, sector: e.target.value })}
-                    placeholder="उदा. स्टेशनरी और फोटोकॉपी दुकान"
+                    placeholder={t('ph_sector')}
                     className="w-full bg-[#F5F1E6] text-[#0B1E33] placeholder-[#0B1E33]/40 border border-[#C9A24B]/30 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:bg-white focus:border-[#C9A24B] transition-all"
                   />
                 </div>
@@ -457,7 +457,7 @@ export default function OnboardingPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, monthly_revenue_est: parseFloat(e.target.value) || 0 })
                       }
-                      placeholder="उदा. 25000"
+                      placeholder={t('ph_revenue')}
                       className="w-full bg-[#F5F1E6] text-[#0B1E33] placeholder-[#0B1E33]/40 pl-8 pr-4 py-3 border border-[#C9A24B]/30 rounded-2xl text-sm sm:text-base focus:outline-none focus:bg-white focus:border-[#C9A24B] transition-all"
                       autoFocus
                     />
@@ -478,11 +478,18 @@ export default function OnboardingPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, monthly_expense_est: parseFloat(e.target.value) || 0 })
                       }
-                      placeholder="उदा. 15000"
+                      placeholder={t('ph_expense')}
                       className="w-full bg-[#F5F1E6] text-[#0B1E33] placeholder-[#0B1E33]/40 pl-8 pr-4 py-3 border border-[#C9A24B]/30 rounded-2xl text-sm sm:text-base focus:outline-none focus:bg-white focus:border-[#C9A24B] transition-all"
                     />
                   </div>
                 </div>
+
+                <p className="sm:col-span-2 flex items-start gap-2 text-xs text-[#0B1E33]/55 bg-[#F5F1E6] border border-[#C9A24B]/20 rounded-2xl px-3.5 py-2.5">
+                  <span aria-hidden="true">💡</span>
+                  <span>
+                    <span className="font-semibold">{t('tip_label')}:</span> {t('hint_money')}
+                  </span>
+                </p>
               </div>
             )}
 

@@ -510,7 +510,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Card 1: Profit Margin */}
             <div className="bg-white border border-[#C9A24B]/20 rounded-2xl p-5 shadow-[0_8px_24px_rgba(11,30,51,0.05)] flex flex-col justify-between">
-              <span className="text-[#0B1E33]/50 text-xs font-bold uppercase tracking-wider">
+              <span className="text-[#0B1E33]/60 text-sm font-bold">
                 {t('dashboard_profit')}
               </span>
               <div className="my-2">
@@ -530,11 +530,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               <p className="text-xs text-[#0B1E33]/50">
                 {netProfit >= 0 ? t('dashboard_profit_ok') : t('dashboard_profit_loss')}
               </p>
+              <p className="text-[11px] text-[#0B1E33]/45 leading-snug mt-2 pt-2 border-t border-[#C9A24B]/15">{t('help_profit')}</p>
             </div>
 
             {/* Card 2: Break-even target */}
             <div className="bg-white border border-[#C9A24B]/20 rounded-2xl p-5 shadow-[0_8px_24px_rgba(11,30,51,0.05)] flex flex-col justify-between">
-              <span className="text-[#0B1E33]/50 text-xs font-bold uppercase tracking-wider">
+              <span className="text-[#0B1E33]/60 text-sm font-bold">
                 {t('dashboard_break_even')}
               </span>
               <div className="my-2">
@@ -543,11 +544,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 </span>
               </div>
               <p className="text-xs text-[#0B1E33]/50">{t('dashboard_break_even_sub')}</p>
+              <p className="text-[11px] text-[#0B1E33]/45 leading-snug mt-2 pt-2 border-t border-[#C9A24B]/15">{t('help_break_even')}</p>
             </div>
 
             {/* Card 3: Cash Flow Risk */}
             <div className={`${riskConfig.bg} border ${riskConfig.border} rounded-2xl p-5 shadow-[0_8px_24px_rgba(27,27,27,0.04)] flex flex-col justify-between`}>
-              <span className="text-[#0B1E33]/50 text-xs font-bold uppercase tracking-wider">
+              <span className="text-[#0B1E33]/60 text-sm font-bold">
                 {t('dashboard_cash_risk')}
               </span>
               <div className="my-2">
@@ -558,6 +560,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               <p className="text-xs text-[#0B1E33]/50">
                 {profile?.existing_loans ? t('dashboard_loan_active') : t('dashboard_no_loan')}
               </p>
+              <p className="text-[11px] text-[#0B1E33]/45 leading-snug mt-2 pt-2 border-t border-[#C9A24B]/15">{t('help_risk')}</p>
             </div>
           </section>
 
@@ -569,6 +572,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                   📊 {t('dashboard_chart_title')}
                 </h3>
                 <p className="text-xs text-[#0B1E33]/50">{t('dashboard_chart_sub')}</p>
+                <p className="text-[11px] text-[#0B1E33]/45 mt-1">{t('help_chart')}</p>
               </div>
               <div className="flex items-center gap-4 text-xs font-semibold">
                 <div className="flex items-center gap-1.5">
@@ -629,6 +633,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 <p className="text-xs text-[#0B1E33]/50">
                   {eligibleCount} {t('dashboard_schemes_sub')}
                 </p>
+                <p className="text-[11px] text-[#0B1E33]/45 mt-1 max-w-md">{t('help_schemes')}</p>
               </div>
               <span className="px-3 py-1 bg-[#F0EFEB] border border-[#E5E2E1] text-[#0B1E33] text-xs font-bold rounded-full">
                 {eligibleCount} {t('dashboard_eligible')}

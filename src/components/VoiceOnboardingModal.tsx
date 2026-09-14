@@ -638,10 +638,10 @@ export default function VoiceOnboardingModal({
               {isSpeaking
                 ? '🔊 साथी बोल रहा है (Assistant Speaking)...'
                 : isListening
-                ? '🎙️ आपकी आवाज़ सुन रहे हैं (Listening)...'
+                ? '🎙️ सुन रहे हैं...'
                 : isProcessing
-                ? '⚡ समझ रहे हैं (Processing with Gemini)...'
-                : '💡 आपका उत्तर अपेक्षित है'}
+                ? '⚡ समझ रहे हैं...'
+                : '💡 अब आप बोलिए'}
             </span>
           </div>
 
@@ -787,7 +787,7 @@ export default function VoiceOnboardingModal({
       {/* ── Modal Footer Controls ─────────────────────────────────── */}
       <div className="max-w-4xl w-full mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#C9A24B]/20 pt-3.5 text-xs text-[#0B1E33]/50">
         <div className="flex items-center gap-2">
-          <span>🔒 जीरो-हैलुसिनेशन • शुद्ध वित्तीय गणना</span>
+          <span>🔒 {t('voice_dpdp')}</span>
         </div>
 
         <div className="flex items-center gap-3">

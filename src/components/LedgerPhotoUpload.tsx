@@ -231,7 +231,7 @@ export default function LedgerPhotoUpload({ userId }: Props) {
           >
             <span className="text-3xl">📷</span>
             <span className="text-sm font-bold text-[#0B1E33]">{t('photo_camera')}</span>
-            <span className="text-[11px] text-[#0B1E33]/50">{t('photo_reading_note')}</span>
+            <span className="text-[11px] text-[#0B1E33]/50 max-w-xs">{t('help_photo')}</span>
           </label>
 
           <label
@@ -267,6 +267,9 @@ export default function LedgerPhotoUpload({ userId }: Props) {
           <div>
             <p className="text-sm font-bold text-[#0B1E33]">{t('photo_review_title')}</p>
             <p className="text-xs text-[#0B1E33]/55">{t('photo_review_sub')}</p>
+            <p className="text-[11px] text-[#0B1E33]/45 mt-1">
+              ⚠ {t('photo_guessed')} — {t('help_photo_flag')}
+            </p>
           </div>
 
           <ul className="space-y-2">
