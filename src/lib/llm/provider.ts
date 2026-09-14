@@ -20,9 +20,16 @@
  * is slow, down, or not configured degrades to rule-based output rather than
  * failing the request. That is also why the financial arithmetic is not here
  * — it runs in src/lib/engines, whatever the model does.
+ *
+ * Two entry points:
+ *   - generateText()      — one prompt in, one reply out
+ *   - generateWithTools() — one turn of a tool-calling conversation. Tools are
+ *                           declared once as JSON Schema and translated to
+ *                           each backend's own shape here, so a route such as
+ *                           Khata Mitra is written against neither.
  */
 
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, type Schema } from '@google/genai';
 
 export type LlmProvider = 'gemini' | 'openai-compatible';
 
@@ -187,6 +194,231 @@ export async function generateText(req: LlmRequest): Promise<string | null> {
     }
     return null;
   }
+}
+
+// ── Tool calling ──────────────────────────────────────────────────────────────
+
+/** A tool the model may ask us to run. `parameters` is JSON Schema. */
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
+
+/** A call the model asked for. `id` is echoed back with the result. */
+export interface ToolCall {
+  id: string;
+  name: string;
+  args: Record<string, unknown>;
+}
+
+/**
+ * One message in a tool-calling conversation, in a shape neither backend
+ * uses natively. `raw` carries the backend's own copy of an assistant turn:
+ * Gemini 3.x attaches a thought signature to function-call parts and rejects
+ * a replay that reconstructs the part without it.
+ */
+export type ChatMessage =
+  | { role: 'user'; content: string; audio?: { mimeType: string; base64: string } }
+  | { role: 'assistant'; content?: string; toolCalls?: ToolCall[]; raw?: unknown }
+  | { role: 'tool'; toolCallId: string; name: string; result: Record<string, unknown> };
+
+export interface ToolTurnRequest {
+  systemInstruction: string;
+  messages: ChatMessage[];
+  tools: ToolDefinition[];
+  temperature?: number;
+}
+
+/** What one model turn produced: a final answer, tool calls, or neither. */
+export interface ToolTurnResult {
+  text: string | null;
+  toolCalls: ToolCall[];
+  /** The assistant message to append before the tool results. */
+  assistantMessage: Extract<ChatMessage, { role: 'assistant' }>;
+}
+
+/** Whether the configured backend accepts audio directly in a user turn. */
+export function llmAcceptsAudio(): boolean {
+  return resolveLlmConfig()?.provider === 'gemini';
+}
+
+/**
+ * Gemini's schema dialect: JSON Schema with upper-case type names and no
+ * `additionalProperties`. Everything else passes through.
+ */
+export function toGeminiSchema(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(toGeminiSchema);
+  if (!schema || typeof schema !== 'object') return schema;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(schema as Record<string, unknown>)) {
+    if (key === 'additionalProperties') continue;
+    if (key === 'type' && typeof value === 'string') out[key] = value.toUpperCase();
+    else if (key === 'properties' && value && typeof value === 'object') {
+      out[key] = Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, toGeminiSchema(v)])
+      );
+    } else out[key] = toGeminiSchema(value);
+  }
+  return out;
+}
+
+async function toolTurnGemini(config: LlmConfig, req: ToolTurnRequest): Promise<ToolTurnResult> {
+  const ai = new GoogleGenAI({ apiKey: config.apiKey! });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const contents: any[] = req.messages.map((m) => {
+    if (m.role === 'user') {
+      return {
+        role: 'user',
+        parts: m.audio
+          ? [{ inlineData: { mimeType: m.audio.mimeType, data: m.audio.base64 } }]
+          : [{ text: m.content }],
+      };
+    }
+    if (m.role === 'assistant') {
+      if (m.raw) return m.raw;
+      return {
+        role: 'model',
+        parts: [
+          ...(m.content ? [{ text: m.content }] : []),
+          ...(m.toolCalls ?? []).map((c) => ({ functionCall: { name: c.name, args: c.args } })),
+        ],
+      };
+    }
+    return { role: 'user', parts: [{ functionResponse: { name: m.name, response: m.result } }] };
+  });
+
+  const response = await ai.models.generateContent({
+    model: config.model,
+    contents,
+    config: {
+      systemInstruction: req.systemInstruction,
+      temperature: req.temperature ?? 0.2,
+      tools: [
+        {
+          functionDeclarations: req.tools.map((t) => ({
+            name: t.name,
+            description: t.description,
+            parameters: toGeminiSchema(t.parameters) as Schema,
+          })),
+        },
+      ],
+    },
+  });
+
+  const calls: ToolCall[] = (response.functionCalls ?? []).map((fc, i) => ({
+    id: fc.id ?? `${fc.name}-${i}`,
+    name: fc.name ?? '',
+    args: (fc.args as Record<string, unknown>) ?? {},
+  }));
+  const text = response.text?.trim() || null;
+
+  return {
+    text: calls.length ? null : text,
+    toolCalls: calls,
+    assistantMessage: {
+      role: 'assistant',
+      content: text ?? undefined,
+      toolCalls: calls,
+      raw: response.candidates?.[0]?.content,
+    },
+  };
+}
+
+async function toolTurnOpenAi(config: LlmConfig, req: ToolTurnRequest): Promise<ToolTurnResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), config.timeoutMs);
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messages: any[] = [{ role: 'system', content: req.systemInstruction }];
+    for (const m of req.messages) {
+      if (m.role === 'user') {
+        // Audio never reaches this backend: callers transcribe first
+        // (see llmAcceptsAudio). A stray audio turn becomes its caption.
+        messages.push({ role: 'user', content: m.audio ? '[voice message]' : m.content });
+      } else if (m.role === 'assistant') {
+        messages.push({
+          role: 'assistant',
+          content: m.content ?? null,
+          ...(m.toolCalls?.length
+            ? {
+                tool_calls: m.toolCalls.map((c) => ({
+                  id: c.id,
+                  type: 'function',
+                  function: { name: c.name, arguments: JSON.stringify(c.args) },
+                })),
+              }
+            : {}),
+        });
+      } else {
+        messages.push({ role: 'tool', tool_call_id: m.toolCallId, content: JSON.stringify(m.result) });
+      }
+    }
+
+    const response = await fetch(`${config.baseUrl}/chat/completions`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages,
+        temperature: req.temperature ?? 0.2,
+        tools: req.tools.map((t) => ({
+          type: 'function',
+          function: { name: t.name, description: t.description, parameters: t.parameters },
+        })),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`LLM endpoint returned ${response.status}: ${await response.text()}`);
+    }
+
+    const data = await response.json();
+    const message = data?.choices?.[0]?.message ?? {};
+    const text = typeof message.content === 'string' && message.content.trim() ? message.content.trim() : null;
+
+    const calls: ToolCall[] = (message.tool_calls ?? []).map(
+      (c: { id?: string; function?: { name?: string; arguments?: string } }, i: number) => {
+        let args: Record<string, unknown> = {};
+        try {
+          args = c.function?.arguments ? JSON.parse(c.function.arguments) : {};
+        } catch {
+          // A model that emits malformed JSON gets an empty argument set and
+          // the tool's own validation reports what is missing.
+        }
+        return { id: c.id ?? `call-${i}`, name: c.function?.name ?? '', args };
+      }
+    );
+
+    return {
+      text: calls.length ? null : text,
+      toolCalls: calls,
+      assistantMessage: { role: 'assistant', content: text ?? undefined, toolCalls: calls },
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Run one model turn of a tool-calling conversation.
+ *
+ * Unlike generateText this throws on failure: a tool loop has no
+ * deterministic fallback to degrade to, and the caller's error handling
+ * is the right place to turn that into a reply.
+ */
+export async function generateWithTools(req: ToolTurnRequest): Promise<ToolTurnResult> {
+  const config = resolveLlmConfig();
+  if (!config) {
+    throw new Error('No language model is configured (set GEMINI_API_KEY or LLM_BASE_URL).');
+  }
+  return config.provider === 'gemini' ? toolTurnGemini(config, req) : toolTurnOpenAi(config, req);
 }
 
 /** Which model is answering, for logs and the health endpoint. */

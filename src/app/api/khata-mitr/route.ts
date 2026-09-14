@@ -3,10 +3,14 @@
  *
  * Khata Mitra — Voice/Text AI Bookkeeping Assistant
  * Adapted from the standalone Khata-Mitr retailer/customer ledger app into
- * Saathi Vyapar's single-entrepreneur data model. Talks to Gemini with
- * function-calling tools that read/write this project's own tables
- * (ledger_entries, business_profiles, schemes) instead of Khata Mitr's
- * original (profiles/relationships/transactions) schema.
+ * Saathi Vyapar's single-entrepreneur data model. Drives the configured
+ * language model (src/lib/llm/provider.ts — Gemini or any OpenAI-compatible
+ * endpoint) with function-calling tools that read/write this project's own
+ * tables (ledger_entries, khata_customers, schemes).
+ *
+ * Voice notes go to the model as audio only on Gemini. On other providers
+ * they are transcribed first, which itself needs GEMINI_API_KEY; without it
+ * the route answers 422 and the client tells the user to type.
  *
  * POST body: { userId?, inputType: 'text' | 'audio', textPayload?, audioPayload?, history? }
  *
@@ -18,16 +22,18 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenAI, Type } from '@google/genai';
 import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
+import {
+  generateWithTools,
+  llmAcceptsAudio,
+  resolveLlmConfig,
+  type ChatMessage,
+  type ToolDefinition,
+} from '@/lib/llm/provider';
+import { transcribeAudio } from '@/lib/voice/transcribeAudio';
 import { requireApiUser, resolveTargetUserId, forbidden } from '@/lib/auth/requireUser';
 import { matchSchemes, SchemeRecord } from '@/lib/engines/schemeMatcher';
-
-function getAI() {
-  const apiKey = process.env.GEMINI_API_KEY || '';
-  return new GoogleGenAI({ apiKey });
-}
 
 // ── Tool Definitions ─────────────────────────────────────────────────────
 
@@ -36,20 +42,20 @@ const addLedgerEntryTool = {
   description:
     'Records a new income (sale/payment received) or expense (purchase/bill paid) entry in the entrepreneur\'s daily cash book (khata). Use this whenever the user reports money coming in or going out, e.g. "आज 500 की बिक्री हुई" or "200 rupaye ka saman khareeda".',
   parameters: {
-    type: Type.OBJECT,
+    type: 'object',
     properties: {
       entry_type: {
-        type: Type.STRING,
+        type: 'string',
         enum: ['income', 'expense'],
         description: '"income" if money was received/earned, "expense" if money was spent.',
       },
-      amount: { type: Type.NUMBER, description: 'Amount in Indian Rupees (₹).' },
+      amount: { type: 'number', description: 'Amount in Indian Rupees (₹).' },
       description: {
-        type: Type.STRING,
+        type: 'string',
         description: 'Short description of the transaction, e.g. "Daily sales", "Sugar purchase".',
       },
       category: {
-        type: Type.STRING,
+        type: 'string',
         description: 'Optional category, e.g. "sales", "stock", "electricity", "rent", "transport".',
       },
     },
@@ -62,10 +68,10 @@ const getLedgerSummaryTool = {
   description:
     'Retrieves total income, total expense, net profit and margin for the entrepreneur over a recent period. Use this when the user asks about their balance, profit, or overall cash flow.',
   parameters: {
-    type: Type.OBJECT,
+    type: 'object',
     properties: {
       days: {
-        type: Type.INTEGER,
+        type: 'integer',
         description: 'Number of trailing days to summarize. Defaults to 30 if not specified.',
       },
     },
@@ -76,9 +82,9 @@ const getRecentEntriesTool = {
   name: 'get_recent_entries',
   description: 'Retrieves the most recent ledger (khata) entries for the entrepreneur, in reverse chronological order.',
   parameters: {
-    type: Type.OBJECT,
+    type: 'object',
     properties: {
-      limit: { type: Type.INTEGER, description: 'How many recent entries to return. Defaults to 5.' },
+      limit: { type: 'integer', description: 'How many recent entries to return. Defaults to 5.' },
     },
   },
 };
@@ -88,7 +94,7 @@ const checkSchemeEligibilityTool = {
   description:
     'Checks which government schemes (loans, subsidies, credit) the entrepreneur is currently eligible for, based on their saved business profile. Use this when the user asks about sarkari yojana, loans, or subsidies. NEVER invent a scheme name or application link yourself — only report what this tool returns.',
   parameters: {
-    type: Type.OBJECT,
+    type: 'object',
     properties: {},
   },
 };
@@ -97,9 +103,9 @@ const calculateTool = {
   name: 'calculate',
   description: 'Evaluates a basic mathematical expression, e.g. "150 + 200 * 3".',
   parameters: {
-    type: Type.OBJECT,
+    type: 'object',
     properties: {
-      expression: { type: Type.STRING, description: 'The mathematical expression to evaluate.' },
+      expression: { type: 'string', description: 'The mathematical expression to evaluate.' },
     },
     required: ['expression'],
   },
@@ -110,9 +116,9 @@ const findCustomerTool = {
   description:
     'Searches for an existing named customer account (khata) belonging to this entrepreneur, by name. ALWAYS call this FIRST whenever the user mentions a customer/person\'s name for a credit or debit, e.g. "raaj ke khata me 500 dalo", "Ramesh ka balance kya hai". Returns customer_id if found, or not_found: true if no such account exists yet.',
   parameters: {
-    type: Type.OBJECT,
+    type: 'object',
     properties: {
-      customer_name: { type: Type.STRING, description: 'The name (or partial name) of the customer to search for.' },
+      customer_name: { type: 'string', description: 'The name (or partial name) of the customer to search for.' },
     },
     required: ['customer_name'],
   },
@@ -123,10 +129,10 @@ const createCustomerTool = {
   description:
     'Creates a brand-new customer account (khata profile) for this entrepreneur. Only call this AFTER find_customer has returned not_found: true for that name — never create a duplicate for a name that already exists.',
   parameters: {
-    type: Type.OBJECT,
+    type: 'object',
     properties: {
-      customer_name: { type: Type.STRING, description: 'Full name of the new customer, e.g. "Raaj".' },
-      phone: { type: Type.STRING, description: 'Optional phone number of the customer.' },
+      customer_name: { type: 'string', description: 'Full name of the new customer, e.g. "Raaj".' },
+      phone: { type: 'string', description: 'Optional phone number of the customer.' },
     },
     required: ['customer_name'],
   },
@@ -137,12 +143,12 @@ const addCustomerTransactionTool = {
   description:
     'Records a credit or debit against an existing customer account. "credit" = the entrepreneur gave goods/money on udhaar, so the customer now owes MORE (balance increases). "debit" = the customer paid/settled money, so what they owe DECREASES. A plain instruction like "raaj ke khata me 500 dalo" / "add 500 in raaj account" means udhaar given — use type "credit" unless the user explicitly says the customer paid/returned/settled money (जमा/वापस/चुकाया), in which case use "debit". Requires a customer_id from find_customer or create_customer — never guess an ID.',
   parameters: {
-    type: Type.OBJECT,
+    type: 'object',
     properties: {
-      customer_id: { type: Type.STRING, description: 'The UUID of the customer account, from find_customer/create_customer.' },
-      type: { type: Type.STRING, enum: ['credit', 'debit'], description: '"credit" = customer now owes more, "debit" = customer paid/owes less.' },
-      amount: { type: Type.NUMBER, description: 'Amount in Indian Rupees (₹).' },
-      note: { type: Type.STRING, description: 'Optional short note, e.g. "sugar, milk", "part payment".' },
+      customer_id: { type: 'string', description: 'The UUID of the customer account, from find_customer/create_customer.' },
+      type: { type: 'string', enum: ['credit', 'debit'], description: '"credit" = customer now owes more, "debit" = customer paid/owes less.' },
+      amount: { type: 'number', description: 'Amount in Indian Rupees (₹).' },
+      note: { type: 'string', description: 'Optional short note, e.g. "sugar, milk", "part payment".' },
     },
     required: ['customer_id', 'type', 'amount'],
   },
@@ -152,10 +158,10 @@ const getCustomerHistoryTool = {
   name: 'get_customer_history',
   description: 'Retrieves the current balance and recent transaction history for one customer account.',
   parameters: {
-    type: Type.OBJECT,
+    type: 'object',
     properties: {
-      customer_id: { type: Type.STRING, description: 'The UUID of the customer account.' },
-      limit: { type: Type.INTEGER, description: 'How many recent transactions to include. Defaults to 5.' },
+      customer_id: { type: 'string', description: 'The UUID of the customer account.' },
+      limit: { type: 'integer', description: 'How many recent transactions to include. Defaults to 5.' },
     },
     required: ['customer_id'],
   },
@@ -165,12 +171,12 @@ const listCustomersTool = {
   name: 'list_customers',
   description: 'Lists all customer accounts (khata) this entrepreneur has, with their current balances. Use when the user asks "sab customers dikhao" / "who owes me money".',
   parameters: {
-    type: Type.OBJECT,
+    type: 'object',
     properties: {},
   },
 };
 
-const khataMitraTools = [
+const khataMitraTools: ToolDefinition[] = [
   addLedgerEntryTool,
   getLedgerSummaryTool,
   getRecentEntriesTool,
@@ -204,13 +210,6 @@ const requestSchema = z.object({
     )
     .optional(),
 });
-
-function pruneHistory(history: { role: 'user' | 'assistant'; content: string }[]) {
-  return history.slice(-6).map((msg) => ({
-    role: msg.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: msg.content }],
-  }));
-}
 
 const FALLBACK_SCHEMES: SchemeRecord[] = [
   {
@@ -308,29 +307,65 @@ CURRENT USER CONTEXT:
 ${contextInfo}
 Current Time: ${new Date().toISOString()}`;
 
-    let userPart: { text: string } | { inlineData: { mimeType: string; data: string } };
+    if (!resolveLlmConfig()) {
+      return NextResponse.json(
+        { error: 'No language model is configured (set GEMINI_API_KEY or LLM_BASE_URL).' },
+        { status: 500 }
+      );
+    }
+
+    let userMessage: Extract<ChatMessage, { role: 'user' }>;
     let loggedUserMessage = '';
 
     if (inputType === 'text') {
       if (!textPayload) {
         return NextResponse.json({ error: 'textPayload is required when inputType is "text"' }, { status: 400 });
       }
-      userPart = { text: textPayload };
+      userMessage = { role: 'user', content: textPayload };
       loggedUserMessage = textPayload;
     } else {
       if (!audioPayload) {
         return NextResponse.json({ error: 'audioPayload is required when inputType is "audio"' }, { status: 400 });
       }
-      userPart = { inlineData: { mimeType: audioPayload.mimeType, data: audioPayload.base64Data } };
       loggedUserMessage = lang === 'hi' ? '[आवाज़ संदेश]' : '[Voice Message]';
+
+      if (llmAcceptsAudio()) {
+        userMessage = {
+          role: 'user',
+          content: loggedUserMessage,
+          audio: { mimeType: audioPayload.mimeType, base64: audioPayload.base64Data },
+        };
+      } else {
+        // The configured model is text-only. Turn the recording into words
+        // first; if that is not possible either, say so instead of guessing.
+        const transcript = await transcribeAudio(
+          Buffer.from(audioPayload.base64Data, 'base64'),
+          audioPayload.mimeType
+        );
+        if (!transcript) {
+          return NextResponse.json(
+            {
+              error:
+                lang === 'hi'
+                  ? 'आवाज़ अभी नहीं समझ पाया — कृपया लिखकर बताएँ।'
+                  : 'Could not understand the voice note right now — please type it instead.',
+              code: 'voice_unavailable',
+            },
+            { status: 422 }
+          );
+        }
+        userMessage = { role: 'user', content: transcript.text };
+        loggedUserMessage = transcript.text;
+      }
     }
 
-    const userContentPart = { role: 'user', parts: [userPart] };
-    const model = 'gemini-3.6-flash';
-    const ai = getAI();
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let currentContents: any[] = [...pruneHistory(history), userContentPart];
+    const messages: ChatMessage[] = [
+      ...history.slice(-6).map(
+        (m): ChatMessage =>
+          m.role === 'assistant' ? { role: 'assistant', content: m.content } : { role: 'user', content: m.content }
+      ),
+      userMessage,
+    ];
     let finalAnswer = '';
     let iterations = 0;
     const MAX_ITERATIONS = 5;
@@ -339,260 +374,250 @@ Current Time: ${new Date().toISOString()}`;
     while (iterations < MAX_ITERATIONS) {
       iterations++;
 
-      const response = await ai.models.generateContent({
-        model,
-        contents: currentContents,
-        config: {
-          systemInstruction,
-          tools: [{ functionDeclarations: khataMitraTools }],
-        },
+      const turn = await generateWithTools({
+        systemInstruction,
+        messages,
+        tools: khataMitraTools,
       });
 
-      const functionCalls = response.functionCalls;
-      if (!functionCalls || functionCalls.length === 0) {
-        finalAnswer = response.text || '';
+      if (turn.toolCalls.length === 0) {
+        finalAnswer = turn.text || '';
         break;
       }
 
-      // Preserve the model's actual response content (including any thoughtSignature
-      // Gemini 3.x attaches to function-call parts) rather than reconstructing a bare
-      // functionCall — replaying without it is rejected with an INVALID_ARGUMENT error.
-      const modelTurn = response.candidates?.[0]?.content ?? {
-        role: 'model',
-        parts: functionCalls.map((fc) => ({ functionCall: fc })),
-      };
+      messages.push(turn.assistantMessage);
 
-      const call = functionCalls[0];
-      const name = call.name ?? '';
-      const args = (call.args as Record<string, unknown>) || {};
-      let toolResponse: Record<string, unknown> = { success: false, message: 'Tool not recognised' };
+      // The team's loop answered only the first call per turn; a model that
+      // asks for find_customer and get_ledger_summary together then saw a
+      // reply to one and a silent drop of the other.
+      for (const call of turn.toolCalls) {
+        const name = call.name;
+        const args = call.args;
+        let toolResponse: Record<string, unknown> = { success: false, message: 'Tool not recognised' };
 
-      try {
-        if (name === 'add_ledger_entry') {
-          const { entry_type, amount, description, category } = args as {
-            entry_type: 'income' | 'expense';
-            amount: number;
-            description?: string;
-            category?: string;
-          };
+        try {
+          if (name === 'add_ledger_entry') {
+            const { entry_type, amount, description, category } = args as {
+              entry_type: 'income' | 'expense';
+              amount: number;
+              description?: string;
+              category?: string;
+            };
 
-          const { error } = await supabaseServer.from('ledger_entries').insert({
-            user_id: userId,
-            amount: Number(amount),
-            entry_type,
-            description: description || (entry_type === 'income' ? 'Sales' : 'Expense'),
-            category: category || 'general',
-            source: 'voice',
-            confirmed: true,
-          });
+            const { error } = await supabaseServer.from('ledger_entries').insert({
+              user_id: userId,
+              amount: Number(amount),
+              entry_type,
+              description: description || (entry_type === 'income' ? 'Sales' : 'Expense'),
+              category: category || 'general',
+              source: 'voice',
+              confirmed: true,
+            });
 
-          if (error) throw error;
-          toolResponse = {
-            success: true,
-            message: `Logged ${entry_type} of ₹${amount}.`,
-          };
-          executedTools.push(name);
-        } else if (name === 'get_ledger_summary') {
-          const { days } = args as { days?: number };
-          const sinceDate = new Date();
-          sinceDate.setDate(sinceDate.getDate() - (days || 30));
-
-          const { data: entries, error } = await supabaseServer
-            .from('ledger_entries')
-            .select('amount, entry_type')
-            .eq('user_id', userId)
-            .gte('created_at', sinceDate.toISOString());
-
-          if (error) throw error;
-
-          const totalIncome = (entries || [])
-            .filter((e) => e.entry_type === 'income')
-            .reduce((sum, e) => sum + Number(e.amount), 0);
-          const totalExpense = (entries || [])
-            .filter((e) => e.entry_type === 'expense')
-            .reduce((sum, e) => sum + Number(e.amount), 0);
-
-          toolResponse = {
-            success: true,
-            total_income: totalIncome,
-            total_expense: totalExpense,
-            net_profit: totalIncome - totalExpense,
-            entry_count: entries?.length || 0,
-            period_days: days || 30,
-          };
-        } else if (name === 'get_recent_entries') {
-          const { limit } = args as { limit?: number };
-          const { data: entries, error } = await supabaseServer
-            .from('ledger_entries')
-            .select('amount, entry_type, description, created_at')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(limit || 5);
-
-          if (error) throw error;
-          toolResponse = { success: true, entries: entries || [] };
-        } else if (name === 'check_scheme_eligibility') {
-          let dbSchemes: SchemeRecord[] | null = null;
-          try {
-            const { data } = await supabaseServer.from('schemes').select('*');
-            dbSchemes = data as SchemeRecord[] | null;
-          } catch {
-            /* fallback below */
-          }
-
-          const schemesToMatch = dbSchemes && dbSchemes.length > 0 ? dbSchemes : FALLBACK_SCHEMES;
-          const matched = matchSchemes(
-            {
-              monthly_revenue_est: Number(profile?.monthly_revenue_est) || 25000,
-              monthly_expense_est: Number(profile?.monthly_expense_est) || 15000,
-              existing_loans: Boolean(profile?.existing_loans),
-              sector: profile?.sector || 'retail',
-              category: profile?.category || 'general',
-              gender: profile?.gender || 'male',
-              state: profile?.state || 'Uttar Pradesh',
-            },
-            schemesToMatch
-          );
-
-          const eligible = matched
-            .filter((m) => m.eligible)
-            .slice(0, 5)
-            .map((m) => ({
-              name: m.scheme.name,
-              benefit: m.scheme.benefit_summary,
-              application_link: m.scheme.application_link,
-            }));
-
-          toolResponse = { success: true, eligible_schemes: eligible, count: eligible.length };
-        } else if (name === 'calculate') {
-          const { expression } = args as { expression: string };
-          try {
-            const cleanExpr = expression.replace(/[^0-9+\-*/().\s]/g, '');
-            const result = Function(`"use strict"; return (${cleanExpr})`)();
-            toolResponse = { success: true, expression, result };
-          } catch {
-            toolResponse = { success: false, error: 'Invalid mathematical expression' };
-          }
-        } else if (name === 'find_customer') {
-          const { customer_name } = args as { customer_name: string };
-          const searchName = customer_name.trim();
-
-          const { data: matches, error } = await supabaseServer
-            .from('khata_customers')
-            .select('id, name, phone, balance')
-            .eq('user_id', userId)
-            .ilike('name', `%${searchName}%`);
-
-          if (error) throw error;
-
-          const exact = (matches || []).find((c) => c.name.toLowerCase() === searchName.toLowerCase());
-          const match = exact || (matches && matches[0]);
-
-          if (match) {
+            if (error) throw error;
             toolResponse = {
               success: true,
-              not_found: false,
-              customer_id: match.id,
-              customer_name: match.name,
-              current_balance: match.balance,
-              message: `Found "${match.name}" with customer_id ${match.id}, current balance ₹${match.balance}. Use this customer_id for add_customer_transaction. Do NOT call create_customer.`,
+              message: `Logged ${entry_type} of ₹${amount}.`,
             };
-          } else {
+            executedTools.push(name);
+          } else if (name === 'get_ledger_summary') {
+            const { days } = args as { days?: number };
+            const sinceDate = new Date();
+            sinceDate.setDate(sinceDate.getDate() - (days || 30));
+
+            const { data: entries, error } = await supabaseServer
+              .from('ledger_entries')
+              .select('amount, entry_type')
+              .eq('user_id', userId)
+              .gte('created_at', sinceDate.toISOString());
+
+            if (error) throw error;
+
+            const totalIncome = (entries || [])
+              .filter((e) => e.entry_type === 'income')
+              .reduce((sum, e) => sum + Number(e.amount), 0);
+            const totalExpense = (entries || [])
+              .filter((e) => e.entry_type === 'expense')
+              .reduce((sum, e) => sum + Number(e.amount), 0);
+
             toolResponse = {
               success: true,
-              not_found: true,
-              message: `No customer named "${customer_name}" found. Call create_customer to create this account now, then add_customer_transaction.`,
+              total_income: totalIncome,
+              total_expense: totalExpense,
+              net_profit: totalIncome - totalExpense,
+              entry_count: entries?.length || 0,
+              period_days: days || 30,
             };
+          } else if (name === 'get_recent_entries') {
+            const { limit } = args as { limit?: number };
+            const { data: entries, error } = await supabaseServer
+              .from('ledger_entries')
+              .select('amount, entry_type, description, created_at')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false })
+              .limit(limit || 5);
+
+            if (error) throw error;
+            toolResponse = { success: true, entries: entries || [] };
+          } else if (name === 'check_scheme_eligibility') {
+            let dbSchemes: SchemeRecord[] | null = null;
+            try {
+              const { data } = await supabaseServer.from('schemes').select('*');
+              dbSchemes = data as SchemeRecord[] | null;
+            } catch {
+              /* fallback below */
+            }
+
+            const schemesToMatch = dbSchemes && dbSchemes.length > 0 ? dbSchemes : FALLBACK_SCHEMES;
+            const matched = matchSchemes(
+              {
+                monthly_revenue_est: Number(profile?.monthly_revenue_est) || 25000,
+                monthly_expense_est: Number(profile?.monthly_expense_est) || 15000,
+                existing_loans: Boolean(profile?.existing_loans),
+                sector: profile?.sector || 'retail',
+                category: profile?.category || 'general',
+                gender: profile?.gender || 'male',
+                state: profile?.state || 'Uttar Pradesh',
+              },
+              schemesToMatch
+            );
+
+            const eligible = matched
+              .filter((m) => m.eligible)
+              .slice(0, 5)
+              .map((m) => ({
+                name: m.scheme.name,
+                benefit: m.scheme.benefit_summary,
+                application_link: m.scheme.application_link,
+              }));
+
+            toolResponse = { success: true, eligible_schemes: eligible, count: eligible.length };
+          } else if (name === 'calculate') {
+            const { expression } = args as { expression: string };
+            try {
+              const cleanExpr = expression.replace(/[^0-9+\-*/().\s]/g, '');
+              const result = Function(`"use strict"; return (${cleanExpr})`)();
+              toolResponse = { success: true, expression, result };
+            } catch {
+              toolResponse = { success: false, error: 'Invalid mathematical expression' };
+            }
+          } else if (name === 'find_customer') {
+            const { customer_name } = args as { customer_name: string };
+            const searchName = customer_name.trim();
+
+            const { data: matches, error } = await supabaseServer
+              .from('khata_customers')
+              .select('id, name, phone, balance')
+              .eq('user_id', userId)
+              .ilike('name', `%${searchName}%`);
+
+            if (error) throw error;
+
+            const exact = (matches || []).find((c) => c.name.toLowerCase() === searchName.toLowerCase());
+            const match = exact || (matches && matches[0]);
+
+            if (match) {
+              toolResponse = {
+                success: true,
+                not_found: false,
+                customer_id: match.id,
+                customer_name: match.name,
+                current_balance: match.balance,
+                message: `Found "${match.name}" with customer_id ${match.id}, current balance ₹${match.balance}. Use this customer_id for add_customer_transaction. Do NOT call create_customer.`,
+              };
+            } else {
+              toolResponse = {
+                success: true,
+                not_found: true,
+                message: `No customer named "${customer_name}" found. Call create_customer to create this account now, then add_customer_transaction.`,
+              };
+            }
+          } else if (name === 'create_customer') {
+            const { customer_name, phone } = args as { customer_name: string; phone?: string };
+            const cleanName = customer_name.trim();
+
+            const { data: newCustomer, error } = await supabaseServer
+              .from('khata_customers')
+              .insert({ user_id: userId, name: cleanName, phone: phone || null })
+              .select('id, name, balance')
+              .single();
+
+            if (error) throw error;
+            toolResponse = {
+              success: true,
+              customer_id: newCustomer.id,
+              customer_name: newCustomer.name,
+              message: `Created new customer account "${newCustomer.name}" with customer_id ${newCustomer.id}. Now call add_customer_transaction with this customer_id.`,
+            };
+            executedTools.push(name);
+          } else if (name === 'add_customer_transaction') {
+            const { customer_id, type, amount, note } = args as {
+              customer_id: string;
+              type: 'credit' | 'debit';
+              amount: number;
+              note?: string;
+            };
+
+            const { error: txError } = await supabaseServer.from('khata_transactions').insert({
+              customer_id,
+              user_id: userId,
+              type,
+              amount: Number(amount),
+              note: note || null,
+            });
+            if (txError) throw txError;
+
+            const { data: updatedCustomer } = await supabaseServer
+              .from('khata_customers')
+              .select('name, balance')
+              .eq('id', customer_id)
+              .maybeSingle();
+
+            toolResponse = {
+              success: true,
+              message: `Logged ${type} of ₹${amount} for ${updatedCustomer?.name || 'customer'}. New balance: ₹${updatedCustomer?.balance ?? 'unknown'}.`,
+              new_balance: updatedCustomer?.balance,
+            };
+            executedTools.push(name);
+          } else if (name === 'get_customer_history') {
+            const { customer_id, limit } = args as { customer_id: string; limit?: number };
+
+            const { data: customer } = await supabaseServer
+              .from('khata_customers')
+              .select('name, balance')
+              .eq('id', customer_id)
+              .maybeSingle();
+
+            const { data: txs, error } = await supabaseServer
+              .from('khata_transactions')
+              .select('type, amount, note, created_at')
+              .eq('customer_id', customer_id)
+              .order('created_at', { ascending: false })
+              .limit(limit || 5);
+
+            if (error) throw error;
+            toolResponse = {
+              success: true,
+              customer_name: customer?.name,
+              current_balance: customer?.balance,
+              history: txs || [],
+            };
+          } else if (name === 'list_customers') {
+            const { data: customers, error } = await supabaseServer
+              .from('khata_customers')
+              .select('id, name, balance')
+              .eq('user_id', userId)
+              .order('balance', { ascending: false });
+
+            if (error) throw error;
+            toolResponse = { success: true, customers: customers || [], count: customers?.length || 0 };
           }
-        } else if (name === 'create_customer') {
-          const { customer_name, phone } = args as { customer_name: string; phone?: string };
-          const cleanName = customer_name.trim();
-
-          const { data: newCustomer, error } = await supabaseServer
-            .from('khata_customers')
-            .insert({ user_id: userId, name: cleanName, phone: phone || null })
-            .select('id, name, balance')
-            .single();
-
-          if (error) throw error;
-          toolResponse = {
-            success: true,
-            customer_id: newCustomer.id,
-            customer_name: newCustomer.name,
-            message: `Created new customer account "${newCustomer.name}" with customer_id ${newCustomer.id}. Now call add_customer_transaction with this customer_id.`,
-          };
-          executedTools.push(name);
-        } else if (name === 'add_customer_transaction') {
-          const { customer_id, type, amount, note } = args as {
-            customer_id: string;
-            type: 'credit' | 'debit';
-            amount: number;
-            note?: string;
-          };
-
-          const { error: txError } = await supabaseServer.from('khata_transactions').insert({
-            customer_id,
-            user_id: userId,
-            type,
-            amount: Number(amount),
-            note: note || null,
-          });
-          if (txError) throw txError;
-
-          const { data: updatedCustomer } = await supabaseServer
-            .from('khata_customers')
-            .select('name, balance')
-            .eq('id', customer_id)
-            .maybeSingle();
-
-          toolResponse = {
-            success: true,
-            message: `Logged ${type} of ₹${amount} for ${updatedCustomer?.name || 'customer'}. New balance: ₹${updatedCustomer?.balance ?? 'unknown'}.`,
-            new_balance: updatedCustomer?.balance,
-          };
-          executedTools.push(name);
-        } else if (name === 'get_customer_history') {
-          const { customer_id, limit } = args as { customer_id: string; limit?: number };
-
-          const { data: customer } = await supabaseServer
-            .from('khata_customers')
-            .select('name, balance')
-            .eq('id', customer_id)
-            .maybeSingle();
-
-          const { data: txs, error } = await supabaseServer
-            .from('khata_transactions')
-            .select('type, amount, note, created_at')
-            .eq('customer_id', customer_id)
-            .order('created_at', { ascending: false })
-            .limit(limit || 5);
-
-          if (error) throw error;
-          toolResponse = {
-            success: true,
-            customer_name: customer?.name,
-            current_balance: customer?.balance,
-            history: txs || [],
-          };
-        } else if (name === 'list_customers') {
-          const { data: customers, error } = await supabaseServer
-            .from('khata_customers')
-            .select('id, name, balance')
-            .eq('user_id', userId)
-            .order('balance', { ascending: false });
-
-          if (error) throw error;
-          toolResponse = { success: true, customers: customers || [], count: customers?.length || 0 };
+        } catch (err) {
+          toolResponse = { success: false, error: err instanceof Error ? err.message : 'Unknown tool error' };
         }
-      } catch (err) {
-        toolResponse = { success: false, error: err instanceof Error ? err.message : 'Unknown tool error' };
-      }
 
-      currentContents = [
-        ...currentContents,
-        modelTurn,
-        { role: 'user', parts: [{ functionResponse: { name, response: toolResponse } }] },
-      ];
+        messages.push({ role: 'tool', toolCallId: call.id, name, result: toolResponse });
+      }
     }
 
     if (!finalAnswer) {
