@@ -9,23 +9,33 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { GoogleGenAI } from '@google/genai';
+import { generateText, resolveLlmConfig } from '@/lib/llm/provider';
 import { RoadmapStageItem } from '@/app/api/business-guide/generate/route';
 
 const FollowupSchema = z.object({
   user_id: z.string().optional(),
   roadmap: z.array(z.any()).min(1, 'Roadmap context is required'),
   question: z.string().min(2, 'Question must be at least 2 characters'),
+  /** The answer is written — and read aloud — in this language only. */
+  language: z.enum(['hi', 'en']).default('hi'),
 });
 
-function getGeminiClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-  return new GoogleGenAI({ apiKey });
-}
-
-function generateFallbackAnswer(question: string, roadmap: RoadmapStageItem[]): string {
+function generateFallbackAnswer(question: string, roadmap: RoadmapStageItem[], lang: 'hi' | 'en'): string {
   const qLower = question.toLowerCase();
+  if (lang === 'en') {
+    if (/register|udyam|loan|पंजीकरण|उद्यम|लोन/.test(qLower)) {
+      return 'For registration, apply on the free Udyam portal first. After that you can approach your bank branch or the Jan Samarth portal for a Mudra or PMEGP loan. This gives the business a formal identity and access to cheaper credit.';
+    }
+    if (/cost|raw material|cheap|कच्चा माल|लागत|सस्ता/.test(qLower)) {
+      return 'To cut costs, buy raw material in bulk together with your SHG or other shopkeepers. Take at least two quotes directly from suppliers and note wastage every evening. Your monthly saving goes up straight away.';
+    }
+    if (/sales|customer|market|whatsapp|बिक्री|ग्राहक|मार्केट/.test(qLower)) {
+      return 'To grow sales, make a WhatsApp catalogue group for regular customers and send them new offers. Spend one or two days a week at the nearest haat or a busy market. Reaching customers without a middleman can lift profit by around 20 percent.';
+    }
+    const s1 = roadmap[0]?.title_hi || 'Cut costs';
+    const s4 = roadmap[3]?.title_hi || 'Register the business';
+    return `For this question the first step, '${s1}', and the fourth, '${s4}', matter most. Make small changes to grow savings first, then use the government schemes. Ask any time you want more on a particular stage.`;
+  }
   if (qLower.includes('पंजीकरण') || qLower.includes('उद्यम') || qLower.includes('रजिस्ट्रेशन') || qLower.includes('loan') || qLower.includes('लोन')) {
     return 'पंजीकरण के लिए आप मुफ्त उद्यम आधार (Udyam Registration) पोर्टल पर आवेदन कर सकते हैं। इसके बाद आप मुद्रा या PMEGP लोन के लिए सीधे बैंक शाखा या जन समर्थ पोर्टल से संपर्क कर सकते हैं। यह आपके व्यापार को औपचारिक पहचान और कम ब्याज पर ऋण दिलाएगा।';
   }
@@ -58,13 +68,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { roadmap, question } = parsed.data;
+    const { roadmap, question, language } = parsed.data;
     const typedRoadmap = roadmap as RoadmapStageItem[];
 
-    const ai = getGeminiClient();
+    const fallbackAnswer = () => generateFallbackAnswer(question, typedRoadmap, language);
 
-    if (!ai) {
-      const fallback = generateFallbackAnswer(question, typedRoadmap);
+    if (!resolveLlmConfig()) {
+      const fallback = fallbackAnswer();
       return NextResponse.json({
         success: true,
         answer: fallback,
@@ -85,7 +95,7 @@ Provide a clear, practical, warm, and spoken-friendly answer.
 
 STRICT GUIDELINES:
 1. Length: Exactly 2 to 4 sentences. Keep it short and concise.
-2. Tone: Encouraging, respectful, practical rural business guidance in simple conversational Hindi (Devanagari script) with commonly understood terms.
+2. Tone: Encouraging, respectful, practical rural business guidance in ${language === 'hi' ? 'simple conversational Hindi (Devanagari script)' : 'plain, simple English'} with commonly understood terms. One language only — no bracketed translations.
 3. Spoken-friendly: DO NOT use bullet points, asterisks, numbered lists, emojis, or markdown tables. It will be read aloud immediately via text-to-speech.
 4. Base your advice firmly on their 5-stage roadmap context.`;
 
@@ -95,22 +105,13 @@ ${roadmapContext}
 Entrepreneur's Follow-up Question:
 "${question}"
 
-Provide a 2 to 4 sentence spoken-friendly answer in simple Hindi:`;
+Provide a 2 to 4 sentence spoken-friendly answer in ${language === 'hi' ? 'simple Hindi' : 'simple English'}:`;
 
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          systemInstruction,
-          temperature: 0.3,
-        },
-      });
-
-      const answer = response.text?.trim();
+      const answer = (await generateText({ prompt, systemInstruction, temperature: 0.3 }))?.trim();
 
       if (!answer) {
-        throw new Error('Empty response from Gemini');
+        throw new Error('Empty response from the model');
       }
 
       // Strip any accidental markdown formatting (bullet points, bolding) so speech is smooth
@@ -125,8 +126,8 @@ Provide a 2 to 4 sentence spoken-friendly answer in simple Hindi:`;
         source: 'gemini',
       });
     } catch (err) {
-      console.warn('Gemini follow-up generation failed, using fallback:', err);
-      const fallback = generateFallbackAnswer(question, typedRoadmap);
+      console.warn('Follow-up generation failed, using fallback:', err);
+      const fallback = fallbackAnswer();
       return NextResponse.json({
         success: true,
         answer: fallback,

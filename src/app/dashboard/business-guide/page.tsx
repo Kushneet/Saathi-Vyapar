@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSpeechSupported } from '@/lib/hooks/useSpeechSupported';
 import LanguageToggleButton from '@/components/LanguageToggleButton';
 import { RoadmapStageItem } from '@/app/api/business-guide/generate/route';
 import { speakText } from '@/lib/voice/speak';
@@ -30,23 +31,11 @@ interface PastGuideItem {
 }
 
 const PRESET_CHALLENGES = [
-  {
-    label: '🛒 बिचौलिये व कच्चा माल (Middlemen & Sourcing)',
-    text: 'बिचौलिये सारा मुनाफा ले जाते हैं और कच्चा माल बहुत महंगा मिलता है।',
-  },
-  {
-    label: '📉 कम बिक्री व ग्राहक (Low Footfall & Sales)',
-    text: 'दुकान में बिक्री कम है, नए ग्राहक नहीं आ रहे और उधार का पैसा फंस जाता है।',
-  },
-  {
-    label: '🥛 डेयरी व पशुपालन (Dairy & Fodder Cost)',
-    text: 'दूध की सही कीमत नहीं मिलती और चारे का खर्च लगातार बढ़ रहा है।',
-  },
-  {
-    label: '🧵 सिलाई व कारीगरी (Tailoring & Value Add)',
-    text: 'कपड़े सिलाई में मेहनत ज्यादा है पर मार्जिन कम है, नए बड़े ऑर्डर कैसे पाएं?',
-  },
-];
+  { id: 'middlemen', icon: '🛒' },
+  { id: 'sales', icon: '📉' },
+  { id: 'dairy', icon: '🥛' },
+  { id: 'tailoring', icon: '🧵' },
+] as const;
 
 const STAGE_ICONS: Record<string, string> = {
   'Cost Optimization': '📉',
@@ -98,13 +87,14 @@ interface IWindowWithSpeech {
 }
 
 function BusinessGuideContent() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const speechLang = language === 'hi' ? 'hi-IN' : 'en-IN';
   const searchParams = useSearchParams();
   const paramUserId = searchParams.get('user_id');
 
   // User identity state
   const [userId, setUserId] = useState<string | null>(paramUserId);
-  const [userName, setUserName] = useState<string>('उद्यमी');
+  const [userName, setUserName] = useState<string>('');
   const [userSector, setUserSector] = useState<string>('');
 
   // Form input state
@@ -119,10 +109,10 @@ function BusinessGuideContent() {
 
   // Voice Input State
   const [isListening, setIsListening] = useState(false);
-  const [hasVoiceSupport] = useState(() =>
-    typeof window !== 'undefined' &&
-    ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)
-  );
+  // Read after hydration, not during render: the server has no window, so
+  // reading it in useState made the first client render disagree with the
+  // server HTML (the mic button) and React threw a hydration error.
+  const hasVoiceSupport = useSpeechSupported();
   const recognitionRef = useRef<{ stop: () => void; start?: () => void } | null>(null);
 
   // Follow-up Q&A State
@@ -222,7 +212,7 @@ function BusinessGuideContent() {
     const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setErrorMessage('इस ब्राउज़र में वॉइस इनपुट समर्थित नहीं है।');
+      setErrorMessage(t('bg_voice_unsupported'));
       return;
     }
 
@@ -243,7 +233,7 @@ function BusinessGuideContent() {
       recognitionRef.current = recognition;
       recognition.continuous = false;
       recognition.interimResults = true;
-      recognition.lang = 'hi-IN';
+      recognition.lang = speechLang;
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -261,7 +251,7 @@ function BusinessGuideContent() {
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         setIsListening(false);
         if (event.error !== 'no-speech') {
-          setErrorMessage('माइक इनपुट में समस्या आई। कृपया टाइप करें।');
+          setErrorMessage(t('bg_mic_error'));
         }
       };
 
@@ -280,22 +270,22 @@ function BusinessGuideContent() {
   function speakRoadmapSummary(roadmap: RoadmapStageItem[] | null) {
     if (!roadmap || roadmap.length === 0) return;
     const stageTitles = roadmap
-      .map((item, idx) => `चरण ${idx + 1}: ${item.title_hi || item.stage}`)
-      .join('। ');
-    const spokenMessage = `व्यापार परिवर्तन के 5 चरण हैं: ${stageTitles}।`;
-    speakText(spokenMessage, 'hi-IN');
+      .map((item, idx) => `${t('bg_stage')} ${idx + 1}: ${item.title_hi || item.stage}`)
+      .join(language === 'hi' ? '। ' : '. ');
+    const spokenMessage = `${t('bg_spoken_intro')} ${stageTitles}${language === 'hi' ? '।' : '.'}`;
+    speakText(spokenMessage, speechLang);
   }
 
   // 4. Generate Roadmap Submit Handler
   async function handleGenerateRoadmap(e: React.FormEvent) {
     e.preventDefault();
     if (!challengeText.trim()) {
-      setErrorMessage('कृपया अपने व्यापार की समस्या या स्थिति का विवरण दें।');
+      setErrorMessage(t('bg_err_empty'));
       return;
     }
 
     if (!userId) {
-      setErrorMessage('कृपया पहले लॉगिन या रजिस्टर करें।');
+      setErrorMessage(t('bg_err_login'));
       return;
     }
 
@@ -309,6 +299,7 @@ function BusinessGuideContent() {
         body: JSON.stringify({
           user_id: userId,
           challenge_text: challengeText.trim(),
+          language,
         }),
       });
 
@@ -336,7 +327,7 @@ function BusinessGuideContent() {
     } catch (err: unknown) {
       console.error('Generate roadmap error:', err);
       setErrorMessage(
-        err instanceof Error ? err.message : 'रोडमैप बनाने में समस्या आई।'
+        err instanceof Error ? err.message : t('bg_err_generate')
       );
     } finally {
       setIsGenerating(false);
@@ -351,7 +342,7 @@ function BusinessGuideContent() {
     const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setFollowupError('इस ब्राउज़र में वॉइस इनपुट समर्थित नहीं है।');
+      setFollowupError(t('bg_voice_unsupported'));
       return;
     }
 
@@ -372,7 +363,7 @@ function BusinessGuideContent() {
       followupRecognitionRef.current = recognition;
       recognition.continuous = false;
       recognition.interimResults = true;
-      recognition.lang = 'hi-IN';
+      recognition.lang = speechLang;
 
       recognition.onstart = () => {
         setIsListeningFollowup(true);
@@ -390,7 +381,7 @@ function BusinessGuideContent() {
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         setIsListeningFollowup(false);
         if (event.error !== 'no-speech') {
-          setFollowupError('माइक इनपुट में समस्या आई। कृपया लिखकर पूछें।');
+          setFollowupError(t('bg_mic_error'));
         }
       };
 
@@ -410,11 +401,11 @@ function BusinessGuideContent() {
     if (e) e.preventDefault();
     const query = (presetQuestion || followupText).trim();
     if (!query) {
-      setFollowupError('कृपया अपना सवाल दर्ज करें।');
+      setFollowupError(t('bg_err_question_empty'));
       return;
     }
     if (!currentRoadmap || currentRoadmap.length === 0) {
-      setFollowupError('पहले रोडमैप तैयार करें।');
+      setFollowupError(t('bg_err_no_roadmap'));
       return;
     }
 
@@ -429,6 +420,7 @@ function BusinessGuideContent() {
           roadmap: currentRoadmap,
           question: query,
           user_id: userId,
+          language,
         }),
       });
 
@@ -445,11 +437,11 @@ function BusinessGuideContent() {
       setFollowupText('');
 
       // Automatically speak the response using speakText()
-      speakText(answer, 'hi-IN');
+      speakText(answer, speechLang);
     } catch (err: unknown) {
       console.error('Follow-up error:', err);
       setFollowupError(
-        err instanceof Error ? err.message : 'सवाल का जवाब पाने में समस्या आई।'
+        err instanceof Error ? err.message : t('bg_err_answer')
       );
     } finally {
       setIsSubmittingFollowup(false);
@@ -476,7 +468,7 @@ function BusinessGuideContent() {
                 {t('dashboard_business_guide')}
               </h1>
               <p className="text-xs sm:text-sm text-[#0B1E33]/50 mt-0.5">
-                {userName} • {userSector} • AI संचालित 5-चरणीय विकास योजना
+                {userName || t('bg_default_name')} • {userSector} • {t('bg_header_tag')}
               </p>
             </div>
           </div>
@@ -487,7 +479,7 @@ function BusinessGuideContent() {
               href={`/dashboard${userId ? `?user_id=${userId}` : ''}`}
               className="px-4 py-2 bg-white hover:bg-[#F5F1E6] text-[#0B1E33] text-xs font-semibold rounded-full border border-[#C9A24B]/20 shadow-xs transition-all"
             >
-              ← मुख्य डैशबोर्ड (Dashboard)
+              {t('bg_back')}
             </Link>
           </div>
         </header>
@@ -501,10 +493,10 @@ function BusinessGuideContent() {
               </div>
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-[#0B1E33]">
-                  अपने व्यापार की चुनौतियां बताएं / Describe Your Challenges
+                  {t('bg_challenge_title')}
                 </h2>
                 <p className="text-xs text-[#0B1E33]/50 mt-0.5">
-                  बोलकर या लिखकर बताएं कि आपको व्यापार में क्या कठिनाई आ रही है (जैसे: कच्चे माल की लागत, बिचौलिये, कम मुनाफा, सरकारी योजनाएं)।
+                  {t('bg_challenge_sub')}
                 </p>
               </div>
             </div>
@@ -512,17 +504,17 @@ function BusinessGuideContent() {
             {/* Quick Preset Buttons */}
             <div className="space-y-1.5 pt-1">
               <span className="text-[11px] font-bold text-[#0B1E33]/50 uppercase tracking-wider">
-                उदाहरण चुनें (Quick Presets):
+                {t('bg_presets')}
               </span>
               <div className="flex flex-wrap gap-2">
                 {PRESET_CHALLENGES.map((preset, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => setChallengeText(preset.text)}
+                    onClick={() => setChallengeText(t(`bg_preset_${preset.id}_text`))}
                     className="px-3.5 py-1.5 rounded-full bg-[#F5F1E6] hover:bg-[#EDE9DA] border border-[#C9A24B]/20 text-xs text-[#0B1E33] font-medium transition-all cursor-pointer"
                   >
-                    {preset.label}
+                    {preset.icon} {t(`bg_preset_${preset.id}`)}
                   </button>
                 ))}
               </div>
@@ -536,7 +528,7 @@ function BusinessGuideContent() {
                   required
                   value={challengeText}
                   onChange={(e) => setChallengeText(e.target.value)}
-                  placeholder="उदा. बिचौलिये सारा मुनाफा ले जाते हैं, कच्चा माल बहुत महंगा मिलता है और दुकान का खर्च निकालना मुश्किल हो रहा है..."
+                  placeholder={t('bg_challenge_ph')}
                   className="w-full bg-[#F5F1E6] text-[#0B1E33] placeholder-[#8C8880] border border-[#C9A24B]/20 rounded-2xl p-4 text-sm sm:text-base focus:outline-none focus:bg-white focus:border-[#C9A24B] transition-all"
                 />
 
@@ -553,7 +545,7 @@ function BusinessGuideContent() {
                     title={isListening ? 'Stop listening' : 'Speak your challenge'}
                   >
                     <span>🎙️</span>
-                    <span>{isListening ? 'सुन रहे हैं...' : 'बोलें'}</span>
+                    <span>{isListening ? t('bg_listening') : t('bg_speak')}</span>
                   </button>
                 )}
               </div>
@@ -567,7 +559,7 @@ function BusinessGuideContent() {
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
                 <span className="text-[11px] text-[#0B1E33]/50">
-                  🔒 Gemini AI आपकी जानकारी और प्रोफाइल के आधार पर सटीक 5-चरणीय रोडमैप तैयार करेगा।
+                  {t('bg_privacy_note')}
                 </span>
 
                 <button
@@ -575,7 +567,7 @@ function BusinessGuideContent() {
                   disabled={isGenerating || !challengeText.trim()}
                   className="w-full sm:w-auto px-7 py-3 rounded-full bg-[#0B1E33] text-white text-sm font-bold shadow-sm hover:opacity-95 active:scale-95 transition-all disabled:opacity-50 shrink-0 cursor-pointer"
                 >
-                  {isGenerating ? '⏳ रोडमैप तैयार हो रहा है...' : '🚀 रोडमैप बनाएं (Generate Roadmap) →'}
+                  {isGenerating ? t('bg_generating') : t('bg_generate')}
                 </button>
               </div>
             </form>
@@ -585,7 +577,7 @@ function BusinessGuideContent() {
           {pastGuides.length > 1 && (
             <section className="bg-white border border-[#C9A24B]/20 rounded-2xl p-4 space-y-2">
               <span className="text-xs font-bold text-[#0B1E33] uppercase tracking-wider flex items-center gap-1.5">
-                <span>📜 पूर्व में बनाए गए रोडमैप (Saved Roadmaps):</span>
+                <span>{t('bg_saved')}</span>
               </span>
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 {pastGuides.map((g, idx) => (
@@ -602,8 +594,8 @@ function BusinessGuideContent() {
                         : 'bg-[#F5F1E6] text-[#0B1E33]/60 border-[#C9A24B]/20 hover:bg-[#EDE9DA]'
                     }`}
                   >
-                    योजना {pastGuides.length - idx} (
-                    {new Date(g.created_at).toLocaleDateString('hi-IN', {
+                    {t('bg_plan')} {pastGuides.length - idx} (
+                    {new Date(g.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
                       month: 'short',
                       day: 'numeric',
                     })}
@@ -620,10 +612,10 @@ function BusinessGuideContent() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#C9A24B]/20 pb-3">
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-[#0B1E33] flex items-center gap-2">
-                    🗺️ 5-चरणीय व्यवसाय परिवर्तन रोडमैप
+                    {t('bg_roadmap_title')}
                   </h3>
                   <p className="text-xs text-[#0B1E33]/50">
-                    हर चरण को क्रमिक रूप से पूरा करें और अपने व्यापार को सुरक्षित लाभ की ओर ले जाएं।
+                    {t('bg_roadmap_sub')}
                   </p>
                 </div>
 
@@ -632,12 +624,12 @@ function BusinessGuideContent() {
                     type="button"
                     onClick={() => speakRoadmapSummary(currentRoadmap)}
                     className="px-3.5 py-1.5 bg-[#0B1E33] hover:bg-[#152e4d] text-white text-xs font-semibold rounded-full flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
-                    title="रोडमैप के 5 चरणों को बोलकर सुनें"
+                    title={t('bg_read_aloud')}
                   >
-                    🔊 बोलकर सुनें (Read Aloud)
+                    {t('bg_read_aloud')}
                   </button>
                   <span className="px-3 py-1 bg-[#F5F1E6] border border-[#C9A24B]/20 text-[#0B1E33] text-xs font-bold rounded-full w-fit">
-                    ✓ 5 चरण सक्रिय
+                    {t('bg_five_active')}
                   </span>
                 </div>
               </div>
@@ -667,14 +659,14 @@ function BusinessGuideContent() {
                               </h4>
                             </div>
                             <span className="text-[11px] font-bold text-[#C9A24B] uppercase tracking-widest">
-                              Stage {stepNum}: {item.stage}
+                              {t('bg_stage')} {stepNum}
                             </span>
                           </div>
                         </div>
 
                         {item.impact_milestone && (
                           <span className="px-3 py-1 rounded-full bg-[#FFF8F0] border border-[#FFE8D6] text-[#A64200] text-xs font-bold w-fit">
-                            🎯 लक्ष्य: {item.impact_milestone}
+                            {t('bg_goal')}: {item.impact_milestone}
                           </span>
                         )}
                       </div>
@@ -688,7 +680,7 @@ function BusinessGuideContent() {
                       {item.action_items && item.action_items.length > 0 && (
                         <div className="pt-2 space-y-1.5 bg-[#F5F1E6] rounded-2xl p-3.5 border border-[#C9A24B]/20">
                           <span className="text-[11px] font-bold uppercase tracking-wider text-[#0B1E33]">
-                            कार्रवाई के कदम (Action Checklist):
+                            {t('bg_checklist')}
                           </span>
                           <div className="space-y-1.5 pt-1">
                             {item.action_items.map((act, actIdx) => (
@@ -714,10 +706,10 @@ function BusinessGuideContent() {
                     </div>
                     <div>
                       <h4 className="text-base sm:text-lg font-bold text-[#0B1E33]">
-                        रोडमैप के बारे में सवाल पूछें (Ask a follow-up question about your roadmap)
+                        {t('bg_followup_title')}
                       </h4>
                       <p className="text-xs text-[#0B1E33]/60 mt-0.5">
-                        रोडमैप के किसी भी चरण पर बोलकर या लिखकर सवाल पूछें। Gemini AI आपको 2-4 वाक्यों में सीधा बोलकर जवाब देगा।
+                        {t('bg_followup_sub')}
                       </p>
                     </div>
                   </div>
@@ -726,15 +718,10 @@ function BusinessGuideContent() {
                 {/* Quick Suggestion Chips */}
                 <div className="space-y-1.5 pt-1">
                   <span className="text-[11px] font-bold text-[#0B1E33]/50 uppercase tracking-wider">
-                    सुझाए गए सवाल (Suggested Questions):
+                    {t('bg_suggested')}
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {[
-                      'उद्यम आधार कैसे रजिस्टर करें?',
-                      'थोक में कच्चा माल सस्ता कहां मिलेगा?',
-                      'WhatsApp कैटलॉग से ग्राहक कैसे जोड़ें?',
-                      'मुद्रा लोन के लिए कौन से दस्तावेज चाहिए?',
-                    ].map((sug, sIdx) => (
+                    {[t('bg_sq1'), t('bg_sq2'), t('bg_sq3'), t('bg_sq4')].map((sug, sIdx) => (
                       <button
                         key={sIdx}
                         type="button"
@@ -757,7 +744,7 @@ function BusinessGuideContent() {
                       rows={2}
                       value={followupText}
                       onChange={(e) => setFollowupText(e.target.value)}
-                      placeholder="उदा. क्या मैं तीसरे चरण को पहले शुरू कर सकता हूँ? या सप्लायर ढूंढने का सबसे आसान तरीका क्या है?"
+                      placeholder={t('bg_question_ph')}
                       className="w-full bg-[#F5F1E6] text-[#0B1E33] placeholder-[#8C8880] border border-[#C9A24B]/20 rounded-2xl p-4 text-sm sm:text-base focus:outline-none focus:bg-white focus:border-[#C9A24B] transition-all"
                     />
 
@@ -770,9 +757,9 @@ function BusinessGuideContent() {
                             ? 'bg-red-600 text-white animate-pulse'
                             : 'bg-white hover:bg-[#EDE9DA] text-[#0B1E33] border border-[#C9A24B]/30'
                         }`}
-                        title="माइक से बोलकर सवाल पूछें"
+                        title={t('bg_speak')}
                       >
-                        {isListeningFollowup ? '🔴 सुन रहे हैं...' : '🎙️ बोलें (Speak)'}
+                        {isListeningFollowup ? t('bg_listening') : t('bg_speak')}
                       </button>
                     )}
                   </div>
@@ -785,14 +772,14 @@ function BusinessGuideContent() {
 
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
                     <span className="text-[11px] text-[#0B1E33]/50">
-                      🔒 Gemini AI रोडमैप संदर्भ के साथ 2-4 वाक्यों में बोलकर उत्तर देगा
+                      {t('bg_followup_note')}
                     </span>
                     <button
                       type="submit"
                       disabled={isSubmittingFollowup || !followupText.trim()}
                       className="px-6 py-2.5 rounded-full bg-[#0B1E33] text-white text-xs sm:text-sm font-bold shadow-xs hover:opacity-95 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
                     >
-                      {isSubmittingFollowup ? '⏳ जवाब तैयार हो रहा है...' : 'सवाल पूछें (Ask) →'}
+                      {isSubmittingFollowup ? t('bg_answering') : t('bg_ask')}
                     </button>
                   </div>
                 </form>
@@ -801,7 +788,7 @@ function BusinessGuideContent() {
                 {followupHistory.length > 0 && (
                   <div className="space-y-3 pt-3 border-t border-[#C9A24B]/20">
                     <span className="text-[11px] font-bold text-[#0B1E33]/50 uppercase tracking-wider block">
-                      चर्चा व उत्तर (Q&A History):
+                      {t('bg_history')}
                     </span>
                     <div className="space-y-3">
                       {followupHistory.map((item) => (
@@ -811,7 +798,7 @@ function BusinessGuideContent() {
                         >
                           <div className="flex items-start gap-2">
                             <span className="text-xs font-bold text-[#0B1E33] bg-white px-2 py-0.5 rounded-md border border-[#C9A24B]/20 shrink-0">
-                              सवाल:
+                              {t('bg_q')}
                             </span>
                             <p className="text-xs sm:text-sm font-semibold text-[#0B1E33]">
                               {item.question}
@@ -821,15 +808,15 @@ function BusinessGuideContent() {
                           <div className="bg-white rounded-xl p-3 border border-[#C9A24B]/15 space-y-2">
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-[11px] font-bold text-[#C9A24B] uppercase tracking-wider flex items-center gap-1">
-                                ✨ Gemini AI उत्तर:
+                                {t('bg_a')}
                               </span>
                               <button
                                 type="button"
-                                onClick={() => speakText(item.answer, 'hi-IN')}
+                                onClick={() => speakText(item.answer, speechLang)}
                                 className="px-2.5 py-1 bg-[#F5F1E6] hover:bg-[#EDE9DA] text-[#0B1E33] text-[11px] font-medium rounded-full border border-[#C9A24B]/20 flex items-center gap-1 transition-all cursor-pointer"
-                                title="उत्तर को दोबारा सुनें"
+                                title={t('bg_replay')}
                               >
-                                🔊 दोबारा सुनें
+                                {t('bg_replay')}
                               </button>
                             </div>
                             <p className="text-xs sm:text-sm text-[#0B1E33]/80 leading-relaxed">
@@ -857,7 +844,6 @@ export default function BusinessGuidePage() {
         <div className="min-h-screen bg-[#F5F1E6] flex items-center justify-center text-[#0B1E33]">
           <div className="text-center space-y-2">
             <span className="text-3xl animate-spin block">🧭</span>
-            <p className="text-sm font-bold text-[#0B1E33]">व्यापार मार्गदर्शिका लोड हो रही है...</p>
           </div>
         </div>
       }

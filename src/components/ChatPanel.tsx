@@ -93,6 +93,7 @@ export default function ChatPanel({ userId }: Props) {
           // Prior turns give the model context; the server caps how many it uses.
           history: messages.slice(-6),
           user_id: userId,
+          language,
         }),
       });
 

@@ -29,6 +29,8 @@ const ChatSchema = z.object({
     .max(20)
     .optional(),
   user_id: z.string().uuid().optional(),
+  /** The toggle the user is looking at. Overrides the stored preference. */
+  language: z.enum(['en', 'hi']).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -55,6 +57,10 @@ export async function POST(request: NextRequest) {
     if (!userId) return forbidden();
 
     const context = await buildChatContext(userId);
+    // users.language is set once at signup ('hi' by default); the panel knows
+    // which language is on screen right now, and an English question under an
+    // English toggle must not come back in Devanagari.
+    if (parsed.data.language) context.language = parsed.data.language;
     const answer = await answerQuestion(parsed.data.message, context, parsed.data.history ?? []);
 
     return NextResponse.json(answer);
