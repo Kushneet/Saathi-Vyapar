@@ -110,6 +110,23 @@ const FALLBACK_SCHEMES: SchemeRecord[] = [
       loan_amount_max: 500000,
     },
   },
+  {
+    id: 'svep-nrlm',
+    name: 'Start-up Village Entrepreneurship Programme (SVEP)',
+    description:
+      'A sub-scheme of DAY-NRLM supporting Self-Help Group (SHG) members and their family members to set up non-farm rural enterprises. Unlike a one-time cash subsidy, SVEP provides ongoing support through training, mentoring, and access to a community-managed revolving loan fund (Community Enterprise Fund). It is implemented block-by-block, not nationwide — availability depends on whether SVEP has been rolled out in the user\'s specific block.',
+    benefit_summary:
+      'Access to a community-managed revolving loan fund (Community Enterprise Fund) plus business training and ongoing mentoring support — not a one-time cash grant.',
+    application_link: 'https://svep.nrlm.gov.in/',
+    eligibility_rules: {
+      requires_shg_membership: true,
+      eligible_relation: ['shg_member', 'shg_member_family'],
+      sector: ['non_farm', 'retail', 'tailoring', 'food_processing', 'handicraft', 'dairy_processing'],
+      area_type: 'rural',
+      implementation_note: 'block_specific_not_nationwide',
+      priority_groups: ['women', 'youth'],
+    },
+  },
 ];
 
 export const dynamic = 'force-dynamic';
@@ -278,6 +295,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         category: profile.category || undefined,
         gender: profile.gender || undefined,
         state: profile.state || undefined,
+        shg_membership: (profile as Record<string, unknown>).shg_membership as string | boolean | undefined,
+        is_shg_member: Boolean((profile as Record<string, unknown>).is_shg_member),
+        shg_relation: (profile as Record<string, unknown>).shg_relation as string | undefined,
       },
       schemesToMatch
     );
@@ -468,6 +488,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               className="px-4 py-2 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] text-xs font-bold rounded-full shadow-sm transition-all"
             >
               🧭 {t('dashboard_business_guide')}
+            </Link>
+            <Link
+              href={`/dashboard/khata-mitr?user_id=${user.id}`}
+              className="px-4 py-2 bg-[#C9A24B] hover:bg-[#B8912A] text-white text-xs font-bold rounded-full shadow-sm transition-all"
+            >
+              🎙️ Khata Mitra
             </Link>
             <Link
               href="/facilitator"

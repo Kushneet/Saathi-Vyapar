@@ -46,6 +46,7 @@ next-env.d.ts
 # Firebase Studio / Project IDX
 .idx/
 
+/Khata-mitr-main/
 # AI instructions & blueprints
 AGENTS.md
 agents.md
@@ -58,6 +59,10 @@ bluepront.md
 .mcp.json
 # Supabase CLI temp
 supabase/.temp/
+image.png
+image copy.png
+# Local screenshots/exports that may contain live credentials
+whatsaap.png
 
 # Python scratch from tooling
 __pycache__/

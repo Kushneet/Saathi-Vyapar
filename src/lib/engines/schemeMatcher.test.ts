@@ -47,6 +47,25 @@ const mockSchemes: SchemeRecord[] = [
       // Street vendors — no category/sector restriction
     },
   },
+  {
+    id: 'svep-nrlm',
+    name: 'Start-up Village Entrepreneurship Programme (SVEP)',
+    description:
+      'A sub-scheme of DAY-NRLM supporting Self-Help Group (SHG) members and their family members to set up non-farm rural enterprises. Unlike a one-time cash subsidy, SVEP provides ongoing support through training, mentoring, and access to a community-managed revolving loan fund (Community Enterprise Fund). It is implemented block-by-block, not nationwide — availability depends on whether SVEP has been rolled out in the user\'s specific block.',
+    benefit_summary:
+      'Access to a community-managed revolving loan fund (Community Enterprise Fund) plus business training and ongoing mentoring support — not a one-time cash grant.',
+    sponsoring_body: 'Ministry of Rural Development (DAY-NRLM)',
+    application_link: 'https://svep.nrlm.gov.in/',
+    eligibility_rules: {
+      requires_shg_membership: true,
+      eligible_relation: ['shg_member', 'shg_member_family'],
+      sector: ['non_farm', 'retail', 'tailoring', 'food_processing', 'handicraft', 'dairy_processing'],
+      area_type: 'rural',
+      implementation_note: 'block_specific_not_nationwide',
+      priority_groups: ['women', 'youth'],
+    },
+    active: true,
+  },
 ];
 
 // ── Test Scenarios ─────────────────────────────────────────────────────────────
@@ -212,5 +231,121 @@ describe('matchSchemes', () => {
     const standUp = results.find((r) => r.scheme.name === 'Stand-Up India');
     expect(standUp?.eligible).toBe(false);
     expect(standUp?.reasons.some((r) => r.includes('not specified'))).toBe(true);
+  });
+
+  // Scenario 9: SVEP matches for active SHG member in covered sector with district caveat
+  it('SHG member in tailoring sector qualifies for SVEP with explicit block-specific caveat', () => {
+    const profile: BusinessProfile = {
+      monthly_revenue_est: 12000,
+      monthly_expense_est: 8000,
+      existing_loans: false,
+      category: 'obc',
+      sector: 'tailoring',
+      gender: 'female',
+      is_shg_member: true,
+      shg_membership: 'shg_member',
+    };
+
+    const results = matchSchemes(profile, mockSchemes);
+    const svep = results.find((r) => r.scheme.id === 'svep-nrlm');
+
+    expect(svep).toBeDefined();
+    expect(svep?.eligible).toBe(true);
+
+    // Profile confirms SHG affiliation in reasons
+    expect(
+      svep?.reasons.some((r) => r.includes('Self-Help Group (SHG) membership or family relation'))
+    ).toBe(true);
+
+    // Must include the mandatory district caveat
+    const expectedCaveat =
+      "This programme is not yet active in every district — confirm with your local SHG/Panchayat contact before assuming it's available in your area";
+    expect(svep?.reasons).toContain(expectedCaveat);
+  });
+
+  // Scenario 10: SVEP matches for family member of an SHG member
+  it('Family member of SHG member qualifies for SVEP', () => {
+    const profile: BusinessProfile = {
+      monthly_revenue_est: 20000,
+      monthly_expense_est: 14000,
+      existing_loans: false,
+      category: 'general',
+      sector: 'retail',
+      gender: 'male',
+      shg_relation: 'shg_member_family',
+    };
+
+    const results = matchSchemes(profile, mockSchemes);
+    const svep = results.find((r) => r.scheme.id === 'svep-nrlm');
+
+    expect(svep?.eligible).toBe(true);
+    const expectedCaveat =
+      "This programme is not yet active in every district — confirm with your local SHG/Panchayat contact before assuming it's available in your area";
+    expect(svep?.reasons).toContain(expectedCaveat);
+  });
+
+  // Scenario 11: SVEP fails for users without SHG affiliation
+  it('Non-SHG member does not qualify for SVEP even in an eligible sector', () => {
+    const profile: BusinessProfile = {
+      monthly_revenue_est: 15000,
+      monthly_expense_est: 10000,
+      existing_loans: false,
+      category: 'general',
+      sector: 'tailoring',
+      gender: 'female',
+      is_shg_member: false,
+      shg_membership: 'none',
+    };
+
+    const results = matchSchemes(profile, mockSchemes);
+    const svep = results.find((r) => r.scheme.id === 'svep-nrlm');
+
+    expect(svep?.eligible).toBe(false);
+    expect(
+      svep?.reasons.some((r) =>
+        r.includes('This scheme requires Self-Help Group (SHG) membership or relation')
+      )
+    ).toBe(true);
+
+    // Caveat is still present in reasons
+    const expectedCaveat =
+      "This programme is not yet active in every district — confirm with your local SHG/Panchayat contact before assuming it's available in your area";
+    expect(svep?.reasons).toContain(expectedCaveat);
+  });
+
+  // Scenario 12: SVEP fails when SHG info is not provided
+  it('User with no SHG info does not qualify for SVEP', () => {
+    const profile: BusinessProfile = {
+      monthly_revenue_est: 15000,
+      monthly_expense_est: 10000,
+      existing_loans: false,
+      category: 'general',
+      sector: 'retail',
+      gender: 'male',
+    };
+
+    const results = matchSchemes(profile, mockSchemes);
+    const svep = results.find((r) => r.scheme.id === 'svep-nrlm');
+
+    expect(svep?.eligible).toBe(false);
+  });
+
+  // Scenario 13: SVEP fails for farm sector even if SHG member
+  it('SHG member in farming sector fails SVEP sector check (non-farm only)', () => {
+    const profile: BusinessProfile = {
+      monthly_revenue_est: 10000,
+      monthly_expense_est: 6000,
+      existing_loans: false,
+      category: 'obc',
+      sector: 'farming',
+      gender: 'female',
+      is_shg_member: true,
+    };
+
+    const results = matchSchemes(profile, mockSchemes);
+    const svep = results.find((r) => r.scheme.id === 'svep-nrlm');
+
+    expect(svep?.eligible).toBe(false);
+    expect(svep?.reasons.some((r) => r.includes('Your sector (farming) is not listed'))).toBe(true);
   });
 });

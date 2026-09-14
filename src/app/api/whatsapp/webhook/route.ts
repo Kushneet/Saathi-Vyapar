@@ -15,8 +15,11 @@ import {
   type InboundMedia,
 } from '@/lib/orchestrator/conversationOrchestrator';
 import { verifyWhatsAppSignature } from '@/lib/webhooks/verifySignature';
-
-const WHATSAPP_API_BASE = 'https://graph.facebook.com/v19.0';
+import {
+  sendWhatsAppText,
+  getWhatsAppMediaUrl,
+  downloadWhatsAppMedia as downloadWhatsAppMediaBytes,
+} from '@/lib/whatsapp';
 
 // ── Verification (GET) ────────────────────────────────────────────────────────
 
@@ -157,12 +160,11 @@ async function processWhatsAppMessages(body: WhatsAppWebhookBody): Promise<void>
         );
 
         // Send reply back via WhatsApp Cloud API
-        await sendWhatsAppMessage(phoneWithPlus, reply);
+        await sendWhatsAppText(phoneWithPlus, reply);
       }
     }
   }
 }
-
 /** Largest photo we will pull down and run OCR over. */
 const MAX_MEDIA_BYTES = 8 * 1024 * 1024;
 
@@ -178,79 +180,16 @@ async function downloadWhatsAppMedia(
   kind: 'image' | 'audio',
   mimeType?: string
 ): Promise<InboundMedia | null> {
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-  if (!accessToken) {
-    console.error('Missing WHATSAPP_ACCESS_TOKEN — cannot download media');
+  const url = await getWhatsAppMediaUrl(mediaId);
+  if (!url) return null;
+
+  const buffer = await downloadWhatsAppMediaBytes(url);
+  if (!buffer) return null;
+
+  if (buffer.byteLength > MAX_MEDIA_BYTES) {
+    console.warn('WhatsApp media exceeds size limit; skipping');
     return null;
   }
 
-  try {
-    const lookup = await fetch(`${WHATSAPP_API_BASE}/${mediaId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!lookup.ok) return null;
-
-    const { url } = await lookup.json();
-    if (!url) return null;
-
-    const download = await fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!download.ok) return null;
-
-    const arrayBuffer = await download.arrayBuffer();
-    if (arrayBuffer.byteLength > MAX_MEDIA_BYTES) {
-      console.warn('WhatsApp media exceeds size limit; skipping OCR');
-      return null;
-    }
-
-    return { buffer: Buffer.from(arrayBuffer), mimeType, kind };
-  } catch (err) {
-    console.error('WhatsApp media download failed:', err);
-    return null;
-  }
-}
-
-/**
- * Send a text message via WhatsApp Cloud API.
- */
-async function sendWhatsAppMessage(to: string, text: string): Promise<void> {
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-
-  if (!accessToken || !phoneNumberId) {
-    console.error('Missing WhatsApp credentials — cannot send message');
-    return;
-  }
-
-  // Remove leading + for WhatsApp API (expects 919876543210, not +919876543210)
-  const toNumber = to.startsWith('+') ? to.slice(1) : to;
-
-  const payload = {
-    messaging_product: 'whatsapp',
-    to: toNumber,
-    type: 'text',
-    text: { body: text },
-  };
-
-  try {
-    const response = await fetch(
-      `${WHATSAPP_API_BASE}/${phoneNumberId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`WhatsApp send failed (${response.status}):`, errorBody);
-    }
-  } catch (err) {
-    console.error('WhatsApp API request failed:', err);
-  }
+  return { buffer, mimeType, kind };
 }

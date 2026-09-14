@@ -130,6 +130,9 @@ export async function POST(request: NextRequest) {
       sector: profile.sector,
       gender: profile.gender,
       state: profile.state,
+      shg_membership: profile.shg_membership ?? profile.is_shg_member,
+      is_shg_member: Boolean(profile.is_shg_member || profile.shg_membership === 'shg_member' || profile.shg_membership === true),
+      shg_relation: profile.shg_relation,
     };
 
     const matchResults = matchSchemes(businessProfile, schemes);
