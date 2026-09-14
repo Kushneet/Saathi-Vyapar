@@ -385,7 +385,7 @@ export default function AddEntry({ userId }: Props) {
                 }}
                 className={`cursor-pointer py-3.5 px-2 rounded-2xl text-sm sm:text-base font-bold border transition-colors ${
                   mode === m.id
-                    ? 'bg-[#0B1E33] text-[#F5F1E6] border-[#0B1E33]'
+                    ? 'bg-[#1B4332] text-[#F5F1E6] border-[#1B4332]'
                     : 'bg-white text-[#0B1E33] border-[#0B1E33]/25 hover:bg-[#F5F1E6]'
                 }`}
               >
@@ -441,7 +441,7 @@ export default function AddEntry({ userId }: Props) {
                 <button
                   type="button"
                   onClick={startListening}
-                  className="cursor-pointer flex flex-col items-center justify-center gap-1.5 w-full py-7 px-4 rounded-2xl bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] transition-colors"
+                  className="cursor-pointer flex flex-col items-center justify-center gap-1.5 w-full py-7 px-4 rounded-2xl bg-[#1B4332] hover:bg-[#245A43] text-[#F5F1E6] transition-colors"
                 >
                   <span className="text-base font-bold">{t('entry_say_button')}</span>
                   <span className="text-xs text-[#F5F1E6]/70">{t('entry_say_example')}</span>
@@ -474,7 +474,7 @@ export default function AddEntry({ userId }: Props) {
                 <button
                   type="submit"
                   disabled={!typed.trim()}
-                  className="cursor-pointer shrink-0 px-5 py-2.5 bg-[#0B1E33] hover:bg-[#162D59] disabled:opacity-40 text-[#F5F1E6] text-sm font-bold rounded-full"
+                  className="cursor-pointer shrink-0 px-5 py-2.5 bg-[#1B4332] hover:bg-[#245A43] disabled:opacity-40 text-[#F5F1E6] text-sm font-bold rounded-full"
                 >
                   {t('entry_type_add')}
                 </button>
@@ -623,8 +623,8 @@ export default function AddEntry({ userId }: Props) {
                         className={`cursor-pointer px-3 py-2 text-xs font-bold transition-colors ${
                           entry.entry_type === type
                             ? type === 'income'
-                              ? 'bg-emerald-700 text-white'
-                              : 'bg-[#C9A24B] text-[#0B1E33]'
+                              ? 'bg-[#1B7F4B] text-white'
+                              : 'bg-[#C62828] text-white'
                             : 'bg-white text-[#0B1E33]/60 hover:bg-[#F5F1E6]'
                         }`}
                       >
@@ -655,7 +655,7 @@ export default function AddEntry({ userId }: Props) {
               type="button"
               onClick={handleSave}
               disabled={phase === 'saving' || entries.length === 0}
-              className="cursor-pointer px-5 py-2.5 bg-[#0B1E33] hover:bg-[#162D59] disabled:opacity-60 text-[#F5F1E6] font-bold text-xs rounded-full transition-all"
+              className="cursor-pointer px-5 py-2.5 bg-[#1B4332] hover:bg-[#245A43] disabled:opacity-60 text-[#F5F1E6] font-bold text-xs rounded-full transition-all"
             >
               {phase === 'saving' ? t('photo_saving') : t('photo_save')}
             </button>

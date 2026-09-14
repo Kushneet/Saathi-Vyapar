@@ -65,7 +65,11 @@ export default function HomePage() {
   const moneyIn = exampleLines.filter((l) => l.kind === 'in').reduce((s, l) => s + l.amount, 0);
   const moneyOut = exampleLines.filter((l) => l.kind === 'out').reduce((s, l) => s + l.amount, 0);
 
-  const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+  // A Hindi reader's notebook has Devanagari numerals, so the sample page
+  // and its totals are shown that way in Hindi mode.
+  const digits = (text: string) =>
+    language === 'hi' ? text.replace(/[0-9]/g, (d) => '०१२३४५६७८९'[Number(d)]) : text;
+  const rupees = (n: number) => digits(`₹${n.toLocaleString('en-IN')}`);
 
   const helps = [
     { q: t('hp_q1'), a: t('hp_a1') },
@@ -180,7 +184,7 @@ export default function HomePage() {
                     <p className="text-xs font-semibold text-[#1B4332]/55 mb-3">{t('hp_demo_book')}</p>
                     <ul className="space-y-2.5 font-mono text-[15px] text-[#1B4332]/85">
                       {exampleLines.map((line) => (
-                        <li key={line.raw}>{line.raw}</li>
+                        <li key={line.raw}>{digits(line.raw)}</li>
                       ))}
                     </ul>
                   </div>
@@ -193,7 +197,7 @@ export default function HomePage() {
                       {exampleLines.map((line) => (
                         <li key={line.raw} className="flex items-center justify-between gap-3 text-sm">
                           <span className="text-[#1B4332]/75 truncate">{line.label}</span>
-                          <span className={`font-bold shrink-0 ${line.kind === 'in' ? 'text-[#2F7A4F]' : 'text-[#C9821F]'}`}>
+                          <span className={`font-bold shrink-0 ${line.kind === 'in' ? 'text-[#1B7F4B]' : 'text-[#C62828]'}`}>
                             {line.kind === 'in' ? '+' : '−'}{rupees(line.amount)}
                           </span>
                         </li>
@@ -203,11 +207,11 @@ export default function HomePage() {
                     <dl className="mt-4 pt-3 border-t border-[#1B4332]/10 space-y-1.5 text-sm">
                       <div className="flex justify-between">
                         <dt className="text-[#1B4332]/60">{t('hp_demo_in')}</dt>
-                        <dd className="font-semibold text-[#2F7A4F]">{rupees(moneyIn)}</dd>
+                        <dd className="font-semibold text-[#1B7F4B]">{rupees(moneyIn)}</dd>
                       </div>
                       <div className="flex justify-between">
                         <dt className="text-[#1B4332]/60">{t('hp_demo_out')}</dt>
-                        <dd className="font-semibold text-[#C9821F]">{rupees(moneyOut)}</dd>
+                        <dd className="font-semibold text-[#C62828]">{rupees(moneyOut)}</dd>
                       </div>
                       <div className="flex justify-between text-[15px]">
                         <dt className="font-bold text-[#1B4332]">{t('hp_demo_left')}</dt>

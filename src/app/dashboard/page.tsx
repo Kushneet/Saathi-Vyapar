@@ -610,12 +610,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </div>
               <div className="flex items-center gap-4 text-xs font-semibold">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-[#151515] inline-block"></span>
-                  <span className="text-[#0B1E33]">{t('dashboard_income_label')}: ₹{totalIncome.toLocaleString('en-IN')}</span>
+                  <span className="w-3 h-3 rounded-full bg-[#1B7F4B] inline-block"></span>
+                  <span className="text-[#1B7F4B]">{t('dashboard_income_label')}: ₹{totalIncome.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-[#FF416C] inline-block"></span>
-                  <span className="text-[#C9A24B]">{t('dashboard_expense_label')}: ₹{totalExpense.toLocaleString('en-IN')}</span>
+                  <span className="w-3 h-3 rounded-full bg-[#C62828] inline-block"></span>
+                  <span className="text-[#C62828]">{t('dashboard_expense_label')}: ₹{totalExpense.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
@@ -635,14 +635,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                   <line x1="40" y1="120" x2="480" y2="120" stroke="#C9A24B" strokeOpacity="0.2" strokeDasharray="3 3" />
 
                   {/* Income */}
-                  <polyline fill="none" stroke="#0B1E33" strokeWidth="3.5" points={incomePoints} />
+                  <polyline fill="none" stroke="#1B7F4B" strokeWidth="3.5" points={incomePoints} />
 
                   {/* Expenses */}
-                  <polyline fill="none" stroke="#C9A24B" strokeWidth="3.5" points={expensePoints} />
+                  <polyline fill="none" stroke="#C62828" strokeWidth="3.5" points={expensePoints} />
 
                   {/* Latest data points */}
-                  <circle cx="460" cy={120 - (lastBucket.income / peak) * 100} r="5" fill="#0B1E33" />
-                  <circle cx="460" cy={120 - (lastBucket.expense / peak) * 100} r="5" fill="#C9A24B" />
+                  <circle cx="460" cy={120 - (lastBucket.income / peak) * 100} r="5" fill="#1B7F4B" />
+                  <circle cx="460" cy={120 - (lastBucket.expense / peak) * 100} r="5" fill="#C62828" />
                 </svg>
                 <div className="flex justify-between text-[10px] text-[#0B1E33]/40 mt-2 px-2">
                   {days.filter((_, i) => i % 2 === 0).map((d, i) => (
@@ -688,7 +688,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                   </div>
                   <span
                     className={`text-base font-extrabold ${
-                      entry.entry_type === 'income' ? 'text-emerald-700' : 'text-[#C9A24B]'
+                      entry.entry_type === 'income' ? 'text-[#1B7F4B]' : 'text-[#C62828]'
                     }`}
                   >
                     {entry.entry_type === 'income' ? '+' : '-'}₹{entry.amount.toLocaleString('en-IN')}
