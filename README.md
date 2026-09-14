@@ -506,4 +506,4 @@ Developed with ❤️ by **Team Pantheon Eternal** for the **Smart India Hackath
 
 <div align="center">
   <sub>Saathi Vyapar · साथी व्यापार · Empowering Rural Indian Micro-Enterprises with Trust & AI</sub>
-</div>
+</div># Saathi-Vyapar
