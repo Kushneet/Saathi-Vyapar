@@ -263,7 +263,47 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     console.warn('Dashboard plan fetch warning:', err);
   }
 
-  // If no stored plan, dynamically calculate using deterministic engines
+  // Scheme matching is always live: the profile as it is right now against
+  // the table as it is right now. It used to come from the stored plan, so
+  // a change made on Yojana Kendra ("Change details") or a scheme added to
+  // the table did not show here until a new plan happened to be generated.
+  let dbSchemes = null;
+  try {
+    const { data } = await supabaseServer.from('schemes').select('*');
+    dbSchemes = data;
+  } catch { /* fallback */ }
+
+  const schemesToMatch: SchemeRecord[] =
+    dbSchemes && dbSchemes.length > 0 ? (dbSchemes as SchemeRecord[]) : FALLBACK_SCHEMES;
+
+  const liveMatches = matchSchemes(
+    {
+      monthly_revenue_est: Number(profile.monthly_revenue_est) || 0,
+      monthly_expense_est: Number(profile.monthly_expense_est) || 0,
+      existing_loans: Boolean(profile.existing_loans),
+      // Undefined rather than invented: an unstated social category or
+      // gender must not silently qualify someone for a reserved scheme.
+      sector: profile.sector || undefined,
+      category: profile.category || undefined,
+      gender: profile.gender || undefined,
+      state: profile.state || undefined,
+      shg_membership: (profile as Record<string, unknown>).shg_membership as string | boolean | undefined,
+      is_shg_member: Boolean((profile as Record<string, unknown>).is_shg_member),
+      shg_relation: (profile as Record<string, unknown>).shg_relation as string | undefined,
+    },
+    schemesToMatch
+  );
+
+  const schemeItems: SchemeItem[] = liveMatches.map((m) => ({
+    schemeId: m.scheme.id,
+    schemeName: m.scheme.name,
+    eligible: m.eligible,
+    reasons: m.reasons,
+    benefitSummary: m.scheme.benefit_summary,
+    applicationLink: m.scheme.application_link,
+  }));
+
+  // If no stored plan, describe the figures with the deterministic engines
   let latestPlan = planData;
   if (!latestPlan) {
     const rev = Number(profile.monthly_revenue_est) || 0;
@@ -271,49 +311,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     const margin = calculateMarginPercent(rev, exp);
     const cashRisk = assessCashFlowRisk(rev, exp, Boolean(profile.existing_loans));
 
-    // Match against schemes
-    let dbSchemes = null;
-    try {
-      const { data } = await supabaseServer.from('schemes').select('*');
-      dbSchemes = data;
-    } catch { /* fallback */ }
-
-    const schemesToMatch: SchemeRecord[] =
-      dbSchemes && dbSchemes.length > 0 ? (dbSchemes as SchemeRecord[]) : FALLBACK_SCHEMES;
-
-    const matched = matchSchemes(
-      {
-        monthly_revenue_est: rev,
-        monthly_expense_est: exp,
-        existing_loans: Boolean(profile.existing_loans),
-        // Undefined rather than invented: an unstated social category or
-        // gender must not silently qualify someone for a reserved scheme.
-        sector: profile.sector || undefined,
-        category: profile.category || undefined,
-        gender: profile.gender || undefined,
-        state: profile.state || undefined,
-        shg_membership: (profile as Record<string, unknown>).shg_membership as string | boolean | undefined,
-        is_shg_member: Boolean((profile as Record<string, unknown>).is_shg_member),
-        shg_relation: (profile as Record<string, unknown>).shg_relation as string | undefined,
-      },
-      schemesToMatch
-    );
-
-    const schemeItems: SchemeItem[] = matched.map((m) => ({
-      schemeId: m.scheme.id,
-      schemeName: m.scheme.name,
-      eligible: m.eligible,
-      reasons: m.reasons,
-      benefitSummary: m.scheme.benefit_summary,
-      applicationLink: m.scheme.application_link,
-    }));
-
     latestPlan = {
       id: 'dynamic-plan',
       user_id: user.id,
       margin_percent: margin,
       break_even_revenue: exp,
-      summary_text: `Your net profit margin is ${margin.toFixed(1)}%. After monthly expenses (₹${exp.toLocaleString("en-IN")}), your cash flow is ${cashRisk === "low" ? "strong" : "stable"}. Explore government loan & subsidy options below.`,
+      summary_text: '',
       created_at: new Date().toISOString(),
       plan_json: {
         financialMetrics: {
@@ -377,7 +380,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     matchedSchemes?: SchemeItem[];
   } | null;
 
-  const matchedSchemes: SchemeItem[] = planJson?.matchedSchemes || [];
+  const matchedSchemes: SchemeItem[] = schemeItems;
 
   // Monthly sales needed to cover costs. Prefer the stored plan value; fall
   // back to current expenses, which is the same quantity the engine computes.
