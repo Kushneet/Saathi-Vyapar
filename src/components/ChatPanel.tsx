@@ -97,10 +97,17 @@ export default function ChatPanel({ userId }: Props) {
       });
 
       const data = await response.json();
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: response.ok ? data.reply : data.error || t('chat_error') },
-      ]);
+
+      // 401 is the ordinary case on a public page, not a failure: the panel is
+      // offered before anyone has an account. Say what to do next rather than
+      // reporting an auth error to someone who has not signed up yet.
+      const reply = response.ok
+        ? data.reply
+        : response.status === 401
+          ? t('chat_signin')
+          : data.error || t('chat_error');
+
+      setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
     } catch {
       setMessages((prev) => [...prev, { role: 'assistant', content: t('chat_error') }]);
     } finally {

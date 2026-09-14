@@ -32,6 +32,7 @@
 import Link from 'next/link';
 import LanguageToggleButton from '@/components/LanguageToggleButton';
 import { useLanguage } from '@/contexts/LanguageContext';
+import ChatPanel from '@/components/ChatPanel';
 
 /**
  * The worked example, labelled as an example on the page.
@@ -319,6 +320,10 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Offered here too. Someone deciding whether to sign up can ask what
+          this does before committing to a form. */}
+      <ChatPanel />
     </div>
   );
 }

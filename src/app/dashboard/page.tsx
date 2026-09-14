@@ -223,6 +223,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <LogoutButton />
           </div>
         </div>
+
+        {/* Also here, not only on the full dashboard. Someone who has not
+            finished their profile is the person most likely to have a
+            question, and this early return used to skip the panel entirely. */}
+        <ChatPanel />
       </div>
     );
   }
