@@ -630,7 +630,27 @@ Current Time: ${new Date().toISOString()}`;
     return NextResponse.json({ response: finalAnswer, toolExecuted, loggedUserMessage });
   } catch (error) {
     console.error('Error in Khata Mitra Assistant API:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    const raw = error instanceof Error ? error.message : String(error);
+
+    // The free Gemini tier allows roughly ten requests a minute and each
+    // message here costs two. Say "wait a moment" rather than returning the
+    // provider's JSON, which the client would print verbatim.
+    if (/429|RESOURCE_EXHAUSTED|quota/i.test(raw)) {
+      return NextResponse.json(
+        {
+          error: 'साथी अभी व्यस्त है — 30 सेकंड बाद फिर कोशिश करें। / Assistant is busy — try again in 30 seconds.',
+          code: 'rate_limited',
+        },
+        { status: 429 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: 'अभी जवाब नहीं दे पाया — फिर कोशिश करें। / Could not answer right now — please try again.',
+        code: 'model_error',
+      },
+      { status: 500 }
+    );
   }
 }
