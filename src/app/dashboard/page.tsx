@@ -16,6 +16,8 @@ import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
 import { requirePageUser, resolveTargetUserId } from '@/lib/auth/requireUser';
 import { calculateMarginPercent, assessCashFlowRisk, explainPlain } from '@/lib/engines/financialEngine';
+import { localizeReason } from '@/lib/engines/localizeReason';
+import { sectorLabel } from '@/lib/engines/sectorLabel';
 import { matchSchemes, SchemeRecord } from '@/lib/engines/schemeMatcher';
 import { getServerT } from '@/lib/i18n.server';
 import LogoutButton from './LogoutButton';
@@ -451,7 +453,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   }
 
   const days = buckets.map((b) =>
-    b.date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
+    b.date.toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { month: 'short', day: 'numeric' })
   );
 
   // Scale to the SVG's 0–500 × 20–120 plot area, with a floor so a single
@@ -499,7 +501,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </Link>
             </div>
             <p className="text-[#0B1E33]/50 text-sm mt-0.5">
-              {user.name || 'Entrepreneur'} • {user.phone} {profile?.sector ? `(${profile.sector})` : ''}
+              {user.name || t('bg_default_name')} • {user.phone} {profile?.sector ? `(${sectorLabel(profile.sector, language)})` : ''}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -522,12 +524,17 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             >
               {t('dashboard_khata_mitra')}
             </Link>
-            <Link
-              href="/facilitator"
-              className="px-4 py-2 bg-white hover:bg-[#F5F1E6] text-[#0B1E33] text-xs font-semibold rounded-full border border-[#C9A24B]/30 transition-colors"
-            >
-              {t('dashboard_facilitator')}
-            </Link>
+            {/* The facilitator portal is for NGO / CSC workers who register
+                others. An entrepreneur who tapped it was bounced straight back
+                here, so it is not offered to them. */}
+            {(sessionUser.role === 'facilitator' || sessionUser.role === 'admin') && (
+              <Link
+                href="/facilitator"
+                className="px-4 py-2 bg-white hover:bg-[#F5F1E6] text-[#0B1E33] text-xs font-semibold rounded-full border border-[#C9A24B]/30 transition-colors"
+              >
+                {t('dashboard_facilitator')}
+              </Link>
+            )}
             <LogoutButton />
           </div>
         </header>
@@ -743,14 +750,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                           rel="noopener noreferrer"
                           className="px-4 py-2 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] text-xs font-semibold rounded-full shrink-0 text-center transition-all"
                         >
-                          Apply ↗
+                          {t('dashboard_apply')}
                         </a>
                       )}
                     </div>
                     {item.reasons && item.reasons.length > 0 && (
                       <div className="mt-2 text-xs text-[#0B1E33]/50 space-y-0.5 border-t border-[#E5E2E1] pt-2">
                         {item.reasons.slice(0, 2).map((r, i) => (
-                          <p key={i}>{r}</p>
+                          <p key={i}>✓ {localizeReason(r, language)}</p>
                         ))}
                       </div>
                     )}
@@ -779,7 +786,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 📝 {t('dashboard_ledger_title')}
               </h3>
               <span className="text-xs text-[#0B1E33]/50 font-mono">
-                {ledgerEntries.length} Records
+                {ledgerEntries.length} {t('dashboard_records')}
               </span>
             </div>
 
@@ -798,7 +805,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                   <div>
                     <p className="text-sm font-bold text-[#0B1E33]">{entry.description}</p>
                     <p className="text-xs text-[#0B1E33]/50">
-                      {new Date(entry.created_at).toLocaleDateString('en-IN')} • {entry.source.toUpperCase()}
+                      {new Date(entry.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN')} • {t(`source_${entry.source}`)}
                     </p>
                   </div>
                   <span
