@@ -239,7 +239,7 @@ export default function OnboardingPage() {
 
     if (currentStep === 8) {
       if (!formData.consent_given) {
-        setErrorMessage('डेटा सुरक्षा (DPDP Act) सहमति आवश्यक है');
+        setErrorMessage(t('onboarding_err_consent'));
         return;
       }
 
@@ -394,16 +394,11 @@ export default function OnboardingPage() {
                   {t('onboarding_sector_label')} <span className="text-[#FF416C]">*</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                  {[
-                    { id: 'retail', label: '🛒 किराना / दुकान (Retail)' },
-                    { id: 'tailoring', label: '🧵 सिलाई / वस्त्र (Tailoring)' },
-                    { id: 'dairy', label: '🥛 डेयरी / पशुपालन (Dairy)' },
-                    { id: 'agriculture', label: '🌾 खेती / किसानी (Farming)' },
-                    { id: 'food', label: '🍲 खाना / चाय नाश्ता (Food)' },
-                    { id: 'manufacturing', label: '🔨 निर्माण / कारीगरी (Crafts)' },
-                    { id: 'services', label: '🔧 मरम्मत / सेवाएं (Services)' },
-                    { id: 'general', label: '📦 अन्य व्यापार (General)' },
-                  ].map((s) => (
+                  {/* One language at a time. These labels used to carry Hindi
+                      and English together regardless of the toggle, so an
+                      English reader met Devanagari and a Hindi reader read
+                      every trade twice. */}
+                  {(['retail', 'tailoring', 'dairy', 'agriculture', 'food', 'manufacturing', 'services', 'general'] as const).map((id) => ({ id, label: t(`sector_${id}`) })).map((s) => (
                     <button
                       key={s.id}
                       type="button"
@@ -526,7 +521,7 @@ export default function OnboardingPage() {
             {currentStep === 6 && (
               <div className="bg-[#F5F1E6] border border-[#C9A24B]/20 rounded-2xl p-5 space-y-3 text-sm">
                 <h3 className="font-bold text-[#0B1E33] text-xs uppercase tracking-wider border-b border-[#C9A24B]/20 pb-2">
-                  📋 आपके व्यापार का सारांश (Profile Summary)
+                  {t('onboarding_summary_label')}
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -544,17 +539,17 @@ export default function OnboardingPage() {
                   <div>
                     <span className="text-[#0B1E33]/50 block text-xs">{t('onboarding_loan_field')}</span>
                     <strong className={formData.existing_loans ? 'text-[#FF416C]' : 'text-emerald-700'}>
-                      {formData.existing_loans ? 'हाँ (Active Loan)' : 'नहीं (No Loans)'}
+                      {formData.existing_loans ? t('summary_loan_yes') : t('summary_loan_no')}
                     </strong>
                   </div>
                   <div>
-                    <span className="text-[#0B1E33]/50 block text-xs">मासिक बिक्री (कमाई):</span>
+                    <span className="text-[#0B1E33]/50 block text-xs">{t('onboarding_revenue_field')}</span>
                     <strong className="text-[#0B1E33] text-base font-bold">
                       ₹{formData.monthly_revenue_est.toLocaleString('en-IN')}
                     </strong>
                   </div>
                   <div>
-                    <span className="text-[#0B1E33]/50 block text-xs">Monthly Expense:</span>
+                    <span className="text-[#0B1E33]/50 block text-xs">{t('onboarding_expense_field')}</span>
                     <strong className="text-[#C9A24B] text-base font-bold">
                       ₹{formData.monthly_expense_est.toLocaleString('en-IN')}
                     </strong>

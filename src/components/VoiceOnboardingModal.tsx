@@ -89,60 +89,60 @@ interface VoiceOnboardingModalProps {
 // Step prompts in Hindi & English
 const STEP_PROMPTS: Record<
   OnboardingStep,
-  { hi: string; en: string; short: string; fieldLabel: string }
+  { hi: string; en: string; short: { hi: string; en: string }; fieldLabel: string }
 > = {
   auth: {
     hi: 'शुरू करने से पहले, कृपया अपना 10 अंकों का मोबाइल नंबर दर्ज करें या बोलें।',
     en: 'Before we begin, please enter or speak your 10-digit mobile number.',
-    short: 'मोबाइल नंबर / Mobile Number',
+    short: { hi: 'मोबाइल नंबर', en: 'Mobile number' },
     fieldLabel: 'मोबाइल नंबर',
   },
   name: {
     hi: 'नमस्ते! आपका साथी व्यापार में स्वागत है। आपका शुभ नाम क्या है?',
     en: 'Hello! Welcome to Saathi Vyapar. What is your name?',
-    short: 'आपका नाम / Your Name',
+    short: { hi: 'आपका नाम', en: 'Your name' },
     fieldLabel: 'उद्यमी का नाम',
   },
   district: {
     hi: 'धन्यवाद! आप किस गांव या जिले में रहते हैं?',
     en: 'Thank you! Which village or district are you located in?',
-    short: 'स्थान / Village or District',
+    short: { hi: 'गाँव या ज़िला', en: 'Village or district' },
     fieldLabel: 'गांव / जिला',
   },
   sector: {
     hi: 'आपका क्या काम या व्यापार है? जैसे: किराना दुकान, सिलाई, खेती, डेयरी या कोई अन्य व्यवसाय?',
     en: 'What trade or work do you do? (e.g., kirana shop, tailoring, farming, dairy, etc.)',
-    short: 'व्यवसाय का प्रकार / Trade or Sector',
+    short: { hi: 'आपका काम', en: 'Your trade' },
     fieldLabel: 'व्यवसाय का क्षेत्र',
   },
   finances: {
     hi: 'हर महीने आपकी लगभग कितनी कमाई और कितना खर्च होता है? (जैसे: कमाई 25000 और खर्च 15000)',
     en: 'Roughly how much do you earn and spend monthly? (e.g. earn 25000 and spend 15000)',
-    short: 'मासिक कमाई व खर्च / Monthly Revenue & Expenses',
+    short: { hi: 'मासिक कमाई और खर्च', en: 'Monthly income and costs' },
     fieldLabel: 'कमाई और खर्च',
   },
   loans: {
     hi: 'क्या आपके ऊपर पहले से कोई बैंक या समूह का लोन या पुराना कर्ज है? बोलें हाँ या नहीं।',
     en: 'Do you have any existing loans or debts? Please say yes or no.',
-    short: 'पुराना कर्ज / Existing Loans',
-    fieldLabel: 'सक्रिय ऋण (Loan)',
+    short: { hi: 'पुराना कर्ज़', en: 'Existing loans' },
+    fieldLabel: 'पुराना कर्ज़',
   },
   confirmation: {
     hi: 'कृपया जांचें: क्या आपकी सभी जानकारी सही है? आगे बढ़ने के लिए "हाँ" बोलें या पुष्टि करें।',
     en: 'Please check if your summary is correct. Say "yes" or tap confirm to proceed.',
-    short: 'विवरण की पुष्टि / Summary Confirmation',
+    short: { hi: 'जानकारी की पुष्टि', en: 'Check your details' },
     fieldLabel: 'सारांश पुष्टि',
   },
   consent: {
     hi: 'क्या आप हमें व्यापारिक सलाह और सरकारी योजनाएं ढूंढने के लिए यह जानकारी सुरक्षित रूप से सेव करने की अनुमति देते हैं? आगे बढ़ने के लिए "हाँ" बोलें या सहमति दें।',
     en: 'Do you agree to let us store this information to give you financial advice? Say or tap yes to continue.',
-    short: 'सहमति (DPDP Act Consent) / Data Consent',
+    short: { hi: 'आपकी अनुमति', en: 'Your permission' },
     fieldLabel: 'डेटा सुरक्षा सहमति',
   },
   complete: {
     hi: 'बधाई हो! आपका वित्तीय खाता तैयार हो रहा है। हम आपको डैशबोर्ड पर ले जा रहे हैं...',
     en: 'Congratulations! Your profile is saved. Redirecting to your dashboard...',
-    short: 'सफलतापूर्वक पूर्ण / Completed',
+    short: { hi: 'हो गया', en: 'Done' },
     fieldLabel: 'खाता तैयार है',
   },
 };
@@ -490,7 +490,7 @@ export default function VoiceOnboardingModal({
           setFormData((prev) => ({ ...prev, consent_given: true }));
           await handleFinalSave({ ...formData, consent_given: true });
         } else {
-          setErrorMessage('डेटा सुरक्षा सहमति (DPDP Act) के बिना जानकारी सेव नहीं की जा सकती।');
+          setErrorMessage('बिना आपकी अनुमति के हम जानकारी सेव नहीं कर सकते।');
         }
       }
     } catch (err) {
@@ -567,7 +567,7 @@ export default function VoiceOnboardingModal({
               </span>
             </h2>
             <p className="text-xs text-[#0B1E33]/50">
-              {t('voice_step')}: {currentPrompt?.short || t('voice_step_default')}
+              {t('voice_step')}: {currentPrompt ? currentPrompt.short[language] : t('voice_step_default')}
             </p>
           </div>
         </div>
@@ -636,7 +636,7 @@ export default function VoiceOnboardingModal({
             {isProcessing && <span className="w-2.5 h-2.5 rounded-full bg-[#0B1E33] animate-spin"></span>}
             <span>
               {isSpeaking
-                ? '🔊 साथी बोल रहा है (Assistant Speaking)...'
+                ? '🔊 साथी बोल रहा है...'
                 : isListening
                 ? '🎙️ सुन रहे हैं...'
                 : isProcessing
