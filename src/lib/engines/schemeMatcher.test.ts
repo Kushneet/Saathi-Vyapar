@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { matchSchemes, BusinessProfile, SchemeRecord } from './schemeMatcher';
+import { matchSchemes, sectorMatches, BusinessProfile, SchemeRecord } from './schemeMatcher';
 
 // ── Mock Schemes ──────────────────────────────────────────────────────────────
 
@@ -347,5 +347,34 @@ describe('matchSchemes', () => {
 
     expect(svep?.eligible).toBe(false);
     expect(svep?.reasons.some((r) => r.includes('Your sector (farming) is not listed'))).toBe(true);
+  });
+});
+
+describe('sectorMatches', () => {
+  it('matches the same word', () => {
+    expect(sectorMatches('retail', ['retail', 'services'])).toBe(true);
+    expect(sectorMatches('dairy', ['retail', 'services'])).toBe(false);
+  });
+
+  it('lets an "agriculture" profile satisfy a "farming" rule and vice versa', () => {
+    expect(sectorMatches('agriculture', ['farming'])).toBe(true);
+    expect(sectorMatches('farming', ['agriculture'])).toBe(true);
+  });
+
+  it('maps the form sectors onto the rule vocabulary', () => {
+    expect(sectorMatches('food', ['food_processing'])).toBe(true);
+    expect(sectorMatches('dairy', ['dairy_processing'])).toBe(true);
+    expect(sectorMatches('manufacturing', ['crafts'])).toBe(true);
+    expect(sectorMatches('tailoring', ['handicraft'])).toBe(true);
+  });
+
+  it('treats non_farm as everything except cultivation', () => {
+    expect(sectorMatches('retail', ['non_farm'])).toBe(true);
+    expect(sectorMatches('services', ['non_farm'])).toBe(true);
+    expect(sectorMatches('agriculture', ['non_farm'])).toBe(false);
+  });
+
+  it('is case-insensitive', () => {
+    expect(sectorMatches('Agriculture', ['Farming'])).toBe(true);
   });
 });

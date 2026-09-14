@@ -84,6 +84,36 @@ export interface MatchResult {
 }
 
 /**
+ * The onboarding form offers eight sectors; scheme rules were written with
+ * the government's own vocabulary. Without this table a farmer who picked
+ * "agriculture" never matched PM-Kisan, whose rule says "farming".
+ *
+ * Keys are the words a rule may use; values are the profile sectors that
+ * satisfy it. A rule word absent from this table matches only itself.
+ */
+const SECTOR_ALIASES: Record<string, readonly string[]> = {
+  farming: ['agriculture'],
+  agriculture: ['farming'],
+  food_processing: ['food'],
+  food: ['food_processing'],
+  dairy_processing: ['dairy'],
+  crafts: ['manufacturing', 'tailoring'],
+  handicraft: ['manufacturing', 'tailoring'],
+  // "non-farm" in NRLM programmes means any rural enterprise that is not
+  // cultivation — every other sector the form offers.
+  non_farm: ['retail', 'tailoring', 'dairy', 'food', 'manufacturing', 'services', 'general'],
+};
+
+/** Whether a profile sector satisfies any of a rule's sector words. */
+export function sectorMatches(profileSector: string, ruleSectors: string[]): boolean {
+  const mine = profileSector.toLowerCase();
+  return ruleSectors.some((word) => {
+    const w = word.toLowerCase();
+    return w === mine || (SECTOR_ALIASES[w] ?? []).includes(mine);
+  });
+}
+
+/**
  * Checks whether a business profile indicates that the entrepreneur
  * is part of an SHG or related to an SHG member.
  */
@@ -176,7 +206,7 @@ export function matchSchemes(
     // ── 3. Sector Check ───────────────────────────────────────────────
     if (rules.sector && rules.sector.length > 0) {
       const profileSector = profile.sector?.toLowerCase();
-      if (profileSector && rules.sector.map((s) => s.toLowerCase()).includes(profileSector)) {
+      if (profileSector && sectorMatches(profileSector, rules.sector)) {
         reasons.push(`✓ Your business sector (${profile.sector}) is covered by this scheme`);
       } else {
         eligible = false;
