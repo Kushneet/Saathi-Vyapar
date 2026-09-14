@@ -22,6 +22,52 @@ function getAI() {
   return new GoogleGenAI({ apiKey });
 }
 
+interface GeminiApiError {
+  message?: string;
+  status?: number;
+  details?: { retryDelay?: string };
+  errorDetails?: { retryDelay?: string };
+}
+
+/**
+ * Calls generateContent with a single automatic retry on 429 RESOURCE_EXHAUSTED
+ * (rate limit) errors, honoring the server's suggested retryDelay when present.
+ * Does not help once a hard daily quota is fully exhausted — only smooths over
+ * short-lived per-minute rate limiting.
+ */
+async function generateContentWithRetry(
+  ai: GoogleGenAI,
+  params: Parameters<GoogleGenAI['models']['generateContent']>[0]
+) {
+  try {
+    return await ai.models.generateContent(params);
+  } catch (rawError) {
+    const error = rawError as GeminiApiError;
+    const errorStr = String(error?.message || '');
+    const errorStringified = JSON.stringify(error);
+    const isRateLimit =
+      errorStr.includes('429') ||
+      errorStr.includes('RESOURCE_EXHAUSTED') ||
+      errorStringified.includes('429') ||
+      errorStringified.includes('RESOURCE_EXHAUSTED') ||
+      error?.status === 429;
+
+    if (!isRateLimit) throw error;
+
+    let delayMs = 4500;
+    const delayStr = error?.details?.retryDelay || error?.errorDetails?.retryDelay || '';
+    const match =
+      (typeof delayStr === 'string' && delayStr.match(/(\d+)s/)) ||
+      errorStringified.match(/"retryDelay"\s*:\s*"(\d+)s"/i) ||
+      errorStr.match(/retryDelay.*?(\d+)s/i);
+    if (match) delayMs = parseInt(match[1]) * 1000;
+
+    console.warn(`[Khata Mitra] Gemini 429 rate limit hit — retrying in ${delayMs}ms...`);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    return await ai.models.generateContent(params);
+  }
+}
+
 // ── Tool Definitions ─────────────────────────────────────────────────────
 
 const addLedgerEntryTool = {
@@ -311,7 +357,7 @@ Current Time: ${new Date().toISOString()}`;
     }
 
     const userContentPart = { role: 'user', parts: [userPart] };
-    const model = 'gemini-3.6-flash';
+    const model = 'gemini-2.5-flash';
     const ai = getAI();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -324,7 +370,7 @@ Current Time: ${new Date().toISOString()}`;
     while (iterations < MAX_ITERATIONS) {
       iterations++;
 
-      const response = await ai.models.generateContent({
+      const response = await generateContentWithRetry(ai, {
         model,
         contents: currentContents,
         config: {
