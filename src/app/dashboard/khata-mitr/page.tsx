@@ -13,9 +13,13 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase/client';
+import { useLanguage } from '@/contexts/LanguageContext';
 import KhataMitraAssistant from '@/components/khata-mitr/KhataMitraAssistant';
 
 function KhataMitraContent() {
+  // The assistant and its input already speak both languages; this page
+  // used to pin them to Hindi while its own header stayed English.
+  const { t, language } = useLanguage();
   const searchParams = useSearchParams();
   const paramUserId = searchParams.get('user_id');
 
@@ -111,7 +115,7 @@ function KhataMitraContent() {
                   🎙️ Khata Mitra
                 </h1>
                 <p className="text-[#0B1E33]/50 text-xs">
-                  {userName ? `${userName}'s bookkeeping assistant` : 'Voice & text bookkeeping assistant'}
+                  {userName ? t('km_sub_named').replace('{name}', userName) : t('km_sub')}
                 </p>
               </div>
             </div>
@@ -120,18 +124,18 @@ function KhataMitraContent() {
             href={`/dashboard${userId ? `?user_id=${userId}` : ''}`}
             className="px-4 py-2 bg-white hover:bg-[#F5F1E6] text-[#0B1E33] text-xs font-semibold rounded-full border border-[#C9A24B]/30 transition-all self-start sm:self-auto"
           >
-            ← Dashboard
+            {t('km_back')}
           </Link>
         </header>
 
         {totals && (
           <section className="grid grid-cols-2 gap-4">
             <div className="bg-white border border-[#C9A24B]/20 rounded-2xl p-4 shadow-[0_8px_24px_rgba(11,30,51,0.05)]">
-              <span className="text-[#0B1E33]/50 text-[10px] font-bold uppercase tracking-wider">30-Day Income</span>
+              <span className="text-[#0B1E33]/50 text-[10px] font-bold uppercase tracking-wider">{t('km_income_30')}</span>
               <p className="text-2xl font-bold text-emerald-700 mt-1">₹{totals.income.toLocaleString('en-IN')}</p>
             </div>
             <div className="bg-white border border-[#C9A24B]/20 rounded-2xl p-4 shadow-[0_8px_24px_rgba(11,30,51,0.05)]">
-              <span className="text-[#0B1E33]/50 text-[10px] font-bold uppercase tracking-wider">30-Day Expense</span>
+              <span className="text-[#0B1E33]/50 text-[10px] font-bold uppercase tracking-wider">{t('km_expense_30')}</span>
               <p className="text-2xl font-bold text-[#C9A24B] mt-1">₹{totals.expense.toLocaleString('en-IN')}</p>
             </div>
           </section>
@@ -140,7 +144,7 @@ function KhataMitraContent() {
         {customers.length > 0 && (
           <section className="bg-white border border-[#C9A24B]/20 rounded-[32px] p-5 shadow-[0_16px_40px_rgba(11,30,51,0.07)]">
             <h2 className="font-['Playfair_Display',Georgia,serif] text-base font-bold text-[#0B1E33] mb-3">
-              👥 Customer Accounts ({customers.length})
+              {t('km_customers')} ({customers.length})
             </h2>
             <div className="space-y-2">
               {customers.map((c) => (
@@ -153,10 +157,10 @@ function KhataMitraContent() {
                     className={`text-sm font-bold ${Number(c.balance) > 0 ? 'text-rose-600' : 'text-emerald-700'}`}
                   >
                     {Number(c.balance) > 0
-                      ? `Owes ₹${Number(c.balance).toLocaleString('en-IN')}`
+                      ? `${t('km_owes')} ₹${Number(c.balance).toLocaleString('en-IN')}`
                       : Number(c.balance) < 0
-                        ? `Advance ₹${Math.abs(Number(c.balance)).toLocaleString('en-IN')}`
-                        : 'Settled ₹0'}
+                        ? `${t('km_advance')} ₹${Math.abs(Number(c.balance)).toLocaleString('en-IN')}`
+                        : t('km_settled')}
                   </span>
                 </div>
               ))}
@@ -166,10 +170,10 @@ function KhataMitraContent() {
 
         {isLoading || !userId ? (
           <div className="bg-white border border-[#C9A24B]/20 rounded-[32px] p-10 shadow-[0_16px_40px_rgba(11,30,51,0.07)] text-center text-[#0B1E33]/50 text-sm">
-            Loading Khata Mitra…
+            {t('km_loading')}
           </div>
         ) : (
-          <KhataMitraAssistant userId={userId} language="hi" onLedgerChanged={() => setRefreshKey((k) => k + 1)} />
+          <KhataMitraAssistant userId={userId} language={language} onLedgerChanged={() => setRefreshKey((k) => k + 1)} />
         )}
       </div>
     </div>
