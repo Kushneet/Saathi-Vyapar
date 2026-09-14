@@ -1,923 +1,648 @@
 'use client';
 
 /**
- * src/app/dashboard/schemes/page.tsx
+ * src/app/dashboard/schemes/page.tsx — Yojana Kendra
  *
- * Yojana Kendra (योजना केंद्र) — Full Scheme Matching & Advisory Portal
+ * Every government scheme in the table, matched against this person's
+ * profile, in the language on screen. The previous page showed Hindi and
+ * English on every line, a "#Rank 1" badge, eight profile boxes and an
+ * "Update details" button that restarted the whole onboarding. This one:
  *
- * Capabilities:
- * - Profile data inspection & "Update my details" flow
- * - Pure deterministic scheme matching using schemeMatcher.ts / matchSchemes
- * - Ranked cards for eligible schemes with sponsoring body, subsidy benefits, reasons, and document checklists
- * - Collapsible explainability section for ineligible schemes with transparent rejection reasons
- * - "Re-check my eligibility" button with real-time recalculation
- * - Strictly profile-anchored (no disconnected generic search boxes)
+ *   - says what the match is based on in one line, with "Change details"
+ *     opening a small form right here (PATCH /api/profile)
+ *   - lets the user filter by kind (loan, grant, training, …), sort, and
+ *     search, and see the ones they do not qualify for with the reason
+ *   - shows per scheme: name, what you get, why you qualify, the papers
+ *     you need (tick them off), and Apply
+ *
+ * Matching itself is the same deterministic schemeMatcher the dashboard
+ * and the plan use, run in the browser on the rows the anon client can
+ * read (RLS allows schemes for everyone).
  */
 
-import { useState, useEffect, useTransition, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageToggleButton from '@/components/LanguageToggleButton';
-import {
-  matchSchemes,
-  MatchResult,
-  BusinessProfile,
-  SchemeRecord,
-} from '@/lib/engines/schemeMatcher';
+import { matchSchemes, type MatchResult, type BusinessProfile, type SchemeRecord } from '@/lib/engines/schemeMatcher';
+import { localizeReason, reasonPassed } from '@/lib/engines/localizeReason';
+import { sectorLabel } from '@/lib/engines/sectorLabel';
 
-// ── Fallback 15 Real Government Schemes for offline/unseeded environments ─────
-const SEED_SCHEMES_FALLBACK: SchemeRecord[] = [
-  {
-    id: 'pmegp-001',
-    name: 'PMEGP - Prime Minister\'s Employment Generation Programme',
-    description: 'Credit-linked subsidy programme for setting up new micro-enterprises in non-farm sector. Implemented by KVIC.',
-    benefit_summary: 'Subsidy of 15% to 35% of project cost (max ₹25 lakh for manufacturing, ₹10 lakh for service).',
-    eligibility_rules: {
-      income_max: 10000000,
-      sector: ['manufacturing', 'services', 'retail', 'food_processing', 'handicrafts', 'textile', 'tailoring', 'general'],
-      loan_amount_max: 2500000,
-      loan_amount_min: 100000,
-    },
-    application_link: 'https://www.kviconline.gov.in/pmegpeportal/pmegphome/index.jsp',
-  },
-  {
-    id: 'mudra-shishu-002',
-    name: 'Mudra Shishu Loan (PMMY)',
-    description: 'Pradhan Mantri Mudra Yojana - Shishu category provides collateral-free loans up to ₹50,000 for small businesses.',
-    benefit_summary: 'Collateral-free loans up to ₹50,000 for starting or growing micro-enterprises with low interest rate.',
-    eligibility_rules: {
-      income_max: 2500000,
-      loan_amount_max: 50000,
-      loan_amount_min: 1000,
-    },
-    application_link: 'https://www.mudra.org.in/',
-  },
-  {
-    id: 'mudra-kishor-003',
-    name: 'Mudra Kishor Loan (PMMY)',
-    description: 'Pradhan Mantri Mudra Yojana - Kishor category provides collateral-free loans from ₹50,001 to ₹5 lakh for growing businesses.',
-    benefit_summary: 'Collateral-free working capital and asset loans between ₹50,001 and ₹5 lakh.',
-    eligibility_rules: {
-      income_max: 5000000,
-      loan_amount_max: 500000,
-      loan_amount_min: 50001,
-    },
-    application_link: 'https://www.mudra.org.in/',
-  },
-  {
-    id: 'mudra-tarun-004',
-    name: 'Mudra Tarun Loan (PMMY)',
-    description: 'Pradhan Mantri Mudra Yojana - Tarun category provides loans from ₹5 lakh to ₹10 lakh for established enterprises.',
-    benefit_summary: 'Loans between ₹5 lakh and ₹10 lakh for business expansion and machinery purchase.',
-    eligibility_rules: {
-      income_max: 15000000,
-      loan_amount_max: 1000000,
-      loan_amount_min: 500001,
-    },
-    application_link: 'https://www.mudra.org.in/',
-  },
-  {
-    id: 'standup-india-005',
-    name: 'Stand-Up India Scheme',
-    description: 'Provides bank loans between ₹10 lakh and ₹1 crore to SC/ST or woman borrowers for greenfield enterprises.',
-    benefit_summary: 'Bank loans of ₹10 lakh to ₹1 crore for manufacturing, services, or trading enterprises.',
-    eligibility_rules: {
-      category: ['sc', 'st'],
-      gender: 'female',
-      loan_amount_max: 10000000,
-      loan_amount_min: 1000000,
-      sector: ['manufacturing', 'services', 'trading', 'retail'],
-    },
-    application_link: 'https://www.standupmitra.in/',
-  },
-  {
-    id: 'pm-svanidhi-006',
-    name: 'PM SVANidhi - PM Street Vendor\'s AtmaNirbhar Nidhi',
-    description: 'Micro-credit scheme for street vendors to avail affordable working capital loans with 7% interest subsidy.',
-    benefit_summary: 'Collateral-free working capital loans starting at ₹10,000, scaling to ₹20,000 and ₹50,000 upon timely repayment.',
-    eligibility_rules: {
-      sector: ['street_vending', 'retail', 'food_services', 'food', 'services'],
-      loan_amount_max: 50000,
-      loan_amount_min: 10000,
-    },
-    application_link: 'https://pmsvanidhi.mohua.gov.in/',
-  },
-  {
-    id: 'pm-ajay-007',
-    name: 'PM-AJAY - Pradhan Mantri Anusuchit Jaati Abhyuday Yojana',
-    description: 'Comprehensive socio-economic development and skill training programme for SC communities.',
-    benefit_summary: 'Skill training, livelihood grants, and income support for SC entrepreneurs.',
-    eligibility_rules: {
-      category: ['sc'],
-      income_max: 2500000,
-    },
-    application_link: 'https://socialjustice.gov.in/',
-  },
-  {
-    id: 'nsfdc-008',
-    name: 'NSFDC - National Scheduled Castes Finance and Development Corporation',
-    description: 'Concessional finance to SC persons living below double poverty line for income-generating activities.',
-    benefit_summary: 'Term loans at 6% per annum for agriculture, small business, transport, and technical trade.',
-    eligibility_rules: {
-      category: ['sc'],
-      income_max: 300000,
-      loan_amount_max: 1500000,
-      loan_amount_min: 10000,
-    },
-    application_link: 'https://nsfdc.nic.in/',
-  },
-  {
-    id: 'nstfdc-009',
-    name: 'NSTFDC - National Scheduled Tribes Finance and Development Corporation',
-    description: 'Financial assistance for income-generating activities for ST tribal entrepreneurs.',
-    benefit_summary: 'Concessional loans at 6-8% interest for tribal agriculture, forestry, handicrafts, and small enterprises.',
-    eligibility_rules: {
-      category: ['st'],
-      income_max: 400000,
-      loan_amount_max: 2000000,
-      loan_amount_min: 10000,
-      sector: ['agriculture', 'forestry', 'handicrafts', 'manufacturing', 'services'],
-    },
-    application_link: 'https://www.nstfdc.nic.in/',
-  },
-  {
-    id: 'mahila-samridhi-010',
-    name: 'Mahila Samridhi Yojana',
-    description: 'Micro-finance scheme for women entrepreneurs from marginalized and SC communities through SHGs.',
-    benefit_summary: 'Micro-credit up to ₹1.4 lakh at 4% interest rate for women entrepreneurs.',
-    eligibility_rules: {
-      gender: 'female',
-      category: ['sc'],
-      income_max: 300000,
-      loan_amount_max: 140000,
-      loan_amount_min: 5000,
-    },
-    application_link: 'https://socialjustice.gov.in/',
-  },
-  {
-    id: 'udyam-sakhi-011',
-    name: 'Udyam Sakhi - Women Entrepreneurship Portal',
-    description: 'Ecosystem for women entrepreneurs providing mentorship, market access, and credit facilitation.',
-    benefit_summary: 'Free mentorship, business incubation, and direct financial linkage for women-led enterprises.',
-    eligibility_rules: {
-      gender: 'female',
-      income_max: 10000000,
-    },
-    application_link: 'https://udyamsakhi.org/',
-  },
-  {
-    id: 'pmkvy-012',
-    name: 'PMKVY - Pradhan Mantri Kaushal Vikas Yojana (Skill India)',
-    description: 'Flagship scheme for industry-relevant skill development and certification with monetary reward.',
-    benefit_summary: 'Free skill training & certification across 300+ job roles with ₹8,000 monetary award upon passing.',
-    eligibility_rules: {
-      income_max: 5000000,
-    },
-    application_link: 'https://www.pmkvyofficial.org/',
-  },
-  {
-    id: 'day-nrlm-013',
-    name: 'DAY-NRLM - National Rural Livelihoods Mission',
-    description: 'Rural poverty alleviation through SHG federation, interest subvention, and revolving funds.',
-    benefit_summary: 'Interest subvention on SHG loans (credit at 7% interest) and revolving capital grants.',
-    eligibility_rules: {
-      gender: 'female',
-      income_max: 200000,
-      sector: ['agriculture', 'handicrafts', 'food_processing', 'retail', 'services'],
-    },
-    application_link: 'https://aajeevika.gov.in/',
-  },
-  {
-    id: 'cgtmse-014',
-    name: 'CGTMSE - Credit Guarantee Scheme for Micro & Small Enterprises',
-    description: 'Credit guarantee coverage to banks for lending to MSMEs without third-party collateral.',
-    benefit_summary: 'Credit guarantee coverage of 75% to 85% for collateral-free bank loans up to ₹5 crore.',
-    eligibility_rules: {
-      sector: ['manufacturing', 'services', 'retail', 'food_processing', 'technology', 'tailoring'],
-      loan_amount_max: 50000000,
-      loan_amount_min: 10000,
-    },
-    application_link: 'https://www.cgtmse.in/',
-  },
-  {
-    id: 'kvic-honey-015',
-    name: 'KVIC Honey Mission - National Bee Board',
-    description: 'Promotes scientific beekeeping, honey production, and market linkage for rural livelihood.',
-    benefit_summary: 'Free training, 50 beehive colonies, extraction kits, and guaranteed market linkage for rural beekeepers.',
-    eligibility_rules: {
-      sector: ['agriculture', 'beekeeping', 'rural_livelihood', 'farming', 'food'],
-      income_max: 1200000,
-    },
-    application_link: 'https://kvic.gov.in/kvicres/bee-keeping.php',
-  },
-  {
-    id: 'svep-nrlm',
-    name: 'Start-up Village Entrepreneurship Programme (SVEP)',
-    description:
-      'A sub-scheme of DAY-NRLM supporting Self-Help Group (SHG) members and their family members to set up non-farm rural enterprises. Unlike a one-time cash subsidy, SVEP provides ongoing support through training, mentoring, and access to a community-managed revolving loan fund (Community Enterprise Fund). It is implemented block-by-block, not nationwide — availability depends on whether SVEP has been rolled out in the user\'s specific block.',
-    benefit_summary:
-      'Access to a community-managed revolving loan fund (Community Enterprise Fund) plus business training and ongoing mentoring support — not a one-time cash grant.',
-    sponsoring_body: 'Ministry of Rural Development (DAY-NRLM)',
-    application_link: 'https://svep.nrlm.gov.in/',
-    eligibility_rules: {
-      requires_shg_membership: true,
-      eligible_relation: ['shg_member', 'shg_member_family'],
-      sector: ['non_farm', 'retail', 'tailoring', 'food_processing', 'handicraft', 'dairy_processing'],
-      area_type: 'rural',
-      implementation_note: 'block_specific_not_nationwide',
-      priority_groups: ['women', 'youth'],
-    },
-    active: true,
-  },
-];
+type Lang = 'hi' | 'en';
+type Kind = 'loan' | 'subsidy' | 'direct_benefit' | 'credit_guarantee' | 'training' | 'registration' | 'other';
+type Filter = 'eligible' | Kind | 'ineligible';
+type Sort = 'best' | 'name' | 'amount';
 
-// ── Sponsoring Body & Document Checklist Helper ───────────────────────────────
-interface SchemeDetails {
-  sponsoringBody: string;
-  requiredDocuments: string[];
+/** A scheme row with the optional Hindi columns. */
+interface SchemeRow extends SchemeRecord {
+  name_hi?: string | null;
+  benefit_summary_hi?: string | null;
 }
 
-/**
- * Resolve a scheme's sponsoring body and document checklist.
- *
- * These now live on the scheme row (migration 007), which is what makes
- * "add a scheme without redeploying" true. The name-matched table below is
- * kept only as a fallback for rows written before that migration, and for
- * the local FALLBACK_SCHEMES used when the database is unreachable.
- */
-function getSchemeDetails(scheme: {
-  name: string;
-  sponsoring_body?: string;
-  required_documents?: string[];
-}): SchemeDetails {
-  if (scheme.sponsoring_body && scheme.required_documents?.length) {
-    return {
-      sponsoringBody: scheme.sponsoring_body,
-      requiredDocuments: scheme.required_documents,
-    };
-  }
-
-  return getSchemeDetailsByName(scheme.name);
+interface ProfileRow {
+  sector: string | null;
+  district: string | null;
+  state: string | null;
+  monthly_revenue_est: number | null;
+  monthly_expense_est: number | null;
+  existing_loans: boolean | null;
+  loan_amount: number | null;
+  loan_monthly_payment: number | null;
+  loan_interest_rate: number | null;
+  category: string | null;
+  gender: string | null;
+  is_shg_member: boolean | null;
+  shg_membership: string | boolean | null;
+  shg_relation: string | null;
 }
 
-function getSchemeDetailsByName(schemeName: string): SchemeDetails {
-  const lower = schemeName.toLowerCase();
+const SECTORS = ['retail', 'tailoring', 'dairy', 'agriculture', 'food', 'manufacturing', 'services', 'general'] as const;
 
-  if (lower.includes('pmegp')) {
-    return {
-      sponsoringBody: '🏛️ KVIC / Ministry of MSME, Govt. of India',
-      requiredDocuments: [
-        'आधार कार्ड (Aadhaar Card)',
-        'प्रोजेक्ट रिपोर्ट / कार्य योजना (Project Proposal Report)',
-        'जाति प्रमाण पत्र (Caste Certificate, if SC/ST/OBC)',
-        'शैक्षणिक प्रमाण पत्र (8th Pass Marksheet for >₹10L)',
-        'बैंक पासबुक एवं खाता विवरण (Bank Passbook Copy)',
-        'पासपोर्ट साइज फोटो (Passport Photos)',
-      ],
-    };
-  }
+/** The original 15 rows carry no scheme_type; this is what they are. */
+const SEED_KIND: Record<string, Kind> = {
+  'mudra-shishu': 'loan', 'mudra-kishor': 'loan', 'mudra-tarun': 'loan', 'wdc-mahila': 'loan',
+  'stand-up-india': 'loan', 'pm-svanidhi': 'loan', 'agriculture-kcc': 'loan', 'dairy-nabard': 'subsidy',
+  pmegp: 'subsidy', 'nrlm-sjsry': 'subsidy', sfurti: 'subsidy', 'pm-kisan-samman': 'direct_benefit',
+  pmkvy: 'training', 'uam-msme': 'registration', cgtmse: 'credit_guarantee',
+};
 
-  if (lower.includes('mudra')) {
-    return {
-      sponsoringBody: '🏛️ Department of Financial Services, Ministry of Finance',
-      requiredDocuments: [
-        'पहचान पत्र (Aadhaar / Voter ID / PAN)',
-        'निवास प्रमाण पत्र (Address Proof / Ration Card)',
-        'दुकान या कार्यस्थल का प्रमाण (Shop/Business Address Proof)',
-        'खरीदे जाने वाले उपकरण/सामग्री का कोटेशन (Machinery Quotation)',
-        'पिछले 6 महीने का बैंक स्टेटमेंट (Last 6 Months Bank Statement)',
-        '2 पासपोर्ट साइज फोटो (2 Passport Photos)',
-      ],
-    };
-  }
+function kindOf(s: SchemeRow): Kind {
+  return (s.scheme_type || SEED_KIND[s.id] || 'other') as Kind;
+}
 
-  if (lower.includes('stand-up') || lower.includes('standup')) {
-    return {
-      sponsoringBody: '🏛️ SIDBI / Ministry of Finance',
-      requiredDocuments: [
-        'आधार कार्ड एवं पैन कार्ड (Aadhaar & PAN Card)',
-        'जाति प्रमाण पत्र (SC/ST Certificate) या महिला स्वामित्व प्रमाण',
-        'विस्तृत प्रोजेक्ट रिपोर्ट (Detailed Project Report)',
-        'प्रदूषण नियंत्रण बोर्ड क्लीयरेंस (यदि लागू हो)',
-        'कंपनी/फर्म पंजीकरण दस्तावेज (Partnership / Incorporation Proof)',
-      ],
-    };
-  }
+/** "आधार कार्ड (Aadhaar Card)" → one language. Anything else is returned whole. */
+function docLabel(doc: string, lang: Lang): string {
+  const m = doc.match(/^(.*?)\s*\(([^()]*[A-Za-z][^()]*)\)\s*$/);
+  if (!m) return doc;
+  const hi = m[1].trim();
+  const en = m[2].trim();
+  if (lang === 'hi') return /[ऀ-ॿ]/.test(hi) ? hi : en;
+  return en;
+}
 
-  if (lower.includes('svanidhi')) {
-    return {
-      sponsoringBody: '🏛️ Ministry of Housing and Urban Affairs (MoHUA)',
-      requiredDocuments: [
-        'आधार कार्ड (Aadhaar Card linked with Mobile)',
-        'वेंडिंग प्रमाण पत्र / सिफ़ारिश पत्र (Vending Certificate / LoR from ULB/TVC)',
-        'बैंक खाता पासबुक (Bank Account Passbook)',
-      ],
-    };
-  }
+const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 
-  if (lower.includes('ajay') || lower.includes('nsfdc') || lower.includes('samridhi')) {
-    return {
-      sponsoringBody: '🏛️ Ministry of Social Justice & Empowerment',
-      requiredDocuments: [
-        'आधार कार्ड (Aadhaar Card)',
-        'सक्षम प्राधिकारी द्वारा जारी जाति प्रमाण पत्र (Caste Certificate)',
-        'पारिवारिक आय प्रमाण पत्र (Income Certificate - BPL/EWS)',
-        'बैंक खाता पासबुक एवं फोटो',
-      ],
-    };
-  }
-
-  if (lower.includes('nstfdc')) {
-    return {
-      sponsoringBody: '🏛️ Ministry of Tribal Affairs',
-      requiredDocuments: [
-        'आधार कार्ड (Aadhaar Card)',
-        'अनुसूचित जनजाति (ST) प्रमाण पत्र (Tribal Certificate)',
-        'आय प्रमाण पत्र (Income Certificate)',
-        'प्रस्तावित व्यवसाय का विवरण (Proposed Livelihood Activity Summary)',
-      ],
-    };
-  }
-
-  if (lower.includes('sakhi') || lower.includes('nrlm') || lower.includes('svep')) {
-    return {
-      sponsoringBody: '🏛️ Ministry of Rural Development (DAY-NRLM)',
-      requiredDocuments: [
-        'महिला / उद्यमी का आधार कार्ड (Aadhaar Card)',
-        'स्वयं सहायता समूह (SHG) संबद्धता पत्र / पासबुक (SHG Passbook)',
-        'पारिवारिक संबंध प्रमाण (यदि SHG सदस्य का परिवारजन हो)',
-        'ग्राम संगठन / संकुल स्तरीय संघ (CLF) अनुशंसा पत्र',
-        'निवास एवं आय प्रमाण पत्र (Residence & Income Proof)',
-      ],
-    };
-  }
-
-  // Default
+function toMatchProfile(p: ProfileRow): BusinessProfile {
   return {
-    sponsoringBody: '🏛️ Government of India / State Directorate of Industries',
-    requiredDocuments: [
-      'आधार कार्ड (Aadhaar Card)',
-      'पैन कार्ड / फॉर्म 60 (PAN Card)',
-      'बैंक खाता पासबुक (Bank Account Details)',
-      'उद्यम आधार (Udyam MSME Registration, if available)',
-    ],
+    monthly_revenue_est: Number(p.monthly_revenue_est) || 0,
+    monthly_expense_est: Number(p.monthly_expense_est) || 0,
+    existing_loans: Boolean(p.existing_loans),
+    sector: p.sector || undefined,
+    category: p.category || undefined,
+    gender: p.gender || undefined,
+    state: p.state || undefined,
+    is_shg_member: Boolean(p.is_shg_member || p.shg_membership === 'shg_member' || p.shg_membership === true),
+    shg_membership: p.shg_membership ?? undefined,
+    shg_relation: p.shg_relation ?? undefined,
   };
 }
 
+function displayName(s: SchemeRow, lang: Lang): string {
+  return (lang === 'hi' && s.name_hi) || s.name;
+}
+
+function displayBenefit(s: SchemeRow, lang: Lang): string {
+  return (lang === 'hi' && s.benefit_summary_hi) || s.benefit_summary || s.description || '';
+}
+
 function YojanaKendraContent() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const lang: Lang = language === 'hi' ? 'hi' : 'en';
   const searchParams = useSearchParams();
   const paramUserId = searchParams.get('user_id');
 
-  const [userId, setUserId] = useState<string | null>(paramUserId);
-  const [user, setUser] = useState<{ name: string | null; phone: string } | null>(null);
-  const [profile, setProfile] = useState<BusinessProfile | null>(null);
-  const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRechecking, setIsRechecking] = useState(false);
-  const [showIneligible, setShowIneligible] = useState(false);
-  const [checkedDocs, setCheckedDocs] = useState<Record<string, boolean>>({});
-  const [notification, setNotification] = useState<string | null>(null);
-  const [, startTransition] = useTransition();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [schemes, setSchemes] = useState<SchemeRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Load User, Profile, and run Scheme Matcher
+  const [filter, setFilter] = useState<Filter>('eligible');
+  const [sort, setSort] = useState<Sort>('best');
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState<string | null>(null);
+  const [ticked, setTicked] = useState<Record<string, boolean>>({});
+
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<ProfileRow | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+
+  // ── Load the person and every scheme ──────────────────────────────────
   useEffect(() => {
-    async function loadData() {
-      setIsLoading(true);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
       try {
-        // Prefer the signed-in user; `?user_id=` is only a facilitator hint,
-        // and RLS decides whether the read is actually permitted.
-        let activeId: string | null = null;
-
-        {
-          const {
-            data: { session },
-          } = await supabaseClient.auth.getSession();
-          if (session?.user) {
-            activeId = session.user.id;
-          } else if (paramUserId) {
-            activeId = paramUserId;
-          }
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
+        // The signed-in user, or the facilitator's ?user_id hint; RLS decides.
+        const id = session?.user?.id ?? paramUserId;
+        if (!id) {
+          setLoadError('login');
+          return;
         }
-
-        if (activeId) {
-          const { data: userData } = await supabaseClient
-            .from('users')
-            .select('name, phone')
-            .eq('id', activeId)
-            .single();
-
-          if (userData) {
-            setUser(userData);
-          }
-        }
-
-        setUserId(activeId);
-
-        if (activeId) {
-          // 1. Fetch business profile
-          const { data: profileData } = await supabaseClient
+        const [{ data: p }, { data: rows }] = await Promise.all([
+          supabaseClient
             .from('business_profiles')
             .select('*')
-            .eq('user_id', activeId)
+            .eq('user_id', id)
             .order('created_at', { ascending: false })
             .limit(1)
-            .single();
-
-          // Eligibility is only meaningful against the user's real figures.
-          // These fields used to default to ₹25,000/₹15,000 and a 'retail'
-          // 'general' profile, which produced confident scheme matches for a
-          // business that did not exist.
-          if (!profileData) {
-            setProfile(null);
-            setMatchResults([]);
-            setIsLoading(false);
-            return;
-          }
-
-          const currentProfile: BusinessProfile = {
-            monthly_revenue_est: Number(profileData.monthly_revenue_est) || 0,
-            monthly_expense_est: Number(profileData.monthly_expense_est) || 0,
-            existing_loans: Boolean(profileData.existing_loans),
-            category: profileData.category || undefined,
-            sector: profileData.sector || undefined,
-            gender: profileData.gender || undefined,
-            state: profileData.state || undefined,
-            shg_membership: profileData.shg_membership ?? profileData.is_shg_member ?? false,
-            is_shg_member: Boolean(
-              profileData.is_shg_member ||
-              profileData.shg_membership === 'shg_member' ||
-              profileData.shg_membership === true
-            ),
-            shg_relation: profileData.shg_relation,
-          };
-
-          setProfile(currentProfile);
-
-          // 2. Fetch schemes from DB
-          const { data: dbSchemes } = await supabaseClient.from('schemes').select('*');
-
-          const schemeList: SchemeRecord[] =
-            dbSchemes && dbSchemes.length > 0
-              ? dbSchemes.map((s: Record<string, unknown>) => ({
-                  id: String(s.id),
-                  name: String(s.name),
-                  description: String(s.description || ''),
-                  benefit_summary: s.benefit_summary ? String(s.benefit_summary) : undefined,
-                  eligibility_rules: (s.eligibility_rules as SchemeRecord['eligibility_rules']) || {},
-                  application_link: s.application_link ? String(s.application_link) : undefined,
-                }))
-              : SEED_SCHEMES_FALLBACK;
-
-          // 3. Deterministic Matching
-          const results = matchSchemes(currentProfile, schemeList);
-          setMatchResults(results);
-        }
+            .maybeSingle(),
+          supabaseClient.from('schemes').select('*'),
+        ]);
+        if (cancelled) return;
+        setUserId(id);
+        setProfile((p as ProfileRow) ?? null);
+        setSchemes(((rows ?? []) as SchemeRow[]).map((s) => ({ ...s, eligibility_rules: s.eligibility_rules || {} })));
       } catch (err) {
-        console.error('Error loading Yojana Kendra data:', err);
+        console.error('Yojana Kendra load failed:', err);
+        if (!cancelled) setLoadError('failed');
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    }
-
-    loadData();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [paramUserId]);
 
-  // Re-check Eligibility Handler
-  function handleRecheck() {
+  // ── Match, then filter / search / sort ────────────────────────────────
+  const results: MatchResult[] = useMemo(
+    () => (profile ? matchSchemes(toMatchProfile(profile), schemes) : []),
+    [profile, schemes]
+  );
+  const eligibleCount = results.filter((r) => r.eligible).length;
+
+  const shown = useMemo(() => {
+    let list = results;
+    if (filter === 'eligible') list = list.filter((r) => r.eligible);
+    else if (filter === 'ineligible') list = list.filter((r) => !r.eligible);
+    else list = list.filter((r) => r.eligible && kindOf(r.scheme as SchemeRow) === filter);
+
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter((r) => {
+        const s = r.scheme as SchemeRow;
+        return [s.name, s.name_hi, s.benefit_summary, s.benefit_summary_hi, s.description]
+          .filter(Boolean)
+          .some((x) => String(x).toLowerCase().includes(q));
+      });
+    }
+
+    if (sort === 'name') {
+      list = [...list].sort((a, b) =>
+        displayName(a.scheme as SchemeRow, lang).localeCompare(displayName(b.scheme as SchemeRow, lang))
+      );
+    } else if (sort === 'amount') {
+      const amt = (r: MatchResult) => Number(r.scheme.eligibility_rules.loan_amount_max ?? 0);
+      list = [...list].sort((a, b) => amt(b) - amt(a));
+    }
+    return list;
+  }, [results, filter, query, sort, lang]);
+
+  // ── Change details, in place ──────────────────────────────────────────
+  function startEdit() {
     if (!profile) return;
-    setIsRechecking(true);
-    setNotification(null);
+    setDraft({ ...profile });
+    setSaveMsg(null);
+    setEditing(true);
+  }
 
-    startTransition(async () => {
-      // Re-fetch latest schemes and run match
-      try {
-        const { data: dbSchemes } = await supabaseClient.from('schemes').select('*');
-        const schemeList: SchemeRecord[] =
-          dbSchemes && dbSchemes.length > 0
-            ? dbSchemes.map((s: Record<string, unknown>) => ({
-                id: String(s.id),
-                name: String(s.name),
-                description: String(s.description || ''),
-                benefit_summary: s.benefit_summary ? String(s.benefit_summary) : undefined,
-                eligibility_rules: (s.eligibility_rules as SchemeRecord['eligibility_rules']) || {},
-                application_link: s.application_link ? String(s.application_link) : undefined,
-              }))
-            : SEED_SCHEMES_FALLBACK;
-
-        const results = matchSchemes(profile, schemeList);
-        setMatchResults(results);
-
-        setNotification('✅ आपकी पात्रता का पुनः मिलान सफलतापूर्वक पूरा हुआ!');
-        setTimeout(() => setNotification(null), 4000);
-      } catch (err) {
-        console.error('Recheck error:', err);
-      } finally {
-        setIsRechecking(false);
+  async function saveEdit() {
+    if (!draft || !userId) return;
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          sector: draft.sector ?? undefined,
+          district: draft.district || undefined,
+          monthly_revenue_est: Number(draft.monthly_revenue_est) || 0,
+          monthly_expense_est: Number(draft.monthly_expense_est) || 0,
+          existing_loans: Boolean(draft.existing_loans),
+          loan_amount: draft.existing_loans ? Number(draft.loan_amount) || null : null,
+          loan_monthly_payment: draft.existing_loans ? Number(draft.loan_monthly_payment) || null : null,
+          loan_interest_rate: draft.existing_loans ? Number(draft.loan_interest_rate) || null : null,
+          category: draft.category || 'general',
+          gender: draft.gender || 'other',
+          is_shg_member: Boolean(draft.is_shg_member),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveMsg(data.error || t('common_error'));
+        return;
       }
-    });
+      setProfile(data.profile as ProfileRow);
+      setEditing(false);
+      setSaveMsg(t('yk_saved'));
+      setTimeout(() => setSaveMsg(null), 4000);
+    } catch {
+      setSaveMsg(t('common_error'));
+    } finally {
+      setSaving(false);
+    }
   }
 
-  // Toggle document checkbox
-  function toggleDocCheck(docId: string) {
-    setCheckedDocs((prev) => ({ ...prev, [docId]: !prev[docId] }));
-  }
-
-  const eligibleResults = matchResults.filter((r) => r.eligible);
-  const ineligibleResults = matchResults.filter((r) => !r.eligible);
+  // ── Render ────────────────────────────────────────────────────────────
+  const FILTERS: { id: Filter; label: string }[] = [
+    { id: 'eligible', label: t('yk_f_all') },
+    { id: 'loan', label: t('yk_f_loan') },
+    { id: 'subsidy', label: t('yk_f_subsidy') },
+    { id: 'direct_benefit', label: t('yk_f_benefit') },
+    { id: 'credit_guarantee', label: t('yk_f_guarantee') },
+    { id: 'training', label: t('yk_f_training') },
+    { id: 'registration', label: t('yk_f_registration') },
+    { id: 'ineligible', label: t('yk_f_ineligible') },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] font-['Open_Sans',sans-serif] p-3 sm:p-6 pb-24  relative overflow-hidden">
-      {/* Background radial glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[radial-gradient(ellipse_at_center,rgba(201,162,75,0.07),transparent_70%)] blur-3xl"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,rgba(11,30,51,0.04),transparent_70%)] blur-3xl"></div>
-      </div>
-
-      <div className="relative z-10 max-w-5xl mx-auto space-y-6">
-        {/* ── Header ────────────────────────────────────────────────── */}
-        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#C9A24B]/20 pb-4">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="hover:opacity-80 transition-opacity">
-              <img src="/Logo.png" alt="Saathi Vyapar Logo" className="h-10 sm:h-12 w-auto object-contain" />
+    <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] font-['Open_Sans',sans-serif] px-3 sm:px-6 pt-4 pb-24">
+      <div className="max-w-3xl mx-auto space-y-5">
+        {/* Header: logo and actions on one row, the title on its own so it
+            never has to squeeze past the buttons on a phone. */}
+        <header className="border-b border-[#C9A24B]/20 pb-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/" className="shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/Logo.png" alt="Saathi Vyapar" className="h-10 w-auto object-contain" />
             </Link>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-[#0B1E33] flex items-center gap-2">
-                {t('schemes_title')}
-                <span className="text-xs font-bold bg-[#F5F1E6] text-[#0B1E33] border border-[#C9A24B]/20 px-2.5 py-0.5 rounded-full">
-                  {eligibleResults.length} योजनाएं योग्य
-                </span>
-              </h1>
-              <p className="text-xs sm:text-sm text-[#0B1E33]/50 mt-0.5">
-                {user?.name || 'उद्यमी'} • आपके पंजीकृत व्यापार प्रोफाइल के आधार पर सरकारी योजनाओं का संपूर्ण मिलान
-              </p>
+            <div className="flex items-center gap-2">
+              <LanguageToggleButton />
+              <Link
+                href={`/dashboard${userId && paramUserId ? `?user_id=${userId}` : ''}`}
+                className="px-3.5 py-2 bg-white hover:bg-[#EDE9DA] text-xs font-semibold rounded-full border border-[#C9A24B]/30 transition-colors whitespace-nowrap"
+              >
+                {t('yk_back')}
+              </Link>
             </div>
           </div>
-
-          <div className="flex items-center gap-2.5">
-            <LanguageToggleButton />
-            <Link
-              href={`/dashboard${userId ? `?user_id=${userId}` : ''}`}
-              className="px-4 py-2 bg-white hover:bg-[#F5F1E6] text-[#0B1E33] text-xs font-semibold rounded-full border border-[#C9A24B]/20 shadow-xs transition-all"
-            >
-              ← {t('schemes_dashboard_back')}
-            </Link>
+          <div>
+            <h1 className="font-['Roboto',sans-serif] text-2xl sm:text-3xl font-bold leading-tight">{t('yk_title')}</h1>
+            {!loading && profile && (
+              <p className="text-sm text-[#0B1E33]/60 mt-1">
+                {t('yk_count').replace('{n}', String(eligibleCount)).replace('{total}', String(schemes.length))}
+              </p>
+            )}
           </div>
         </header>
 
-        <main className="space-y-6">
-          {/* Notification Toast */}
-          {notification && (
-            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs sm:text-sm text-emerald-900 font-bold flex items-center justify-between shadow-sm animate-in fade-in">
-              <span>{notification}</span>
-              <button
-                onClick={() => setNotification(null)}
-                className="text-emerald-700 hover:text-emerald-950 text-xs underline cursor-pointer"
-              >
-                हटाएं
-              </button>
-            </div>
-          )}
+        {loading && <p className="text-sm text-[#0B1E33]/60 py-10 text-center">{t('yk_loading')}</p>}
 
-          {/* ── 1. Current Business Profile Data Card (Anchoring Banner) ── */}
-          <section className="bg-white/95 border border-[#C9A24B]/20 rounded-[32px] p-5 sm:p-6 shadow-[0_16px_40px_rgba(11,30,51,0.07)] backdrop-blur-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#C9A24B]/20 pb-3">
-              <div>
-                <h2 className="text-sm sm:text-base font-bold text-[#0B1E33] flex items-center gap-2">
-                  📋 आपका पंजीकृत व्यापार प्रोफाइल (Active Matching Profile)
-                </h2>
-                <p className="text-xs text-[#0B1E33]/50 mt-0.5">
-                  सभी योजनाओं की पात्रता नीचे दिए गए आपके वास्तविक आंकड़ों पर आधारित है।
-                </p>
+        {!loading && loadError === 'login' && (
+          <div className="bg-white border border-[#C9A24B]/20 rounded-3xl p-6 text-center space-y-3">
+            <p className="text-sm">{t('yk_need_login')}</p>
+            <Link href="/login" className="inline-block px-5 py-2.5 bg-[#0B1E33] text-[#F5F1E6] text-sm font-bold rounded-full">
+              {t('nav_login')}
+            </Link>
+          </div>
+        )}
+
+        {!loading && !loadError && !profile && (
+          <div className="bg-white border border-[#C9A24B]/20 rounded-3xl p-6 text-center space-y-3">
+            <p className="text-sm">{t('yk_no_profile')}</p>
+            <Link href="/onboarding" className="inline-block px-5 py-2.5 bg-[#C9A24B] text-white text-sm font-bold rounded-full">
+              {t('yk_start_onboarding')}
+            </Link>
+          </div>
+        )}
+
+        {!loading && profile && (
+          <>
+            {/* Based on your details */}
+            <section className="bg-white border border-[#C9A24B]/20 rounded-3xl p-4 sm:p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-sm font-bold">{t('yk_based_on')}</h2>
+                  {!editing && (
+                    <p className="text-sm text-[#0B1E33]/70 mt-1 leading-relaxed">
+                      {[
+                        sectorLabel(profile.sector, lang),
+                        `${inr(Number(profile.monthly_revenue_est) || 0)}${t('per_month_short')} ${t('yk_sales')}`,
+                        `${inr(Number(profile.monthly_expense_est) || 0)}${t('per_month_short')} ${t('yk_costs')}`,
+                        profile.existing_loans ? t('yk_loan_yes') : t('yk_loan_no'),
+                        profile.district || null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  )}
+                </div>
+                {!editing && (
+                  <button
+                    type="button"
+                    onClick={startEdit}
+                    className="cursor-pointer shrink-0 px-3.5 py-2 text-xs font-semibold rounded-full border border-[#C9A24B]/30 bg-[#F5F1E6] hover:bg-[#EDE9DA] transition-colors"
+                  >
+                    {t('yk_change')}
+                  </button>
+                )}
               </div>
+              {saveMsg && !editing && <p className="text-xs text-emerald-700 mt-2">{saveMsg}</p>}
 
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/onboarding"
-                  className="px-4 py-2 bg-[#F5F1E6] hover:bg-[#EDE9DA] text-[#0B1E33] text-xs font-semibold rounded-full border border-[#C9A24B]/20 transition-all"
+              {editing && draft && (
+                <form
+                  className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    saveEdit();
+                  }}
                 >
-                  ✏️ विवरण बदलें (Update Details)
-                </Link>
-
-                <button
-                  type="button"
-                  onClick={handleRecheck}
-                  disabled={isRechecking || isLoading}
-                  className="px-5 py-2 bg-gradient-to-r bg-[#C9A24B] hover:opacity-95 text-white text-xs font-bold rounded-full shadow-xs active:scale-95 transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-                >
-                  <span>{isRechecking ? '⏳' : '🔄'}</span>
-                  <span>{isRechecking ? 'जांच रहे हैं...' : 'पात्रता पुनः जांचें'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Profile Snapshot Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div className="bg-[#F5F1E6] p-3.5 rounded-2xl border border-[#C9A24B]/20">
-                <span className="text-[#0B1E33]/50 block text-[11px]">व्यवसाय / Sector:</span>
-                <strong className="text-[#0B1E33] text-sm capitalize">{profile?.sector || 'General'}</strong>
-              </div>
-
-              <div className="bg-[#F5F1E6] p-3.5 rounded-2xl border border-[#C9A24B]/20">
-                <span className="text-[#0B1E33]/50 block text-[11px]">मासिक कमाई / Revenue:</span>
-                <strong className="text-[#0B1E33] text-sm">
-                  ₹{profile?.monthly_revenue_est ? Number(profile.monthly_revenue_est).toLocaleString('en-IN') : '—'}
-                </strong>
-              </div>
-
-              <div className="bg-[#F5F1E6] p-3.5 rounded-2xl border border-[#C9A24B]/20">
-                <span className="text-[#0B1E33]/50 block text-[11px]">मासिक खर्च / Expense:</span>
-                <strong className="text-[#C9A24B] text-sm">
-                  ₹{profile?.monthly_expense_est ? Number(profile.monthly_expense_est).toLocaleString('en-IN') : '—'}
-                </strong>
-              </div>
-
-              <div className="bg-[#F5F1E6] p-3.5 rounded-2xl border border-[#C9A24B]/20">
-                <span className="text-[#0B1E33]/50 block text-[11px]">सक्रिय ऋण / Loans:</span>
-                <strong className={profile?.existing_loans ? 'text-[#C9A24B]' : 'text-emerald-700'}>
-                  {profile?.existing_loans ? 'हाँ (Active Loan)' : 'कोई लोन नहीं'}
-                </strong>
-              </div>
-
-              <div className="bg-[#F5F1E6] p-3.5 rounded-2xl border border-[#C9A24B]/20">
-                <span className="text-[#0B1E33]/50 block text-[11px]">स्थान (जिला / राज्य):</span>
-                <strong className="text-[#0B1E33]">{profile?.state || 'India'}</strong>
-              </div>
-
-              <div className="bg-[#F5F1E6] p-3.5 rounded-2xl border border-[#C9A24B]/20">
-                <span className="text-[#0B1E33]/50 block text-[11px]">वर्ग / Category:</span>
-                <strong className="text-[#0B1E33] uppercase">{profile?.category || 'General'}</strong>
-              </div>
-
-              <div className="bg-[#F5F1E6] p-3.5 rounded-2xl border border-[#C9A24B]/20">
-                <span className="text-[#0B1E33]/50 block text-[11px]">लिंग / Gender:</span>
-                <strong className="text-[#0B1E33] capitalize">{profile?.gender || 'Any'}</strong>
-              </div>
-
-              <div className="bg-[#F5F1E6] p-3.5 rounded-2xl border border-[#C9A24B]/20">
-                <span className="text-[#0B1E33]/50 block text-[11px]">वार्षिक टर्नओवर (Est):</span>
-                <strong className="text-[#0B1E33]">
-                  ₹{profile?.monthly_revenue_est ? (Number(profile.monthly_revenue_est) * 12).toLocaleString('en-IN') : '—'}
-                </strong>
-              </div>
-            </div>
-          </section>
-
-          {/* ── 2. Ranked Eligible Schemes Section ────────────────────── */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-[#0B1E33] flex items-center gap-2">
-                ⭐ योग्य सरकारी योजनाएं / Matched Eligible Schemes
-              </h3>
-              <span className="text-xs text-[#0B1E33]/50">
-                {eligibleResults.length} योजनाएं आपके लिए उपयुक्त हैं
-              </span>
-            </div>
-
-            {isLoading ? (
-              <div className="text-center py-12 text-[#0B1E33] bg-white rounded-2xl border border-[#C9A24B]/20">
-                <span className="text-2xl block mb-2 animate-spin">⏳</span>
-                <p className="text-sm font-semibold">सरकारी योजनाओं का मिलान हो रहा है...</p>
-              </div>
-            ) : !profile ? (
-              // Distinct from "nothing matched": there is nothing to match
-              // against yet. Saying "update your details" would send the user
-              // looking for details they never entered.
-              <div className="p-8 text-center bg-white rounded-2xl border border-[#C9A24B]/20 space-y-3">
-                <span className="text-3xl">📋</span>
-                <h4 className="text-base font-bold text-[#0B1E33]">{t('empty_profile_title')}</h4>
-                <p className="text-xs text-[#0B1E33]/55 max-w-md mx-auto">{t('schemes_no_profile')}</p>
-                <Link
-                  href="/onboarding"
-                  className="inline-block px-5 py-2.5 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] font-bold text-xs rounded-full transition-all"
-                >
-                  {t('empty_profile_cta')} →
-                </Link>
-              </div>
-            ) : eligibleResults.length === 0 ? (
-              <div className="p-8 text-center bg-white rounded-2xl border border-[#C9A24B]/20 space-y-2">
-                <span className="text-3xl">ℹ️</span>
-                <h4 className="text-base font-bold text-[#0B1E33]">वर्तमान प्रोफाइल के अनुसार कोई सीधी योजना नहीं मिली।</h4>
-                <p className="text-xs text-[#0B1E33]/50 max-w-md mx-auto">
-                  कृपया &quot;विवरण बदलें&quot; पर क्लिक करके अपनी श्रेणी, वार्षिक कमाई या क्षेत्र की जानकारी अपडेट करें।
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-5">
-                {eligibleResults.map((item, idx) => {
-                  const details = getSchemeDetails(item.scheme);
-                  const rank = idx + 1;
-
-                  return (
-                    <div
-                      key={item.scheme.id || idx}
-                      className="bg-white/95 border border-[#C9A24B]/20 hover:border-[#151515] rounded-[32px] p-5 sm:p-7 shadow-[0_16px_40px_rgba(11,30,51,0.07)] transition-all space-y-4 relative overflow-hidden"
+                  <Field label={t('onboarding_sector_field')}>
+                    <select
+                      value={draft.sector ?? 'general'}
+                      onChange={(e) => setDraft({ ...draft, sector: e.target.value })}
+                      className={inputCls}
                     >
-                      {/* Rank Badge */}
-                      <div className="absolute top-0 right-0 bg-gradient-to-l bg-[#C9A24B] text-white font-bold text-xs px-4 py-1.5 rounded-bl-2xl shadow-xs flex items-center gap-1">
-                        <span>#Rank {rank}</span>
-                        <span>• योग्य (Eligible)</span>
-                      </div>
+                      {SECTORS.map((s) => (
+                        <option key={s} value={s}>
+                          {sectorLabel(s, lang)}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label={t('onboarding_location_field')}>
+                    <input
+                      type="text"
+                      value={draft.district ?? ''}
+                      onChange={(e) => setDraft({ ...draft, district: e.target.value })}
+                      className={inputCls}
+                    />
+                  </Field>
+                  <Field label={t('onboarding_revenue_field')}>
+                    <Money value={draft.monthly_revenue_est} onChange={(v) => setDraft({ ...draft, monthly_revenue_est: v })} />
+                  </Field>
+                  <Field label={t('onboarding_expense_field')}>
+                    <Money value={draft.monthly_expense_est} onChange={(v) => setDraft({ ...draft, monthly_expense_est: v })} />
+                  </Field>
+                  <Field label={t('onboarding_loan_field')}>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Toggle active={Boolean(draft.existing_loans)} onClick={() => setDraft({ ...draft, existing_loans: true })}>
+                        {t('onboarding_yes_loans')}
+                      </Toggle>
+                      <Toggle active={!draft.existing_loans} onClick={() => setDraft({ ...draft, existing_loans: false })}>
+                        {t('onboarding_no_loans')}
+                      </Toggle>
+                    </div>
+                  </Field>
+                  {draft.existing_loans && (
+                    <>
+                      <Field label={t('onboarding_loan_amount_label')}>
+                        <Money value={draft.loan_amount} onChange={(v) => setDraft({ ...draft, loan_amount: v })} />
+                      </Field>
+                      <Field label={t('onboarding_loan_emi_label')}>
+                        <Money value={draft.loan_monthly_payment} onChange={(v) => setDraft({ ...draft, loan_monthly_payment: v })} />
+                      </Field>
+                      <Field label={t('onboarding_loan_rate_label')}>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.5"
+                          value={draft.loan_interest_rate ?? ''}
+                          onChange={(e) => setDraft({ ...draft, loan_interest_rate: parseFloat(e.target.value) || null })}
+                          className={inputCls}
+                        />
+                      </Field>
+                    </>
+                  )}
+                  <Field label={t('yk_category')}>
+                    <select
+                      value={draft.category ?? 'general'}
+                      onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+                      className={inputCls}
+                    >
+                      {(['general', 'obc', 'sc', 'st', 'minority'] as const).map((c) => (
+                        <option key={c} value={c}>
+                          {t(`cat_${c}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label={t('yk_gender')}>
+                    <select
+                      value={draft.gender ?? 'other'}
+                      onChange={(e) => setDraft({ ...draft, gender: e.target.value })}
+                      className={inputCls}
+                    >
+                      {(['female', 'male', 'other'] as const).map((g) => (
+                        <option key={g} value={g}>
+                          {t(`gender_${g}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label={t('yk_shg')}>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Toggle active={Boolean(draft.is_shg_member)} onClick={() => setDraft({ ...draft, is_shg_member: true })}>
+                        {t('common_yes')}
+                      </Toggle>
+                      <Toggle active={!draft.is_shg_member} onClick={() => setDraft({ ...draft, is_shg_member: false })}>
+                        {t('common_no')}
+                      </Toggle>
+                    </div>
+                  </Field>
 
-                      {/* Scheme Header */}
-                      <div className="space-y-1 pt-1">
-                        <span className="text-xs font-semibold text-[#0B1E33]/50">
-                          {details.sponsoringBody}
+                  <div className="sm:col-span-2 flex items-center gap-2 pt-1">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="cursor-pointer px-5 py-2.5 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] text-sm font-bold rounded-full disabled:opacity-50"
+                    >
+                      {saving ? t('yk_saving') : t('yk_save')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(false)}
+                      className="cursor-pointer px-4 py-2.5 text-sm font-semibold rounded-full border border-[#C9A24B]/30 bg-white"
+                    >
+                      {t('common_cancel')}
+                    </button>
+                    {saveMsg && <span className="text-xs text-rose-700">{saveMsg}</span>}
+                  </div>
+                </form>
+              )}
+            </section>
+
+            {/* Filter / sort / search */}
+            <section className="space-y-3">
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 [scrollbar-width:none]">
+                {FILTERS.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setFilter(f.id)}
+                    className={`cursor-pointer shrink-0 px-3.5 py-2 rounded-full text-xs font-semibold border transition-colors ${
+                      filter === f.id
+                        ? 'bg-[#0B1E33] text-[#F5F1E6] border-[#0B1E33]'
+                        : 'bg-white text-[#0B1E33] border-[#C9A24B]/30 hover:bg-[#EDE9DA]'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t('yk_search_ph')}
+                  className={`${inputCls} flex-1`}
+                />
+                <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className={`${inputCls} sm:w-56`}>
+                  <option value="best">{t('yk_sort_best')}</option>
+                  <option value="name">{t('yk_sort_name')}</option>
+                  <option value="amount">{t('yk_sort_amount')}</option>
+                </select>
+              </div>
+            </section>
+
+            {/* Cards */}
+            <section className="space-y-3">
+              <p className="text-xs text-[#0B1E33]/50">{t('yk_showing').replace('{n}', String(shown.length))}</p>
+              {shown.length === 0 && (
+                <div className="bg-white border border-[#C9A24B]/20 rounded-3xl p-6 text-center text-sm text-[#0B1E33]/60">
+                  {t('yk_none')}
+                </div>
+              )}
+              {shown.map((r) => {
+                const s = r.scheme as SchemeRow;
+                const isOpen = open === s.id;
+                const docs = (s.required_documents ?? []).map((d) => docLabel(d, lang));
+                const passes = r.reasons.filter(reasonPassed);
+                const fails = r.reasons.filter((x) => !reasonPassed(x));
+                return (
+                  <article
+                    key={s.id}
+                    className={`bg-white border rounded-3xl p-4 sm:p-5 ${r.eligible ? 'border-[#C9A24B]/20' : 'border-[#0B1E33]/10'}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#0B1E33]/45">
+                          {t(`yk_kind_${kindOf(s)}`)}
                         </span>
-                        <h4 className="text-lg sm:text-xl font-bold text-[#0B1E33] leading-tight">
-                          {item.scheme.name}
-                        </h4>
-                        {item.scheme.description && (
-                          <p className="text-xs text-[#0B1E33]/60 leading-relaxed">
-                            {item.scheme.description}
-                          </p>
+                        <h3 className="text-base sm:text-lg font-bold leading-snug mt-0.5">{displayName(s, lang)}</h3>
+                        <p className="text-sm text-[#0B1E33]/75 mt-1">{displayBenefit(s, lang)}</p>
+                      </div>
+                      {r.eligible && s.application_link && (
+                        <a
+                          href={s.application_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 px-4 py-2 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] text-xs font-semibold rounded-full"
+                        >
+                          {t('dashboard_apply')}
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Why */}
+                    <div className="mt-3 space-y-1">
+                      <p className="text-xs font-bold">{r.eligible ? t('yk_why_yes') : t('yk_why_no')}</p>
+                      {(r.eligible ? passes : fails).slice(0, 3).map((x, i) => (
+                        <p key={i} className={`text-sm ${r.eligible ? 'text-[#0B1E33]/75' : 'text-amber-900'}`}>
+                          <span className={r.eligible ? 'text-emerald-700' : 'text-amber-600'}>{r.eligible ? '✓' : '✗'}</span>{' '}
+                          {localizeReason(x, lang)}
+                        </p>
+                      ))}
+                    </div>
+
+                    {/* Papers + more */}
+                    {r.eligible && (
+                      <div className="mt-3 border-t border-[#C9A24B]/15 pt-3">
+                        <button
+                          type="button"
+                          onClick={() => setOpen(isOpen ? null : s.id)}
+                          className="cursor-pointer text-sm font-semibold text-[#0B1E33] hover:underline"
+                        >
+                          {isOpen ? t('yk_hide_papers') : t('yk_show_papers').replace('{n}', String(docs.length))}
+                        </button>
+                        {isOpen && (
+                          <div className="mt-2 space-y-2">
+                            {docs.length === 0 && <p className="text-sm text-[#0B1E33]/60">{t('yk_no_papers')}</p>}
+                            {docs.map((d, i) => {
+                              const key = `${s.id}:${i}`;
+                              return (
+                                <label key={key} className="flex items-center gap-2.5 text-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(ticked[key])}
+                                    onChange={() => setTicked((prev) => ({ ...prev, [key]: !prev[key] }))}
+                                    className="h-4 w-4 accent-[#C9A24B]"
+                                  />
+                                  <span className={ticked[key] ? 'line-through text-[#0B1E33]/50' : ''}>{d}</span>
+                                </label>
+                              );
+                            })}
+                            {s.sponsoring_body && (
+                              <p className="text-xs text-[#0B1E33]/50 pt-1">
+                                {t('yk_run_by')} {s.sponsoring_body.replace(/^🏛️\s*/, '')}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
-
-                      {/* Benefit Highlight Box */}
-                      {item.scheme.benefit_summary && (
-                        <div className="p-4 rounded-2xl bg-[#FFF8F0] border border-[#FFE8D6] flex items-start gap-3 shadow-xs">
-                          <span className="text-2xl shrink-0">💰</span>
-                          <div>
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-[#A64200] block">
-                              योजना का मुख्य लाभ (Financial Benefit):
-                            </span>
-                            <p className="text-sm font-bold text-[#803100] mt-0.5">
-                              {item.scheme.benefit_summary}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Matched Reasons List */}
-                      <div className="space-y-2 bg-[#F5F1E6] p-4 rounded-2xl border border-[#C9A24B]/20">
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#0B1E33] block">
-                          सटीक पात्रता के कारण (Why You Qualify):
-                        </span>
-                        <div className="space-y-1.5">
-                          {item.reasons.map((reason, rIdx) => {
-                            const isCaveat =
-                              reason.includes('not yet active in every district') ||
-                              reason.startsWith('⚠️');
-                            return (
-                              <div
-                                key={rIdx}
-                                className={`flex items-start gap-2 text-xs ${
-                                  isCaveat
-                                    ? 'bg-amber-50 text-amber-950 p-2.5 rounded-xl border border-amber-300 font-medium my-1'
-                                    : 'text-[#0B1E33]'
-                                }`}
-                              >
-                                <span
-                                  className={`${
-                                    isCaveat ? 'text-amber-600 font-bold' : 'text-emerald-700 font-bold'
-                                  } shrink-0`}
-                                >
-                                  {isCaveat ? '⚠️' : '✓'}
-                                </span>
-                                <span>{reason.replace(/^[✓⚠️]\s*/, '')}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Required Documents Checklist */}
-                      <div className="space-y-2 bg-[#F5F1E6] p-4 rounded-2xl border border-[#C9A24B]/20">
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#0B1E33] flex items-center justify-between">
-                          <span>आवश्यक दस्तावेज चेकलिस्ट (Required Documents):</span>
-                          <span className="text-[10px] text-[#0B1E33]/50 font-normal">
-                            तैयार दस्तावेजों पर टिक करें
-                          </span>
-                        </span>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                          {details.requiredDocuments.map((docName, docIdx) => {
-                            const docKey = `${item.scheme.id}-${docIdx}`;
-                            const isChecked = !!checkedDocs[docKey];
-
-                            return (
-                              <label
-                                key={docIdx}
-                                className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors ${
-                                  isChecked
-                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                                    : 'bg-white border-[#C9A24B]/20 text-[#0B1E33] hover:border-[#151515]'
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => toggleDocCheck(docKey)}
-                                  className="w-4 h-4 rounded text-[#0B1E33] focus:ring-[#151515]/20 border-[#C9A24B]/20 bg-white"
-                                />
-                                <span className={isChecked ? 'line-through text-emerald-800 font-medium' : ''}>
-                                  {docName}
-                                </span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Official Portal Application Link */}
-                      {item.scheme.application_link && (
-                        <div className="pt-2 flex items-center justify-end">
-                          <a
-                            href={item.scheme.application_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#0B1E33] hover:bg-[#162D59] text-white font-bold text-xs sm:text-sm shadow-xs active:scale-95 transition-all"
-                          >
-                            <span>आधिकारिक पोर्टल पर आवेदन करें (Apply on Official Portal)</span>
-                            <span>→</span>
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          {/* ── 3. Explainability Section: Ineligible Schemes (Collapsible) ── */}
-          <section className="bg-white/95 border border-[#C9A24B]/20 rounded-[32px] p-5 sm:p-6 shadow-[0_16px_40px_rgba(11,30,51,0.07)] space-y-4">
-            <button
-              type="button"
-              onClick={() => setShowIneligible((prev) => !prev)}
-              className="w-full flex items-center justify-between text-left group cursor-pointer"
-            >
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-[#0B1E33] flex items-center gap-2">
-                  <span>ℹ️ अन्य सरकारी योजनाएं (Ineligible Schemes — Explainability Log)</span>
-                  <span className="text-xs bg-[#F5F1E6] text-[#0B1E33]/60 px-2.5 py-0.5 rounded-full border border-[#C9A24B]/20 font-normal">
-                    {ineligibleResults.length} योजनाएं
-                  </span>
-                </h3>
-                <p className="text-xs text-[#0B1E33]/50 mt-0.5">
-                  पारदर्शिता हेतु: वे योजनाएं जिनमें आपका प्रोफाइल वर्तमान में क्यों मेल नहीं खाया।
-                </p>
-              </div>
-
-              <span className="text-[#0B1E33]/50 group-hover:text-[#0B1E33] text-xl font-bold p-2 transition-transform duration-200">
-                {showIneligible ? '▲' : '▼'}
-              </span>
-            </button>
-
-            {showIneligible && (
-              <div className="space-y-4 pt-3 border-t border-[#C9A24B]/20 animate-in fade-in duration-200">
-                {ineligibleResults.map((item, idx) => {
-                  const details = getSchemeDetails(item.scheme);
-
-                  return (
-                    <div
-                      key={item.scheme.id || idx}
-                      className="bg-[#F5F1E6] border border-[#C9A24B]/20 rounded-2xl p-4 sm:p-5 space-y-2 opacity-90 hover:opacity-100 transition-opacity"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                        <div>
-                          <span className="text-[11px] text-[#0B1E33]/50">{details.sponsoringBody}</span>
-                          <h4 className="text-base font-bold text-[#0B1E33]">{item.scheme.name}</h4>
-                        </div>
-                        <span className="text-xs bg-rose-50 border border-rose-200 text-rose-800 font-bold px-2.5 py-1 rounded-full w-fit">
-                          वर्तमान में अपात्र (Not Eligible)
-                        </span>
-                      </div>
-
-                      {item.scheme.benefit_summary && (
-                        <p className="text-xs text-[#0B1E33]/60">
-                          लाभ: {item.scheme.benefit_summary}
-                        </p>
-                      )}
-
-                      {/* Explicit Ineligibility Reasons */}
-                      <div className="bg-white p-3.5 rounded-xl border border-[#C9A24B]/20 space-y-1 mt-2">
-                        <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider block">
-                          अपात्रता का कारण (Reason Not Matched):
-                        </span>
-                        {item.reasons.map((r, rIdx) => (
-                          <p
-                            key={rIdx}
-                            className={`text-xs ${
-                              r.startsWith('✗') ? 'text-rose-800 font-medium' : 'text-[#0B1E33]/60'
-                            }`}
-                          >
-                            {r}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </main>
+                    )}
+                  </article>
+                );
+              })}
+            </section>
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+// ── Small pieces ────────────────────────────────────────────────────────────
+
+const inputCls =
+  'w-full bg-[#F5F1E6] text-[#0B1E33] px-3.5 py-2.5 border border-[#C9A24B]/30 rounded-2xl text-sm focus:outline-none focus:bg-white focus:border-[#C9A24B]';
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="block text-xs font-bold mb-1">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Money({ value, onChange }: { value: number | null; onChange: (v: number | null) => void }) {
+  return (
+    <div className="relative">
+      <span className="absolute left-3.5 top-2.5 text-sm font-bold">₹</span>
+      <input
+        type="number"
+        min="0"
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value === '' ? null : parseFloat(e.target.value) || 0)}
+        className={`${inputCls} pl-8`}
+      />
+    </div>
+  );
+}
+
+function Toggle({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`cursor-pointer px-3 py-2.5 rounded-2xl text-sm font-semibold border transition-colors ${
+        active ? 'bg-[#0B1E33] text-[#F5F1E6] border-[#0B1E33]' : 'bg-[#F5F1E6] border-[#C9A24B]/30 hover:bg-[#EDE9DA]'
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -925,11 +650,8 @@ export default function YojanaKendraPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#F5F1E6] flex items-center justify-center text-[#0B1E33]">
-          <div className="text-center space-y-2">
-            <span className="text-3xl animate-spin block">🏛️</span>
-            <p className="text-sm font-bold text-[#0B1E33]">योजना केंद्र लोड हो रहा है...</p>
-          </div>
+        <div className="min-h-screen bg-[#F5F1E6] flex items-center justify-center">
+          <span className="text-3xl animate-spin block">🏛️</span>
         </div>
       }
     >
@@ -937,4 +659,3 @@ export default function YojanaKendraPage() {
     </Suspense>
   );
 }
-
