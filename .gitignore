@@ -61,3 +61,8 @@ supabase/.temp/
 
 # Python scratch from tooling
 __pycache__/
+
+# The env template carries no secrets and the README tells you to copy it.
+# This must stay below every `.env*` rule above — there are two, and the
+# second one silently re-ignored the file when the exception sat higher up.
+!.env.local.example
