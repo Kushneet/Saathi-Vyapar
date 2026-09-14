@@ -41,6 +41,7 @@ export default function LedgerPhotoUpload({ userId }: Props) {
   const { t } = useLanguage();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -56,6 +57,7 @@ export default function LedgerPhotoUpload({ userId }: Props) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
   }, [previewUrl]);
 
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
@@ -200,25 +202,43 @@ export default function LedgerPhotoUpload({ userId }: Props) {
 
       {/* ── Idle: choose or capture ─────────────────────────────────── */}
       {phase === 'idle' && (
-        <div>
+        <div className="space-y-3">
+          {/* Two separate inputs on purpose. `capture` makes a phone open the
+              camera and skip the gallery entirely, so with only that input
+              an already-saved photo could not be uploaded at all — and on a
+              laptop there is no camera flow worth forcing. */}
           <input
             ref={fileInputRef}
-            id="bahi-khata-photo"
+            id="bahi-khata-camera"
             type="file"
             accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-            // `capture` opens the rear camera directly on a phone, which is
-            // how this will actually be used in the field.
             capture="environment"
             onChange={handleFile}
             className="sr-only"
           />
+          <input
+            ref={galleryInputRef}
+            id="bahi-khata-gallery"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+            onChange={handleFile}
+            className="sr-only"
+          />
+
           <label
-            htmlFor="bahi-khata-photo"
+            htmlFor="bahi-khata-camera"
             className="flex flex-col items-center justify-center gap-2 w-full py-8 px-4 border-2 border-dashed border-[#C9A24B]/40 rounded-3xl bg-[#F5F1E6] hover:bg-[#C9A24B]/10 cursor-pointer transition-colors text-center"
           >
             <span className="text-3xl">📷</span>
-            <span className="text-sm font-bold text-[#0B1E33]">{t('photo_choose')}</span>
+            <span className="text-sm font-bold text-[#0B1E33]">{t('photo_camera')}</span>
             <span className="text-[11px] text-[#0B1E33]/50">{t('photo_reading_note')}</span>
+          </label>
+
+          <label
+            htmlFor="bahi-khata-gallery"
+            className="flex items-center justify-center gap-2 w-full py-3 px-4 border border-[#C9A24B]/30 rounded-2xl bg-white hover:bg-[#F5F1E6] cursor-pointer transition-colors text-center"
+          >
+            <span className="text-sm font-semibold text-[#0B1E33]">{t('photo_gallery')}</span>
           </label>
         </div>
       )}
