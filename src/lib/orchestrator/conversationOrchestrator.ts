@@ -15,6 +15,7 @@ import { runLedgerOcr, OcrFailedError } from '@/lib/ledger/ocrService';
 import { transcribeAudio } from '@/lib/voice/transcribeAudio';
 import { detectMessageLanguage } from './detectLanguage';
 import { sendWhatsAppText } from '@/lib/whatsapp';
+import { generatePlanForUser } from '@/lib/plan/generatePlan';
 
 /** Media that arrived with an inbound message, already downloaded. */
 export interface InboundMedia {
@@ -139,24 +140,16 @@ function parseYesNo(text: string): boolean | null {
   return null;
 }
 
-// ── Call internal plan generate API ──────────────────────────────────────────
+// ── Plan generation ───────────────────────────────────────────────────────────
+// Direct call. This used to POST to /api/plan/generate on its own server,
+// which stopped working the moment that route required a session cookie.
 
 async function callPlanGenerate(userId: string): Promise<string | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/plan/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId }),
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = await response.json();
-    return data.plan?.summaryText || null;
-  } catch {
+    const plan = await generatePlanForUser(userId);
+    return plan.summaryText || null;
+  } catch (err) {
+    console.error('Plan generation failed:', err);
     return null;
   }
 }
