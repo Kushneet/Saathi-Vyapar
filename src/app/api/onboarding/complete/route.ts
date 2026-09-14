@@ -28,6 +28,9 @@ const OnboardingCompleteSchema = z.object({
   existing_loans: z.boolean().default(false),
   category: z.string().optional(),
   gender: z.string().optional(),
+  shg_membership: z.union([z.boolean(), z.string()]).optional(),
+  is_shg_member: z.boolean().optional(),
+  shg_relation: z.string().optional(),
   consent_given: z.boolean().refine((val) => val === true, {
     message: 'Explicit DPDP Act consent is required before saving your information.',
   }),
@@ -146,6 +149,9 @@ export async function POST(request: NextRequest) {
       existing_loans: data.existing_loans,
       category: data.category || 'general',
       gender: data.gender || 'other',
+      shg_membership: data.shg_membership ?? (data.is_shg_member ? 'shg_member' : 'none'),
+      is_shg_member: Boolean(data.is_shg_member || data.shg_membership === true || data.shg_membership === 'shg_member'),
+      shg_relation: data.shg_relation || 'none',
       updated_at: new Date().toISOString(),
     };
 
@@ -197,6 +203,9 @@ export async function POST(request: NextRequest) {
       sector: data.sector,
       gender: data.gender,
       state: data.state,
+      shg_membership: data.shg_membership,
+      is_shg_member: Boolean(data.is_shg_member || data.shg_membership === true || data.shg_membership === 'shg_member'),
+      shg_relation: data.shg_relation,
     };
 
     const matchResults = matchSchemes(businessProfile, schemes);

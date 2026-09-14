@@ -210,6 +210,25 @@ const SEED_SCHEMES_FALLBACK: SchemeRecord[] = [
     },
     application_link: 'https://kvic.gov.in/kvicres/bee-keeping.php',
   },
+  {
+    id: 'svep-nrlm',
+    name: 'Start-up Village Entrepreneurship Programme (SVEP)',
+    description:
+      'A sub-scheme of DAY-NRLM supporting Self-Help Group (SHG) members and their family members to set up non-farm rural enterprises. Unlike a one-time cash subsidy, SVEP provides ongoing support through training, mentoring, and access to a community-managed revolving loan fund (Community Enterprise Fund). It is implemented block-by-block, not nationwide — availability depends on whether SVEP has been rolled out in the user\'s specific block.',
+    benefit_summary:
+      'Access to a community-managed revolving loan fund (Community Enterprise Fund) plus business training and ongoing mentoring support — not a one-time cash grant.',
+    sponsoring_body: 'Ministry of Rural Development (DAY-NRLM)',
+    application_link: 'https://svep.nrlm.gov.in/',
+    eligibility_rules: {
+      requires_shg_membership: true,
+      eligible_relation: ['shg_member', 'shg_member_family'],
+      sector: ['non_farm', 'retail', 'tailoring', 'food_processing', 'handicraft', 'dairy_processing'],
+      area_type: 'rural',
+      implementation_note: 'block_specific_not_nationwide',
+      priority_groups: ['women', 'youth'],
+    },
+    active: true,
+  },
 ];
 
 // ── Sponsoring Body & Document Checklist Helper ───────────────────────────────
@@ -295,12 +314,14 @@ function getSchemeDetails(schemeName: string): {
     };
   }
 
-  if (lower.includes('sakhi') || lower.includes('nrlm')) {
+  if (lower.includes('sakhi') || lower.includes('nrlm') || lower.includes('svep')) {
     return {
-      sponsoringBody: '🏛️ Ministry of Rural Development / Ministry of MSME',
+      sponsoringBody: '🏛️ Ministry of Rural Development (DAY-NRLM)',
       requiredDocuments: [
-        'महिला उद्यमी का आधार कार्ड (Aadhaar Card)',
+        'महिला / उद्यमी का आधार कार्ड (Aadhaar Card)',
         'स्वयं सहायता समूह (SHG) संबद्धता पत्र / पासबुक (SHG Passbook)',
+        'पारिवारिक संबंध प्रमाण (यदि SHG सदस्य का परिवारजन हो)',
+        'ग्राम संगठन / संकुल स्तरीय संघ (CLF) अनुशंसा पत्र',
         'निवास एवं आय प्रमाण पत्र (Residence & Income Proof)',
       ],
     };
@@ -393,6 +414,13 @@ function YojanaKendraContent() {
             sector: profileData?.sector || 'retail',
             gender: profileData?.gender || 'any',
             state: profileData?.state || 'India',
+            shg_membership: profileData?.shg_membership ?? profileData?.is_shg_member ?? false,
+            is_shg_member: Boolean(
+              profileData?.is_shg_member ||
+              profileData?.shg_membership === 'shg_member' ||
+              profileData?.shg_membership === true
+            ),
+            shg_relation: profileData?.shg_relation,
           };
 
           setProfile(currentProfile);
@@ -681,13 +709,31 @@ function YojanaKendraContent() {
                         <span className="text-xs font-bold uppercase tracking-wider text-[#0B1E33] block">
                           सटीक पात्रता के कारण (Why You Qualify):
                         </span>
-                        <div className="space-y-1">
-                          {item.reasons.map((reason, rIdx) => (
-                            <div key={rIdx} className="flex items-start gap-2 text-xs text-[#0B1E33]">
-                              <span className="text-emerald-700 font-bold shrink-0">✓</span>
-                              <span>{reason.replace(/^✓\s*/, '')}</span>
-                            </div>
-                          ))}
+                        <div className="space-y-1.5">
+                          {item.reasons.map((reason, rIdx) => {
+                            const isCaveat =
+                              reason.includes('not yet active in every district') ||
+                              reason.startsWith('⚠️');
+                            return (
+                              <div
+                                key={rIdx}
+                                className={`flex items-start gap-2 text-xs ${
+                                  isCaveat
+                                    ? 'bg-amber-50 text-amber-950 p-2.5 rounded-xl border border-amber-300 font-medium my-1'
+                                    : 'text-[#0B1E33]'
+                                }`}
+                              >
+                                <span
+                                  className={`${
+                                    isCaveat ? 'text-amber-600 font-bold' : 'text-emerald-700 font-bold'
+                                  } shrink-0`}
+                                >
+                                  {isCaveat ? '⚠️' : '✓'}
+                                </span>
+                                <span>{reason.replace(/^[✓⚠️]\s*/, '')}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
 

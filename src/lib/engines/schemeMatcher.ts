@@ -22,6 +22,16 @@ export interface EligibilityRules {
   loan_amount_max?: number;
   /** Minimum loan amount under scheme (₹) */
   loan_amount_min?: number;
+  /** Whether Self-Help Group (SHG) membership is strictly required */
+  requires_shg_membership?: boolean;
+  /** Eligible relation to SHG member (e.g. ['shg_member', 'shg_member_family']) */
+  eligible_relation?: string[];
+  /** Area type restriction (e.g. 'rural' | 'urban') */
+  area_type?: string;
+  /** Implementation scope note (e.g. 'block_specific_not_nationwide') */
+  implementation_note?: string;
+  /** Priority groups targeted (e.g. ['women', 'youth']) */
+  priority_groups?: string[];
 }
 
 /** A scheme record from the database */
@@ -30,8 +40,10 @@ export interface SchemeRecord {
   name: string;
   description?: string;
   benefit_summary?: string;
+  sponsoring_body?: string;
   eligibility_rules: EligibilityRules;
   application_link?: string;
+  active?: boolean;
 }
 
 /** Business profile input for matching */
@@ -47,6 +59,17 @@ export interface BusinessProfile {
   gender?: string;
   /** State name */
   state?: string;
+  /**
+   * SHG (Self-Help Group) association.
+   * Can be boolean or status string ('shg_member' | 'shg_member_family' | 'none' | 'yes' | 'no')
+   */
+  shg_membership?: boolean | string;
+  /** Explicit boolean flag indicating whether the entrepreneur is an SHG member */
+  is_shg_member?: boolean;
+  /** Specific relationship to an SHG member ('shg_member' | 'shg_member_family') */
+  shg_relation?: string;
+  /** Area type ('rural' | 'urban') */
+  area_type?: string;
 }
 
 /** Result of checking a single scheme against a profile */
@@ -55,6 +78,47 @@ export interface MatchResult {
   eligible: boolean;
   /** Human-readable reasons — explains why eligible or which rules were not met */
   reasons: string[];
+}
+
+/**
+ * Checks whether a business profile indicates that the entrepreneur
+ * is part of an SHG or related to an SHG member.
+ */
+export function checkShgAffiliation(
+  profile: BusinessProfile,
+  eligibleRelations?: string[]
+): boolean {
+  if (profile.is_shg_member === true) {
+    return true;
+  }
+  if (profile.shg_membership === true) {
+    return true;
+  }
+  if (typeof profile.shg_membership === 'string') {
+    const val = profile.shg_membership.trim().toLowerCase();
+    if (val === 'shg_member' || val === 'shg_member_family' || val === 'yes' || val === 'true') {
+      return true;
+    }
+    if (eligibleRelations && eligibleRelations.map((r) => r.toLowerCase()).includes(val)) {
+      return true;
+    }
+    if (val !== 'none' && val !== 'no' && val !== 'false' && val !== '') {
+      return true;
+    }
+  }
+  if (typeof profile.shg_relation === 'string') {
+    const rel = profile.shg_relation.trim().toLowerCase();
+    if (rel === 'shg_member' || rel === 'shg_member_family' || rel === 'yes' || rel === 'true') {
+      return true;
+    }
+    if (eligibleRelations && eligibleRelations.map((r) => r.toLowerCase()).includes(rel)) {
+      return true;
+    }
+    if (rel !== 'none' && rel !== 'no' && rel !== 'false' && rel !== '') {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -146,12 +210,46 @@ export function matchSchemes(
       }
     }
 
-    // ── 6. If no specific rules, scheme is universally applicable ─────
+    // ── 6. SHG Membership Check ───────────────────────────────────────
+    if (rules.requires_shg_membership) {
+      const isAffiliated = checkShgAffiliation(profile, rules.eligible_relation);
+      if (isAffiliated) {
+        reasons.push(
+          '✓ Your profile indicates Self-Help Group (SHG) membership or family relation'
+        );
+      } else {
+        eligible = false;
+        reasons.push(
+          '✗ This scheme requires Self-Help Group (SHG) membership or relation to an SHG member'
+        );
+      }
+    }
+
+    // ── 7. Area Type Check ────────────────────────────────────────────
+    if (rules.area_type && profile.area_type) {
+      if (profile.area_type.toLowerCase() === rules.area_type.toLowerCase()) {
+        reasons.push(`✓ Your area type (${profile.area_type}) is eligible for this scheme`);
+      } else {
+        eligible = false;
+        reasons.push(
+          `✗ This scheme is specifically for ${rules.area_type} areas. Your area type: ${profile.area_type}`
+        );
+      }
+    }
+
+    // ── 8. Implementation Note / District Caveat ─────────────────────
+    if (rules.implementation_note === 'block_specific_not_nationwide') {
+      reasons.push(
+        "This programme is not yet active in every district — confirm with your local SHG/Panchayat contact before assuming it's available in your area"
+      );
+    }
+
+    // ── 9. If no specific rules, scheme is universally applicable ─────
     if (Object.keys(rules).length === 0) {
       reasons.push('✓ This scheme has no specific eligibility restrictions — broadly applicable');
     }
 
-    // ── 7. Add general eligibility summary ────────────────────────────
+    // ── 10. Add general eligibility summary ───────────────────────────
     if (eligible && reasons.length === 0) {
       reasons.push('✓ You appear to meet all eligibility criteria for this scheme');
     }
