@@ -21,7 +21,7 @@
  * parser was unsure about are flagged. Nothing counts until "save".
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -53,6 +53,14 @@ export default function LedgerPhotoUpload({ userId }: Props) {
   const [entries, setEntries] = useState<StagedEntry[]>([]);
   const [discardIds, setDiscardIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // Live camera (laptops). On a phone the file input's `capture` attribute
+  // opens the camera app; a desktop browser ignores it and shows a file
+  // picker, which is not "take a photo". There we open the webcam instead.
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => () => streamRef.current?.getTracks().forEach((track) => track.stop()), []);
 
   const reset = useCallback(() => {
     setPhase('idle');
@@ -65,10 +73,65 @@ export default function LedgerPhotoUpload({ userId }: Props) {
     if (galleryInputRef.current) galleryInputRef.current.value = '';
   }, [previewUrl]);
 
+  /** Phones honour `capture`; everything else gets the live camera. */
+  function isTouchDevice() {
+    return typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  function closeCamera() {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setCameraOpen(false);
+  }
+
+  async function openCamera(event: React.MouseEvent<HTMLLabelElement>) {
+    if (isTouchDevice() || !navigator.mediaDevices?.getUserMedia) return; // let the input handle it
+    event.preventDefault();
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setCameraOpen(true);
+      // The <video> mounts on the next render; attach the stream then.
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      });
+    } catch {
+      // Permission refused or no camera: fall back to the file picker.
+      fileInputRef.current?.click();
+    }
+  }
+
+  function capturePhoto() {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d')?.drawImage(video, 0, 0);
+    canvas.toBlob(
+      (blob) => {
+        closeCamera();
+        if (blob) processFile(new File([blob], `bahi-khata-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+      },
+      'image/jpeg',
+      0.92
+    );
+  }
+
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    await processFile(file);
+  }
 
+  async function processFile(file: File) {
     setError(null);
 
     // Check the size here too, so a 20 MB phone photo fails instantly on a
@@ -233,6 +296,7 @@ export default function LedgerPhotoUpload({ userId }: Props) {
 
           <label
             htmlFor="bahi-khata-camera"
+            onClick={openCamera}
             className="flex flex-col items-center justify-center gap-2 w-full py-8 px-4 border-2 border-dashed border-[#C9A24B]/40 rounded-3xl bg-[#F5F1E6] hover:bg-[#C9A24B]/10 cursor-pointer transition-colors text-center"
           >
             <span className="text-3xl">📷</span>
@@ -247,6 +311,41 @@ export default function LedgerPhotoUpload({ userId }: Props) {
             <span className="text-sm font-semibold text-[#0B1E33]">{t('photo_gallery')}</span>
           </label>
 
+        </div>
+      )}
+
+      {/* ── Live camera (desktop) ───────────────────────────────────── */}
+      {cameraOpen && (
+        <div
+          className="fixed inset-0 z-[80] bg-[#0B1E33]/90 flex flex-col items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('photo_camera')}
+        >
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full max-w-2xl rounded-2xl bg-black aspect-video object-cover"
+          />
+          <p className="mt-3 text-[#F5F1E6]/80 text-sm text-center max-w-md">{t('help_photo')}</p>
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={closeCamera}
+              className="cursor-pointer px-5 py-2.5 rounded-full border border-[#F5F1E6]/30 text-[#F5F1E6] text-sm font-semibold hover:bg-white/10"
+            >
+              {t('common_cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={capturePhoto}
+              className="cursor-pointer px-7 py-3 rounded-full bg-[#C9A24B] hover:bg-[#B8912A] text-white text-sm font-bold"
+            >
+              {t('photo_capture')}
+            </button>
+          </div>
         </div>
       )}
 
