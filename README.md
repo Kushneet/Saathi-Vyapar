@@ -1,300 +1,509 @@
 <div align="center">
-  <img src="public/Logo.png" alt="Saathi Vyapar Logo" width="160" />
-  <h1>🤝 Saathi Vyapar (साथी व्यापार)</h1>
-  <p><strong>AI-Driven Financial Structuring, Government Scheme Matching & Ledger Digitization for Rural Micro-Entrepreneurs</strong></p>
 
-  <p>
-    <a href="https://nextjs.org"><img src="https://img.shields.io/badge/Next.js-16.3-black?style=for-the-badge&logo=next.js" alt="Next.js 16" /></a>
-    <a href="https://react.dev"><img src="https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react" alt="React 19" /></a>
-    <a href="https://tailwindcss.com"><img src="https://img.shields.io/badge/Tailwind_CSS-v4.0-38BDF8?style=for-the-badge&logo=tailwindcss" alt="Tailwind CSS v4" /></a>
-    <a href="https://supabase.com"><img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase" /></a>
-    <a href="https://ai.google.dev"><img src="https://img.shields.io/badge/Google_Gemini-2.x-4285F4?style=for-the-badge&logo=google" alt="Google Gemini" /></a>
-    <a href="https://vitest.dev"><img src="https://img.shields.io/badge/Vitest-38%2F38_Passed-78C370?style=for-the-badge&logo=vitest" alt="Vitest" /></a>
-  </p>
+<img src="public/Logo.png" alt="Saathi Vyapar Logo" width="96" />
 
-  <p>
-    <em>SIH Problem Statement: SIH26091 | Ministry of Social Justice & Empowerment | Developed by Team Pantheon Eternal</em>
-  </p>
+# साथी व्यापार — Saathi Vyapar
+
+**AI-Driven Hyper-Local Business Advisory for Rural Micro-Entrepreneurs**
+
+[![Next.js](https://img.shields.io/badge/Next.js-16.3.4-black?logo=next.js)](https://nextjs.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://typescriptlang.org)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase)](https://supabase.com)
+[![Tests](https://img.shields.io/badge/Tests-43%20passing-brightgreen?logo=vitest)](https://vitest.dev)
+[![License](https://img.shields.io/badge/License-Private-red)](LICENSE)
+
+*SIH26091 · Smart India Hackathon 2026 · Ministry of Social Justice & Empowerment*
+*Built by **Team Pantheon Eternal***
+
 </div>
 
 ---
 
-## 📌 Executive Overview
+## What is Saathi Vyapar?
 
-In rural India, millions of micro-entrepreneurs—ranging from local Kirana owners, street vendors, and artisans to small-scale tailors and dairy farmers—operate informally. They rely heavily on handwritten notebooks (*bahi-khatas*), lack formal financial literacy, and miss out on government schemes, subsidies, and credit opportunities designed for their growth.
+Saathi Vyapar is a full-stack AI advisory platform that helps rural Indian micro-entrepreneurs — vegetable vendors, tailors, dairy farmers, weavers, and small shopkeepers — understand their finances, discover government schemes they qualify for, and get actionable business growth guidance.
 
-**Saathi Vyapar (साथी व्यापार)** bridges the gap between rural informal businesses and formal financial ecosystems. It provides an all-in-one financial advisor accessible through **Web, WhatsApp, and SMS**. By pairing a **deterministic mathematical engine** with **privacy-first AI rephrasing**, Saathi Vyapar provides rural entrepreneurs with clear break-even targets, profit margin analytics, scheme eligibility scores, and digitized ledger keeping without risk of AI hallucination or privacy leaks.
+It works **where users actually are**: on WhatsApp, by SMS, or on the web — in **Hindi or English**. A single entrepreneur needs no smartphone app, no bank account, and no internet beyond basic messaging to start getting value.
 
----
+### The Core Problem it Solves
 
-## ✨ Core Capabilities & Features
+Rural micro-entrepreneurs have no access to chartered accountants, no awareness of subsidy schemes they may qualify for, and no way to identify whether their business is financially healthy. Saathi Vyapar provides:
 
-### 🧮 1. Zero-Hallucination Financial Engine
-- **Deterministic Math Core**: Computes exact unit economics, break-even sales volume, gross/net profit margins, working capital runway, and monthly cash flows using strict financial formulas.
-- **Actionable Business Advisory**: Generates tailored operational advice (e.g. daily sales targets, expense optimization, inventory turnover) based on mathematical outputs.
-
-### 📜 2. Explainable Government Scheme Matching Engine
-- **Curated Database**: Evaluates business profiles against **15+ Central and State Government Schemes** (PMEGP, Mudra Shishu/Kishor/Tarun, PM SVANidhi, Stand-Up India, Credit Guarantee Fund, etc.).
-- **Transparent Scoring & Reasons**: Provides exact percentage match scores, eligibility breakdowns, subsidy highlights (e.g. 15%–35% PMEGP capital subsidy), required document checklists, and direct official application portal links.
-
-### 📷 3. Bahi-Khata Notebook OCR Digitization
-- **Image-to-Ledger Conversion**: Powered by `Tesseract.js`, entrepreneurs or field facilitators can photograph physical paper ledgers (*bahi-khata*).
-- **Automated Transaction Structuring**: Extracts income, expense, date, and customer entries directly into digital tables for automated cash flow tracking.
-
-### 🗣️ 4. Multilingual Voice & Conversational Webhooks
-- **WhatsApp Cloud API & Twilio SMS**: Entrepreneurs can onboard and interact using conversational text or voice messages.
-- **Web Voice Assistant Mode**: Built-in browser speech recognition (`Web Speech API`) enables hands-free voice onboarding.
-- **Vernacular Gemini AI**: Translates financial metrics into plain-language explanations in **Hindi, Marathi, Tamil, Telugu, and English** with strict **zero-PII data minimization** (no customer names, phone numbers, or personal IDs sent to LLM APIs).
-
-### 👥 5. Field Facilitator & SHG Operations Hub
-- **Facilitator Management Portal**: Designed for Self-Help Group (SHG) leaders, NGO workers, and Bank Sakhis to assist multiple entrepreneurs.
-- **Multi-Enterprise Management**: Allows facilitators to register micro-businesses, upload paper ledgers, generate financial plans, and monitor scheme applications.
-
-### 🔐 6. Secure Authentication & Data Privacy
-- **Dual Authentication**: Supports Google OAuth (with PKCE flow and SSR cookie persistence) and Email/Password sign-in powered by Supabase Auth.
-- **Row Level Security (RLS)**: Enforces multi-tenant isolation via strict Supabase PostgreSQL RLS policies.
+- **Provably correct financial calculations** — break-even, margin %, cash flow risk — computed deterministically without relying on AI hallucination
+- **Scheme eligibility matching** — 16 Central & State Government schemes matched against the entrepreneur's actual profile, with transparent reasons
+- **AI business roadmapping** — a 5-stage transformation plan (Cost Optimization → Scale) generated by Gemini and grounded in the entrepreneur's own data
+- **Conversational ledger (Khata Mitr)** — voice and text AI bookkeeping that understands natural language like *"आज 500 की बिक्री हुई"*
+- **Receipt OCR** — photograph a handwritten bahi-khata page or printed bill on WhatsApp; Tesseract.js extracts the entries automatically
 
 ---
 
-## 🏗️ System Architecture
+## Feature Overview
+
+| Feature | Channel | Language |
+|---|---|---|
+| Conversational onboarding (8-step form + voice) | Web | EN / HI |
+| Financial dashboard (margin, break-even, chart) | Web | EN / HI |
+| Government scheme matching — 16 schemes | Web / WhatsApp / SMS | EN / HI |
+| Yojana Kendra (full scheme portal with documents) | Web | EN / HI |
+| Business Transformation Guide (5-stage roadmap) | Web | HI (bilingual) |
+| Khata Mitr — AI voice/text bookkeeping assistant | Web | EN / HI |
+| Receipt / bill OCR via WhatsApp photo | WhatsApp | HI |
+| Multi-turn WhatsApp onboarding bot | WhatsApp | HI |
+| SMS onboarding & plan delivery | SMS | EN |
+| Facilitator portal (field officer dashboard) | Web | EN |
+| Exhibition Folio showcase | Web | EN |
+
+---
+
+## Architecture
 
 ```
-                                  ┌─────────────────────────────┐
-                                  │   Entrepreneur / User UI    │
-                                  │ (Web App / Voice Assistant) │
-                                  └──────────────┬──────────────┘
-                                                 │
-  ┌───────────────────────────┐                  │                 ┌───────────────────────────┐
-  │   WhatsApp Cloud API      ├──────────────────┼─────────────────┤     Twilio SMS Webhook    │
-  └─────────────┬─────────────┘                  │                 └─────────────┬─────────────┘
-                │                                │                               │
-                └───────────────────────┐        │        ┌──────────────────────┘
-                                        ▼        ▼        ▼
-                                   ┌──────────────────────────┐
-                                   │   Next.js 16 API Routes  │
-                                   │  & Webhook Orchestrator  │
-                                   └────────────┬─────────────┘
-                                                │
-         ┌──────────────────────────────────────┼──────────────────────────────────────┐
-         ▼                                      ▼                                      ▼
-┌──────────────────┐                  ┌──────────────────┐                  ┌──────────────────┐
-│ Financial Engine │                  │  Scheme Matcher  │                  │   OCR Engine     │
-│ (Pure Math Rules)│                  │(15+ Govt Schemes)│                  │  (Tesseract.js)  │
-└────────┬─────────┘                  └────────┬─────────┘                  └────────┬─────────┘
-         │                                     │                                     │
-         └──────────────────┬──────────────────┘                                     │
-                            ▼                                                        │
-              ┌───────────────────────────┐                                          │
-              │  Google Gemini 2.x API    │                                          │
-              │ (Zero-PII Plain Language) │                                          │
-              └─────────────┬─────────────┘                                          │
-                            │                                                        │
-                            └───────────────────┬────────────────────────────────────┘
-                                                ▼
-                                    ┌──────────────────────┐
-                                    │ Supabase PostgreSQL  │
-                                    │ Database & RLS Auth  │
-                                    └──────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                    Access Channels                       │
+│   Web Browser   │   WhatsApp Cloud API   │   Twilio SMS │
+└────────┬────────┴──────────┬─────────────┴──────┬───────┘
+         │                  │                      │
+         ▼                  ▼                      ▼
+┌─────────────────────────────────────────────────────────┐
+│              Next.js 16 App Router (Vercel)              │
+│  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐  │
+│  │  Web Pages  │  │  API Routes  │  │  Proxy (Auth) │  │
+│  │  (RSC/CSR)  │  │  (Edge/Node) │  │  Middleware   │  │
+│  └─────────────┘  └──────────────┘  └───────────────┘  │
+│         │                │                              │
+│         ▼                ▼                              │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │               Core Logic Layer                    │  │
+│  │  financialEngine.ts │ schemeMatcher.ts            │  │
+│  │  (pure TS, 43 tests, zero external deps)          │  │
+│  └───────────────────────────────────────────────────┘  │
+│         │                │                              │
+│         ▼                ▼                              │
+│  ┌──────────────┐  ┌────────────────────────────────┐  │
+│  │  Google      │  │  Supabase (PostgreSQL + RLS)   │  │
+│  │  Gemini AI   │  │  9 tables · Auth · Storage     │  │
+│  └──────────────┘  └────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
 ```
+
+### Key Design Decisions
+
+- **Deterministic-first**: Financial calculations and scheme matching run in pure TypeScript engines — no LLM involved. AI only generates the *explanation* of results, so numbers are always correct.
+- **Offline-graceful**: All scheme data ships as in-code fallback arrays. If Supabase is unreachable, scheme matching still works.
+- **Dual language everywhere**: A single `LanguageContext` + `i18n.ts` dictionary powers EN↔HI toggle across every page and every API response.
+- **Proxy over Middleware**: `src/proxy.ts` (Next.js 16's renamed middleware convention) keeps Supabase auth cookies fresh on every request.
 
 ---
 
-## 🛠️ Technology Stack
+## Tech Stack
 
-| Layer | Technologies Used |
+| Layer | Technology |
 |---|---|
-| **Frontend Framework** | **Next.js 16 (App Router with Turbopack)**, **React 19**, **TypeScript** |
-| **Styling & Design System** | **Tailwind CSS v4**, Google Fonts (Playfair Display, Inter, Space Grotesk, Bodoni Moda) |
-| **Backend & Database** | **Supabase (PostgreSQL with RLS)**, `@supabase/ssr` SSR Client |
-| **AI / Machine Learning** | **Google Gemini 2.x** (`@google/genai`), **Groq SDK** (`groq-sdk`) |
-| **OCR & Vision** | **Tesseract.js** (Client-side & API-side OCR engine) |
-| **Messaging Integration** | **Meta WhatsApp Cloud API**, **Twilio SMS Webhooks** |
-| **Validation & Schema** | **Zod Schema Validation** |
-| **Testing & Quality** | **Vitest** (Unit test suite with 38 test suites), **ESLint 9** |
+| Framework | Next.js 16.3.4 (App Router, React Server Components) |
+| UI | React 19, Tailwind CSS v4, Lucide React icons |
+| Language | TypeScript 5 (strict), `next-env.d.ts` |
+| Database | Supabase (PostgreSQL 15, Row Level Security) |
+| Auth | Supabase Auth — Google OAuth + Email/Password |
+| AI — Generation | Google Gemini 2.0 Flash (`@google/genai`) |
+| AI — Fallback LLM | Groq SDK (secondary provider) |
+| OCR | Tesseract.js v7 (in-process, no external OCR API) |
+| Messaging | WhatsApp Cloud API (Meta) + Twilio SMS |
+| Validation | Zod v4 (all API request bodies) |
+| Testing | Vitest v2 — 43 tests, 2 suites (100% passing) |
+| Linting | ESLint 9 + `eslint-config-next` |
+| Deployment | Vercel (framework = nextjs) |
+| Fonts | Geist + Inter + Playfair Display + Material Symbols Outlined |
 
 ---
 
-## 📂 Repository Directory Layout
+## Project Structure
 
 ```
-.
-├── public/
-│   ├── Logo.png                          # Brand identity logo
-│   └── fonts/                            # Self-hosted Material Symbols & typography
+/
 ├── src/
-│   ├── app/                              # Next.js 16 App Router pages & API routes
-│   │   ├── api/
-│   │   │   ├── business-guide/generate/  # AI business expansion guide endpoint
-│   │   │   ├── facilitator/              # Facilitator entrepreneur registration
-│   │   │   ├── keepalive/                # Database keepalive ping route
-│   │   │   ├── ledger/ocr/               # Bahi-khata notebook image OCR route
-│   │   │   ├── onboarding/               # Multi-step conversational onboarding API
-│   │   │   ├── plan/generate/            # Financial advisory calculation & response
-│   │   │   ├── sms/webhook/              # Twilio SMS webhook handler
-│   │   │   └── whatsapp/webhook/         # WhatsApp Cloud API webhook handler
+│   ├── app/                          # Next.js App Router
+│   │   ├── page.tsx                  # Landing page (bilingual marketing)
+│   │   ├── layout.tsx                # Root layout — fonts, LanguageProvider, metadata
+│   │   ├── globals.css               # Tailwind v4 design tokens, custom font-face rules
+│   │   ├── login/                    # Auth portal (Email/Password + Google OAuth)
+│   │   │   ├── page.tsx
+│   │   │   └── LoginForm.tsx
+│   │   ├── onboarding/               # 8-step conversational onboarding form + voice modal
+│   │   │   └── page.tsx
+│   │   ├── dashboard/                # Entrepreneur dashboard (SSR, RLS-protected)
+│   │   │   ├── page.tsx              # Financial metrics, ledger chart, matched schemes
+│   │   │   ├── LogoutButton.tsx
+│   │   │   ├── schemes/page.tsx      # Yojana Kendra — full scheme advisory portal
+│   │   │   ├── business-guide/       # 5-stage Business Transformation Roadmap
+│   │   │   │   └── page.tsx
+│   │   │   └── khata-mitr/           # AI bookkeeping voice/text assistant
+│   │   │       └── page.tsx
+│   │   ├── facilitator/              # Field officer portal (view all entrepreneurs)
+│   │   │   ├── page.tsx
+│   │   │   └── AddEntrepreneurModal.tsx
+│   │   ├── folio/                    # Exhibition showcase (SIH presentation folio)
+│   │   │   └── page.tsx
 │   │   ├── auth/
-│   │   │   ├── callback/                 # Google OAuth PKCE callback handler
-│   │   │   └── confirm/                  # Email confirmation redirect route
-│   │   ├── dashboard/                    # Entrepreneur main dashboard & sub-views
-│   │   │   ├── business-guide/           # Interactive Business Transformation Guide
-│   │   │   └── schemes/                  # Yojana Kendra scheme matching portal
-│   │   ├── facilitator/                  # Field Facilitator Management Portal
-│   │   ├── folio/                        # Neoclassical Exhibition Showcase Folio
-│   │   ├── login/                        # Unified Email/Password & Google OAuth page
-│   │   ├── onboarding/                   # 8-Step Interactive Onboarding Funnel
-│   │   ├── globals.css                   # Tailwind v4 theme variables & custom utilities
-│   │   ├── layout.tsx                    # Root layout with brand metadata
-│   │   └── page.tsx                      # Production landing page
+│   │   │   ├── callback/route.ts     # Google OAuth PKCE callback
+│   │   │   └── confirm/route.ts      # Email magic-link confirmation redirect
+│   │   └── api/
+│   │       ├── onboarding/complete/  # POST: save profile, run scheme match, return plan
+│   │       ├── plan/generate/        # POST: Gemini-powered financial plan generation
+│   │       ├── business-guide/       # POST: 5-stage roadmap + follow-up Q&A
+│   │       │   ├── generate/
+│   │       │   └── followup/
+│   │       ├── khata-mitr/           # POST: Gemini function-calling bookkeeping AI
+│   │       ├── ledger/ocr/           # POST: Tesseract OCR → ledger entries
+│   │       ├── facilitator/          # POST: add entrepreneur, send WhatsApp welcome
+│   │       │   └── add-entrepreneur/
+│   │       ├── whatsapp/webhook/     # GET/POST: Meta Cloud API webhook
+│   │       ├── sms/webhook/          # POST: Twilio SMS webhook
+│   │       └── keepalive/            # GET: Supabase uptime ping
 │   ├── components/
-│   │   ├── VoiceOnboardingModal.tsx      # Hands-free Web Speech voice modal
-│   │   └── panels/                       # Stitch canvas & plates exhibition gallery
-│   └── lib/
-│       ├── engines/
-│       │   ├── financialEngine.ts        # Pure financial calculation core
-│       │   ├── financialEngine.test.ts   # 30 Unit tests for financial formulas
-│       │   ├── schemeMatcher.ts          # Government scheme matching logic
-│       │   └── schemeMatcher.test.ts     # 8 Unit tests for scheme eligibility
-│       ├── orchestrator/
-│       │   └── conversationOrchestrator.ts # Conversational state machine
-│       └── supabase/
-│           ├── client.ts                 # Supabase browser client
-│           └── server.ts                 # Supabase SSR server client
-└── supabase/
-    ├── migrations/                       # Database migrations (001_init, 002_rls, 004_guides)
-    └── seed/                             # 15+ Indian Government Schemes seed data
+│   │   ├── VoiceOnboardingModal.tsx  # Web Speech API voice onboarding
+│   │   ├── LanguageToggleButton.tsx  # EN↔HI language switcher
+│   │   ├── khata-mitr/
+│   │   │   ├── KhataMitraAssistant.tsx  # Full chat UI with ledger display
+│   │   │   └── KhataMitraChatInput.tsx  # Voice + text input bar
+│   │   └── panels/
+│   │       ├── StitchFolio.tsx       # Full-page folio layout
+│   │       └── PlatesGallery.tsx     # Panel thumbnail gallery
+│   ├── contexts/
+│   │   └── LanguageContext.tsx       # Global EN/HI context + useLanguage() hook
+│   ├── lib/
+│   │   ├── engines/
+│   │   │   ├── financialEngine.ts    # Break-even, margin %, cash-flow risk (pure TS)
+│   │   │   ├── financialEngine.test.ts  # 30 unit tests
+│   │   │   ├── schemeMatcher.ts      # Government scheme eligibility engine (pure TS)
+│   │   │   └── schemeMatcher.test.ts # 13 unit tests
+│   │   ├── orchestrator/
+│   │   │   └── conversationOrchestrator.ts  # WhatsApp/SMS multi-turn state machine
+│   │   ├── supabase/
+│   │   │   ├── client.ts             # Browser Supabase client (@supabase/ssr)
+│   │   │   └── server.ts             # SSR Supabase client (cookie-based auth)
+│   │   ├── ledger/
+│   │   │   └── ocr.ts                # Tesseract pipeline — image → ledger entries
+│   │   ├── voice/
+│   │   │   └── speak.ts              # Browser TTS helper (speechSynthesis)
+│   │   ├── i18n.ts                   # EN + HI translation dictionary (all UI strings)
+│   │   ├── whatsapp.ts               # WhatsApp Cloud API client (send text, media, templates)
+│   │   └── stitchPanelsData.ts       # Static data for folio exhibition panels
+│   └── proxy.ts                      # Next.js 16 Proxy (auth cookie refresh middleware)
+├── supabase/
+│   ├── schema.sql                    # Complete DB schema (run first in SQL Editor)
+│   ├── migrations/
+│   │   ├── 001_init.sql              # Initial table creation
+│   │   ├── 002_rls_policies.sql      # Row Level Security policies
+│   │   └── 004_business_guides.sql   # Business guides table
+│   └── seed/
+│       └── schemes.sql               # 15+ government scheme seed rows
+├── public/
+│   ├── Logo.png                      # Brand logo
+│   ├── fonts/                        # Self-hosted: Bodoni Moda, EB Garamond,
+│   │   │                             # Space Grotesk, Material Symbols Outlined
+│   └── stitch-panels/images/         # Panel images for the folio showcase
+├── scripts/
+│   └── create-whatsapp-template.mjs  # One-time script to register WhatsApp template
+├── blueprint.md                      # Living project architecture & feature log
+├── next.config.ts
+├── tailwind.config (via postcss)
+├── vitest.config.ts
+└── vercel.json
 ```
 
 ---
 
-## ⚡ Getting Started & Local Setup
+## Database Schema
+
+9 PostgreSQL tables, all with Row Level Security enabled:
+
+| Table | Purpose |
+|---|---|
+| `users` | App users — entrepreneurs, facilitators, admins |
+| `business_profiles` | Onboarding data: sector, revenue, expenses, SHG membership, category, gender |
+| `financial_plans` | AI-generated plan results (margin %, break-even, summary, full JSON) |
+| `ledger_entries` | Daily income/expense entries — manual, WhatsApp, SMS, OCR, or voice |
+| `schemes` | Government scheme catalogue with JSONB eligibility rules |
+| `business_guides` | AI-generated 5-stage roadmap outputs |
+| `facilitators` | Field officer records |
+| `khata_customers` | Named customer accounts for credit/debit tracking |
+| `khata_transactions` | Per-customer credit/debit entries (triggers auto-update balance) |
+
+---
+
+## Government Schemes Covered
+
+The scheme matcher supports **16 schemes** across income, category, sector, gender, state, SHG membership, and area type rules:
+
+| Scheme | Sponsoring Body | Max Benefit |
+|---|---|---|
+| PMEGP | KVIC / Ministry of MSME | 35% subsidy, ₹25L loan |
+| Mudra Shishu (PMMY) | MUDRA | ₹50,000 collateral-free |
+| Mudra Kishor (PMMY) | MUDRA | ₹5L collateral-free |
+| Mudra Tarun (PMMY) | MUDRA | ₹10L |
+| Stand-Up India | SIDBI / DFS | ₹1Cr (SC/ST/Women) |
+| PM SVANidhi | MoHUA | ₹50,000 + 7% cashback |
+| PM Vishwakarma | Ministry of MSME | ₹3L + skill training |
+| NRLM — Mahila Shakti | Ministry of Rural Dev | Women SHG credit |
+| DAY-NRLM (General) | Ministry of Rural Dev | SHG-linked credit |
+| SVEP — DAY-NRLM | Ministry of Rural Dev | Community Enterprise Fund |
+| Annapurna Scheme | State DIC | ₹50,000 food sector |
+| CGTMSE | SIDBI / Ministry of MSME | Collateral-free guarantee |
+| PMFME | MoFPI | Food processing upgrade |
+| NBCFDC | Ministry of SJ&E | SC/OBC concessional loans |
+| Artisan Credit Card | Ministry of Textiles | Artisan working capital |
+| PMKVY | Ministry of Skill Dev | Free skill certification |
+
+Each scheme card in the UI shows:
+- Eligibility verdict (✅ Eligible / ❌ Not eligible) with transparent reasons
+- Benefit summary
+- Sponsoring ministry
+- Required document checklist
+- Direct application link
+- Block-specific caveats where applicable (e.g. SVEP)
+
+---
+
+## Core Engines
+
+### `financialEngine.ts` — Pure TypeScript, no external deps
+
+| Function | Description |
+|---|---|
+| `calculateBreakEven(fixed, price, variable)` | Break-even units = Fixed ÷ (Price − Variable) |
+| `calculateMarginPercent(revenue, expenses)` | Profit margin as a percentage |
+| `assessCashFlowRisk(revenue, expenses, loans)` | Returns `'low' \| 'medium' \| 'high'` |
+| `generateFinancialSummary(profile)` | Full plan object — metrics + scheme matches |
+
+**30 unit tests** cover all edge cases including zero-revenue, negative margins, and existing-loan risk escalation.
+
+### `schemeMatcher.ts` — Pure TypeScript, no external deps
+
+`matchSchemes(profile, schemes)` runs 8 sequential checks per scheme:
+
+1. **Income** — annual revenue vs `income_max`
+2. **Social category** — SC/ST/OBC/General/Minority
+3. **Sector** — agriculture, manufacturing, retail, services, etc.
+4. **Gender** — male/female/any
+5. **State** — state-specific schemes
+6. **SHG membership** — `requires_shg_membership` + `eligible_relation` check via `checkShgAffiliation()`
+7. **Area type** — rural vs urban
+8. **Implementation note** — injects block-specific caveats (e.g. SVEP)
+
+Returns `MatchResult[]` sorted eligible-first with human-readable reasons for every decision.
+
+**13 unit tests** cover SHG member, SHG family member, non-SHG, missing-data, and sector-mismatch scenarios.
+
+---
+
+## Conversational Flows
+
+### WhatsApp / SMS State Machine (`conversationOrchestrator.ts`)
+
+Multi-turn onboarding via messaging:
+
+```
+idle → awaiting_sector → awaiting_district → awaiting_revenue
+     → awaiting_expenses → awaiting_loans → complete
+```
+
+After completion, users send `PLAN` to receive their financial plan. Sending a **photo** triggers Tesseract OCR to extract bill amounts and save ledger entries — all within WhatsApp.
+
+### Khata Mitr — AI Bookkeeping (`/api/khata-mitr`)
+
+Gemini with **function calling** tools:
+- `add_ledger_entry` — records income/expense from natural language
+- `get_ledger_summary` — retrieves totals over N days
+- `get_customer_balance` — checks credit/debit for a named customer
+- `add_customer_transaction` — records credit (udhaar) or debit (payment)
+- `get_scheme_recommendations` — surfaces relevant schemes inline
+
+Understands Hindi and English mixed input: *"Ram ne 200 rupaye diye"* → debit transaction recorded.
+
+---
+
+## Multilingual Support
+
+| Language | Code | Coverage |
+|---|---|---|
+| English | `en` | All web UI, API responses |
+| Hindi | `hi` | All web UI, WhatsApp bot, SMS bot, AI roadmap content |
+
+All UI strings live in [`src/lib/i18n.ts`](src/lib/i18n.ts). The `LanguageContext` provides a `t(key)` function and `toggleLanguage()` to every client component. The AI plan generation supports 11 regional languages (English, Hindi, Tamil, Telugu, Marathi, Bengali, Gujarati, Kannada, Malayalam, Punjabi, Odia) via a language-aware Gemini prompt.
+
+---
+
+## Getting Started
 
 ### Prerequisites
-- **Node.js**: `v20.x` or higher
-- **npm** / **yarn** / **pnpm**
-- **Supabase Account**: A free Supabase project instance
 
-### 1. Clone & Install Dependencies
+- **Node.js** `v20.x` or higher
+- **npm** (bundled with Node)
+- **Supabase** project (free tier works)
+- **Google Gemini API Key** (free at [aistudio.google.com](https://aistudio.google.com))
+
+### 1. Clone & Install
 
 ```bash
-# Clone the repository
 git clone https://github.com/dev-lover-codes/Saathi-Vyapar.git
 cd Saathi-Vyapar
-
-# Install npm packages
 npm install
 ```
 
-### 2. Environment Configuration
-
-Create a `.env.local` file in the project root:
+### 2. Environment Variables
 
 ```bash
-cp .env.local.example .env.local
+cp .env.example .env.local
 ```
 
-Populate the required environment variables:
+Edit `.env.local`:
 
 ```env
-# Supabase Configuration
+# ── Supabase ─────────────────────────────────────────────
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# AI Provider Credentials
-GEMINI_API_KEY=your-google-gemini-api-key
-GROQ_API_KEY=your-groq-api-key
+# ── Google Gemini ─────────────────────────────────────────
+GEMINI_API_KEY=your-gemini-api-key
 
-# Base Application URL
+# ── App URL ───────────────────────────────────────────────
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# WhatsApp Cloud API Configuration
-WHATSAPP_ACCESS_TOKEN=your-whatsapp-cloud-access-token
-WHATSAPP_PHONE_NUMBER_ID=your-whatsapp-phone-number-id
-WHATSAPP_VERIFY_TOKEN=your-custom-webhook-verify-token
-
-# Twilio SMS Configuration
-TWILIO_ACCOUNT_SID=your-twilio-account-sid
-TWILIO_AUTH_TOKEN=your-twilio-auth-token
-TWILIO_PHONE_NUMBER=+1234567890
+# ── WhatsApp Cloud API (Meta) — optional for local dev ───
+WHATSAPP_ACCESS_TOKEN=your-token
+WHATSAPP_PHONE_NUMBER_ID=your-phone-id
+WHATSAPP_BUSINESS_ACCOUNT_ID=your-ba-id
+WHATSAPP_VERIFY_TOKEN=saathi_vyapar_whatsapp_verify_token_2026
+WHATSAPP_API_VERSION=v22.0
+WHATSAPP_WELCOME_TEMPLATE_NAME=saathi_vyapar_welcome
+WHATSAPP_WELCOME_TEMPLATE_LANG=hi
 ```
 
----
+> WhatsApp and Twilio keys are only needed for the messaging channels. The full web app works without them.
 
-## 🗄️ Database Setup & Migrations
+### 3. Database Setup
 
-Execute the SQL scripts in the **Supabase SQL Editor** or via the Supabase CLI (`supabase db push`) in the exact order below:
+Run these SQL files in your **Supabase SQL Editor** in order:
 
-1. **Database Schema Setup**: `supabase/migrations/001_init.sql`
-   - Creates core tables: `users`, `business_profiles`, `schemes`, `financial_plans`, `ledger_entries`, `conversations`, `facilitators_entrepreneurs`, and `business_guides`.
-2. **Seed Government Schemes**: `supabase/seed/schemes.sql`
-   - Populates 15+ Central and State Government schemes with exact funding limits, subsidies, and eligibility criteria.
-3. **Row Level Security Policies**: `supabase/migrations/002_rls_policies.sql`
-   - Configures PostgreSQL RLS policies to isolate entrepreneur and facilitator records.
-4. **Business Transformation Guides Table**: `supabase/migrations/004_business_guides.sql`
-   - Creates cached storage for personalized business expansion roadmaps.
+```
+supabase/schema.sql                   ← Full schema (tables, RLS, triggers, seed)
+supabase/migrations/002_rls_policies.sql
+supabase/migrations/004_business_guides.sql
+```
 
----
+The `schema.sql` already includes 15+ seeded scheme rows, so the app works immediately.
 
-## 💬 WhatsApp & Twilio Webhook Configuration
+### 4. Run Locally
 
-### Meta WhatsApp Cloud API Setup
-1. Open **[Meta for Developers](https://developers.facebook.com/)** > Your App > **WhatsApp** > **Configuration**.
-2. Set **Callback URL**: `https://your-domain.com/api/whatsapp/webhook`
-3. Set **Verify Token**: Enter the exact string configured in `WHATSAPP_VERIFY_TOKEN`.
-4. Under **Webhook Fields**, subscribe to `messages`.
-
-### Twilio SMS Setup
-1. Open **[Twilio Console](https://console.twilio.com/)** > **Phone Numbers** > **Manage** > **Active Numbers**.
-2. Select your virtual phone number.
-3. Under **Messaging** -> **A MESSAGE COMES IN**:
-   - Webhook URL: `https://your-domain.com/api/sms/webhook`
-   - HTTP Method: `HTTP POST`
-
----
-
-## 🧪 Testing & Code Quality
-
-Saathi Vyapar includes unit tests covering financial formulas (break-even volume, profit margins, runway) and government scheme matcher eligibility logic.
+> **Note for Firebase Studio users**: The dev server is managed by the IDE. Do not run `next dev` manually.
 
 ```bash
-# Run Vitest unit tests (38 tests)
-npx vitest run
-
-# Run ESLint check
-npm run lint
-
-# Build production bundle
-npm run build
+npm run dev      # → http://localhost:3000
 ```
 
 ---
 
-## 🚀 Deployment & Maintenance
+## Testing
 
-### Vercel Deployment
-1. Connect repository to [Vercel](https://vercel.com).
-2. Configure environment variables in project settings.
-3. Deploy! Next.js 16 App Router will build with Turbopack.
+```bash
+# Run the full test suite (43 tests)
+npx vitest run
 
-### Database Uptime Keepalive
-To prevent Supabase free-tier projects from pausing during periods of low activity, Saathi Vyapar provides an ultra-lightweight ping endpoint:
-- **Endpoint**: `GET /api/keepalive`
-- **UptimeRobot Setup**:
-  1. Register a free HTTP monitor at [UptimeRobot](https://uptimerobot.com).
-  2. Set URL to `https://your-domain.com/api/keepalive`.
-  3. Set interval to **Every 5 minutes**.
+# Run in watch mode during development
+npx vitest
+
+# Type-check without emitting
+npx tsc --noEmit
+
+# Lint
+npm run lint
+```
+
+**Test suites:**
+
+| File | Tests | What's Covered |
+|---|---|---|
+| `financialEngine.test.ts` | 30 | Break-even, margin %, cash flow risk — all edge cases |
+| `schemeMatcher.test.ts` | 13 | Scheme matching: income, category, SHG, area, caveats |
 
 ---
 
-## 🏆 Team & Acknowledgements
+## Deployment
 
-Developed with ❤️ by **Team Pantheon Eternal** for the **Smart India Hackathon (SIH26091)** under the aegis of the **Ministry of Social Justice & Empowerment**.
+### Vercel (Recommended)
 
-- **Organization**: Ministry of Social Justice & Empowerment, Govt. of India
-- **Repository**: [https://github.com/dev-lover-codes/Saathi-Vyapar](https://github.com/dev-lover-codes/Saathi-Vyapar)
+1. Push to GitHub.
+2. Import the repository in [Vercel](https://vercel.com).
+3. Add all environment variables from `.env.example` in the Vercel project settings.
+4. Deploy — Next.js 16 builds with Turbopack automatically.
+
+### WhatsApp Webhook Setup (Meta)
+
+1. Go to [Meta for Developers](https://developers.facebook.com) → Your App → WhatsApp → Configuration.
+2. **Callback URL**: `https://your-domain.com/api/whatsapp/webhook`
+3. **Verify Token**: value of your `WHATSAPP_VERIFY_TOKEN`
+4. Subscribe to the `messages` webhook field.
+5. Register the welcome template once:
+   ```bash
+   node --env-file=.env.local scripts/create-whatsapp-template.mjs
+   ```
+
+### Database Keepalive (Supabase free tier)
+
+To prevent Supabase from pausing during inactivity:
+
+- Set up a free [UptimeRobot](https://uptimerobot.com) HTTP monitor
+- URL: `https://your-domain.com/api/keepalive`
+- Interval: every 5 minutes
+
+---
+
+## API Reference
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/api/onboarding/complete` | Save business profile, generate initial plan |
+| `POST` | `/api/plan/generate` | Regenerate financial plan for a user |
+| `POST` | `/api/business-guide/generate` | Generate 5-stage business roadmap |
+| `POST` | `/api/business-guide/followup` | Follow-up Q&A on existing roadmap |
+| `POST` | `/api/khata-mitr` | Gemini function-calling bookkeeping assistant |
+| `POST` | `/api/ledger/ocr` | Tesseract OCR → parse & save ledger entries |
+| `POST` | `/api/facilitator/add-entrepreneur` | Register entrepreneur, send WhatsApp welcome |
+| `GET/POST` | `/api/whatsapp/webhook` | Meta WhatsApp Cloud API webhook handler |
+| `POST` | `/api/sms/webhook` | Twilio SMS webhook handler |
+| `GET` | `/api/keepalive` | Supabase ping (uptime monitoring) |
+| `GET` | `/auth/callback` | Google OAuth PKCE callback |
+| `GET` | `/auth/confirm` | Email magic-link confirmation |
+
+---
+
+## Pages
+
+| Route | Type | Description |
+|---|---|---|
+| `/` | Client | Landing page — bilingual hero, features, how-it-works, team |
+| `/login` | Client | Unified sign-in / sign-up (email + Google OAuth) |
+| `/onboarding` | Client | 8-step business registration — voice modal + text form fallback |
+| `/dashboard` | Server | Entrepreneur home — metrics, ledger chart, schemes |
+| `/dashboard/schemes` | Client | Yojana Kendra — full scheme advisory portal |
+| `/dashboard/business-guide` | Client | 5-stage business transformation roadmap |
+| `/dashboard/khata-mitr` | Client | AI voice/text bookkeeping assistant |
+| `/facilitator` | Server | Field officer portal — all entrepreneurs overview |
+| `/folio` | Client | Exhibition showcase for SIH presentation |
+
+---
+
+## Acknowledgements
+
+Developed with ❤️ by **Team Pantheon Eternal** for the **Smart India Hackathon 2026 (SIH26091)**.
+
+- **Problem Statement Organisation**: Ministry of Social Justice & Empowerment, Government of India
+- **Repository**: [github.com/dev-lover-codes/Saathi-Vyapar](https://github.com/dev-lover-codes/Saathi-Vyapar)
 
 ---
 
 <div align="center">
-  <sub>Saathi Vyapar • Empowering Rural Indian Micro-Enterprises with Trust & AI</sub>
+  <sub>Saathi Vyapar · साथी व्यापार · Empowering Rural Indian Micro-Enterprises with Trust & AI</sub>
 </div>

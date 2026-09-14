@@ -23,6 +23,7 @@ function KhataMitraContent() {
   const [userName, setUserName] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [totals, setTotals] = useState<{ income: number; expense: number } | null>(null);
+  const [customers, setCustomers] = useState<{ id: string; name: string; balance: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -79,6 +80,19 @@ function KhataMitraContent() {
     loadTotals();
   }, [userId, refreshKey]);
 
+  useEffect(() => {
+    if (!userId) return;
+    async function loadCustomers() {
+      const { data } = await supabaseClient
+        .from('khata_customers')
+        .select('id, name, balance')
+        .eq('user_id', userId as string)
+        .order('balance', { ascending: false });
+      setCustomers(data || []);
+    }
+    loadCustomers();
+  }, [userId, refreshKey]);
+
   return (
     <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] p-3 sm:p-6 pb-24 font-['Inter',sans-serif] relative overflow-hidden">
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -119,6 +133,33 @@ function KhataMitraContent() {
             <div className="bg-white border border-[#C9A24B]/20 rounded-2xl p-4 shadow-[0_8px_24px_rgba(11,30,51,0.05)]">
               <span className="text-[#0B1E33]/50 text-[10px] font-bold uppercase tracking-wider">30-Day Expense</span>
               <p className="text-2xl font-bold text-[#C9A24B] mt-1">₹{totals.expense.toLocaleString('en-IN')}</p>
+            </div>
+          </section>
+        )}
+
+        {customers.length > 0 && (
+          <section className="bg-white border border-[#C9A24B]/20 rounded-[32px] p-5 shadow-[0_16px_40px_rgba(11,30,51,0.07)]">
+            <h2 className="font-['Playfair_Display',Georgia,serif] text-base font-bold text-[#0B1E33] mb-3">
+              👥 Customer Accounts ({customers.length})
+            </h2>
+            <div className="space-y-2">
+              {customers.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between p-3 bg-[#F5F1E6] rounded-xl border border-[#C9A24B]/10"
+                >
+                  <span className="text-sm font-semibold text-[#0B1E33]">{c.name}</span>
+                  <span
+                    className={`text-sm font-bold ${Number(c.balance) > 0 ? 'text-rose-600' : 'text-emerald-700'}`}
+                  >
+                    {Number(c.balance) > 0
+                      ? `Owes ₹${Number(c.balance).toLocaleString('en-IN')}`
+                      : Number(c.balance) < 0
+                        ? `Advance ₹${Math.abs(Number(c.balance)).toLocaleString('en-IN')}`
+                        : 'Settled ₹0'}
+                  </span>
+                </div>
+              ))}
             </div>
           </section>
         )}

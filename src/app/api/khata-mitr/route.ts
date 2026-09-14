@@ -98,12 +98,82 @@ const calculateTool = {
   },
 };
 
+const findCustomerTool = {
+  name: 'find_customer',
+  description:
+    'Searches for an existing named customer account (khata) belonging to this entrepreneur, by name. ALWAYS call this FIRST whenever the user mentions a customer/person\'s name for a credit or debit, e.g. "raaj ke khata me 500 dalo", "Ramesh ka balance kya hai". Returns customer_id if found, or not_found: true if no such account exists yet.',
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      customer_name: { type: Type.STRING, description: 'The name (or partial name) of the customer to search for.' },
+    },
+    required: ['customer_name'],
+  },
+};
+
+const createCustomerTool = {
+  name: 'create_customer',
+  description:
+    'Creates a brand-new customer account (khata profile) for this entrepreneur. Only call this AFTER find_customer has returned not_found: true for that name — never create a duplicate for a name that already exists.',
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      customer_name: { type: Type.STRING, description: 'Full name of the new customer, e.g. "Raaj".' },
+      phone: { type: Type.STRING, description: 'Optional phone number of the customer.' },
+    },
+    required: ['customer_name'],
+  },
+};
+
+const addCustomerTransactionTool = {
+  name: 'add_customer_transaction',
+  description:
+    'Records a credit or debit against an existing customer account. "credit" = the entrepreneur gave goods/money on udhaar, so the customer now owes MORE (balance increases). "debit" = the customer paid/settled money, so what they owe DECREASES. A plain instruction like "raaj ke khata me 500 dalo" / "add 500 in raaj account" means udhaar given — use type "credit" unless the user explicitly says the customer paid/returned/settled money (जमा/वापस/चुकाया), in which case use "debit". Requires a customer_id from find_customer or create_customer — never guess an ID.',
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      customer_id: { type: Type.STRING, description: 'The UUID of the customer account, from find_customer/create_customer.' },
+      type: { type: Type.STRING, enum: ['credit', 'debit'], description: '"credit" = customer now owes more, "debit" = customer paid/owes less.' },
+      amount: { type: Type.NUMBER, description: 'Amount in Indian Rupees (₹).' },
+      note: { type: Type.STRING, description: 'Optional short note, e.g. "sugar, milk", "part payment".' },
+    },
+    required: ['customer_id', 'type', 'amount'],
+  },
+};
+
+const getCustomerHistoryTool = {
+  name: 'get_customer_history',
+  description: 'Retrieves the current balance and recent transaction history for one customer account.',
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      customer_id: { type: Type.STRING, description: 'The UUID of the customer account.' },
+      limit: { type: Type.INTEGER, description: 'How many recent transactions to include. Defaults to 5.' },
+    },
+    required: ['customer_id'],
+  },
+};
+
+const listCustomersTool = {
+  name: 'list_customers',
+  description: 'Lists all customer accounts (khata) this entrepreneur has, with their current balances. Use when the user asks "sab customers dikhao" / "who owes me money".',
+  parameters: {
+    type: Type.OBJECT,
+    properties: {},
+  },
+};
+
 const khataMitraTools = [
   addLedgerEntryTool,
   getLedgerSummaryTool,
   getRecentEntriesTool,
   checkSchemeEligibilityTool,
   calculateTool,
+  findCustomerTool,
+  createCustomerTool,
+  addCustomerTransactionTool,
+  getCustomerHistoryTool,
+  listCustomersTool,
 ];
 
 // ── Request validation ───────────────────────────────────────────────────
@@ -204,14 +274,20 @@ export async function POST(req: NextRequest) {
       contextInfo += `(No business profile saved yet.)\n`;
     }
 
-    const systemInstruction = `You are Khata Mitra — a friendly, fully autonomous, action-first AI bookkeeping assistant for an Indian micro-entrepreneur using the Saathi Vyapar (साथी व्यापार) app. You help them log daily income/expenses, check their cash flow, and find matching government schemes — all through voice or text, in Hindi, English, or Hinglish.
+    const systemInstruction = `You are Khata Mitra — a friendly, fully autonomous, action-first AI bookkeeping assistant for an Indian micro-entrepreneur using the Saathi Vyapar (साथी व्यापार) app. You help them log daily income/expenses, track credit/debit accounts with named customers, check their cash flow, and find matching government schemes — all through voice or text, in Hindi, English, or Hinglish.
 
 CRITICAL OPERATIONAL RULES:
-1. BE AN AGENT, NOT A CHATBOT: When the user reports a transaction (sale, purchase, payment, bill), immediately call add_ledger_entry. Do not ask for confirmation first — log it, then confirm what you did.
-2. LANGUAGE MATCHING: Always reply in the same language/script/style the user used (Hindi → Hindi, Hinglish → Hinglish, English → English).
-3. SCHEMES: Only mention government scheme names, benefits, or links returned by check_scheme_eligibility. Never invent a scheme or a URL.
-4. SUCCESS CONFIRMATION: After logging an entry, confirm briefly with the amount and type, e.g. "₹500 ki bikri add kar di gayi! ✅"
-5. Be concise — this is a voice-first interface, so keep spoken replies short and clear.
+1. BE AN AGENT, NOT A CHATBOT: When the user reports a general sale/purchase (no customer name involved), immediately call add_ledger_entry. Do not ask for confirmation first — log it, then confirm what you did.
+2. CUSTOMER ACCOUNTS — FIND THEN CREATE THEN TRANSACT: Whenever the user names a specific person for a credit/debit (e.g. "raaj ke khata me 500 dalo", "add 500 in raaj account", "Ramesh ne 200 diye"), you MUST chain tool calls automatically, with NO confirmation in between:
+   a. Call find_customer with that name FIRST.
+   b. If find_customer returns not_found: true, immediately call create_customer with that name — the account does not need to pre-exist, you create it on the spot.
+   c. Then immediately call add_customer_transaction with the resulting customer_id.
+   Never ask the user "should I create this account?" — just do it, then confirm what happened.
+3. CREDIT VS DEBIT DEFAULT: A plain "add ₹X in <name>'s account" or "<name> ke khata me X dalo" means udhaar given — use type "credit" (customer now owes more). Only use "debit" when the user explicitly says the customer paid, returned, or settled money (जमा किया, वापस दिया, pay kiya).
+4. LANGUAGE MATCHING: Always reply in the same language/script/style the user used (Hindi → Hindi, Hinglish → Hinglish, English → English).
+5. SCHEMES: Only mention government scheme names, benefits, or links returned by check_scheme_eligibility. Never invent a scheme or a URL.
+6. SUCCESS CONFIRMATION: After logging anything, confirm briefly with the name/amount/type, e.g. "Raaj ka account bana diya aur ₹500 udhaar (credit) jod diya gaya! Ab Raaj par ₹500 baaki hai. ✅"
+7. Be concise — this is a voice-first interface, so keep spoken replies short and clear.
 
 CURRENT USER CONTEXT:
 ${contextInfo}
@@ -382,6 +458,116 @@ Current Time: ${new Date().toISOString()}`;
           } catch {
             toolResponse = { success: false, error: 'Invalid mathematical expression' };
           }
+        } else if (name === 'find_customer') {
+          const { customer_name } = args as { customer_name: string };
+          const searchName = customer_name.trim();
+
+          const { data: matches, error } = await supabaseServer
+            .from('khata_customers')
+            .select('id, name, phone, balance')
+            .eq('user_id', userId)
+            .ilike('name', `%${searchName}%`);
+
+          if (error) throw error;
+
+          const exact = (matches || []).find((c) => c.name.toLowerCase() === searchName.toLowerCase());
+          const match = exact || (matches && matches[0]);
+
+          if (match) {
+            toolResponse = {
+              success: true,
+              not_found: false,
+              customer_id: match.id,
+              customer_name: match.name,
+              current_balance: match.balance,
+              message: `Found "${match.name}" with customer_id ${match.id}, current balance ₹${match.balance}. Use this customer_id for add_customer_transaction. Do NOT call create_customer.`,
+            };
+          } else {
+            toolResponse = {
+              success: true,
+              not_found: true,
+              message: `No customer named "${customer_name}" found. Call create_customer to create this account now, then add_customer_transaction.`,
+            };
+          }
+        } else if (name === 'create_customer') {
+          const { customer_name, phone } = args as { customer_name: string; phone?: string };
+          const cleanName = customer_name.trim();
+
+          const { data: newCustomer, error } = await supabaseServer
+            .from('khata_customers')
+            .insert({ user_id: userId, name: cleanName, phone: phone || null })
+            .select('id, name, balance')
+            .single();
+
+          if (error) throw error;
+          toolResponse = {
+            success: true,
+            customer_id: newCustomer.id,
+            customer_name: newCustomer.name,
+            message: `Created new customer account "${newCustomer.name}" with customer_id ${newCustomer.id}. Now call add_customer_transaction with this customer_id.`,
+          };
+          executedTools.push(name);
+        } else if (name === 'add_customer_transaction') {
+          const { customer_id, type, amount, note } = args as {
+            customer_id: string;
+            type: 'credit' | 'debit';
+            amount: number;
+            note?: string;
+          };
+
+          const { error: txError } = await supabaseServer.from('khata_transactions').insert({
+            customer_id,
+            user_id: userId,
+            type,
+            amount: Number(amount),
+            note: note || null,
+          });
+          if (txError) throw txError;
+
+          const { data: updatedCustomer } = await supabaseServer
+            .from('khata_customers')
+            .select('name, balance')
+            .eq('id', customer_id)
+            .maybeSingle();
+
+          toolResponse = {
+            success: true,
+            message: `Logged ${type} of ₹${amount} for ${updatedCustomer?.name || 'customer'}. New balance: ₹${updatedCustomer?.balance ?? 'unknown'}.`,
+            new_balance: updatedCustomer?.balance,
+          };
+          executedTools.push(name);
+        } else if (name === 'get_customer_history') {
+          const { customer_id, limit } = args as { customer_id: string; limit?: number };
+
+          const { data: customer } = await supabaseServer
+            .from('khata_customers')
+            .select('name, balance')
+            .eq('id', customer_id)
+            .maybeSingle();
+
+          const { data: txs, error } = await supabaseServer
+            .from('khata_transactions')
+            .select('type, amount, note, created_at')
+            .eq('customer_id', customer_id)
+            .order('created_at', { ascending: false })
+            .limit(limit || 5);
+
+          if (error) throw error;
+          toolResponse = {
+            success: true,
+            customer_name: customer?.name,
+            current_balance: customer?.balance,
+            history: txs || [],
+          };
+        } else if (name === 'list_customers') {
+          const { data: customers, error } = await supabaseServer
+            .from('khata_customers')
+            .select('id, name, balance')
+            .eq('user_id', userId)
+            .order('balance', { ascending: false });
+
+          if (error) throw error;
+          toolResponse = { success: true, customers: customers || [], count: customers?.length || 0 };
         }
       } catch (err) {
         toolResponse = { success: false, error: err instanceof Error ? err.message : 'Unknown tool error' };
@@ -398,7 +584,7 @@ Current Time: ${new Date().toISOString()}`;
       finalAnswer = lang === 'hi' ? 'काम हो गया है।' : 'Done.';
     }
 
-    const dataChangingTools = ['add_ledger_entry'];
+    const dataChangingTools = ['add_ledger_entry', 'create_customer', 'add_customer_transaction'];
     const toolExecuted = executedTools.some((t) => dataChangingTools.includes(t));
 
     return NextResponse.json({ response: finalAnswer, toolExecuted, loggedUserMessage });

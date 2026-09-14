@@ -134,6 +134,52 @@ COMMENT ON TABLE public.facilitators IS 'Field assistants who register and monit
 CREATE INDEX IF NOT EXISTS idx_facilitators_user_id ON public.facilitators(user_id);
 
 -- ============================================================
+-- 8. KHATA CUSTOMERS & TRANSACTIONS (Khata Mitra credit/debit book)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.khata_customers (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  phone       TEXT,
+  balance     NUMERIC(12,2) NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+COMMENT ON TABLE public.khata_customers IS 'Named customer accounts (khata) an entrepreneur tracks credit/debit against';
+CREATE INDEX IF NOT EXISTS idx_khata_customers_user_id ON public.khata_customers(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_khata_customers_user_name ON public.khata_customers(user_id, lower(name));
+
+CREATE TABLE IF NOT EXISTS public.khata_transactions (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  customer_id  UUID NOT NULL REFERENCES public.khata_customers(id) ON DELETE CASCADE,
+  user_id      UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  type         TEXT NOT NULL CHECK (type IN ('credit', 'debit')),
+  amount       NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+  note         TEXT,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+COMMENT ON TABLE public.khata_transactions IS 'Credit (udhaar given / customer owes more) and debit (payment received) entries per customer';
+CREATE INDEX IF NOT EXISTS idx_khata_transactions_customer_id ON public.khata_transactions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_khata_transactions_user_id ON public.khata_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_khata_transactions_created_at ON public.khata_transactions(created_at DESC);
+
+CREATE OR REPLACE FUNCTION public.handle_khata_transaction()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE public.khata_customers
+  SET balance = balance + (CASE WHEN NEW.type = 'credit' THEN NEW.amount ELSE -NEW.amount END),
+      updated_at = NOW()
+  WHERE id = NEW.customer_id;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_khata_transaction_insert ON public.khata_transactions;
+CREATE TRIGGER on_khata_transaction_insert
+  AFTER INSERT ON public.khata_transactions FOR EACH ROW
+  EXECUTE FUNCTION public.handle_khata_transaction();
+
+-- ============================================================
 -- AUTO-UPDATE updated_at TRIGGER
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
@@ -159,6 +205,11 @@ CREATE TRIGGER set_updated_at_schemes
   BEFORE UPDATE ON public.schemes FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS set_updated_at_khata_customers ON public.khata_customers;
+CREATE TRIGGER set_updated_at_khata_customers
+  BEFORE UPDATE ON public.khata_customers FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
 -- ============================================================
 -- ROW LEVEL SECURITY
 -- ============================================================
@@ -169,6 +220,8 @@ ALTER TABLE public.ledger_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.schemes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.business_guides ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.facilitators ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.khata_customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.khata_transactions ENABLE ROW LEVEL SECURITY;
 
 -- Users
 DROP POLICY IF EXISTS "Users can read own profile" ON public.users;
@@ -201,6 +254,12 @@ CREATE POLICY "Own business guides" ON public.business_guides FOR ALL USING (aut
 -- Facilitators
 DROP POLICY IF EXISTS "Facilitators readable" ON public.facilitators;
 CREATE POLICY "Facilitators readable" ON public.facilitators FOR SELECT TO authenticated USING (TRUE);
+
+-- Khata Customers & Transactions
+DROP POLICY IF EXISTS "Own khata customers" ON public.khata_customers;
+CREATE POLICY "Own khata customers" ON public.khata_customers FOR ALL USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Own khata transactions" ON public.khata_transactions;
+CREATE POLICY "Own khata transactions" ON public.khata_transactions FOR ALL USING (auth.uid() = user_id);
 
 -- ============================================================
 -- SEED DATA — 15 Government Schemes
