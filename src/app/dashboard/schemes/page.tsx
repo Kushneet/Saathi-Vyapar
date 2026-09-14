@@ -316,7 +316,7 @@ function YojanaKendraContent() {
               <LanguageToggleButton />
               <Link
                 href={`/dashboard${userId && paramUserId ? `?user_id=${userId}` : ''}`}
-                className="px-3.5 py-2 bg-white hover:bg-[#EDE9DA] text-xs font-semibold rounded-full border border-[#C9A24B]/30 transition-colors whitespace-nowrap"
+                className="px-3.5 py-2 bg-white hover:bg-[#EDE9DA] text-xs font-semibold rounded-full border border-[#0B1E33]/50 transition-colors whitespace-nowrap"
               >
                 {t('yk_back')}
               </Link>
@@ -377,7 +377,7 @@ function YojanaKendraContent() {
                   <button
                     type="button"
                     onClick={startEdit}
-                    className="cursor-pointer shrink-0 px-3.5 py-2 text-xs font-semibold rounded-full border border-[#C9A24B]/30 bg-[#F5F1E6] hover:bg-[#EDE9DA] transition-colors"
+                    className="cursor-pointer shrink-0 px-3.5 py-2 text-xs font-semibold rounded-full border border-[#0B1E33]/50 bg-white hover:bg-[#EDE9DA] transition-colors"
                   >
                     {t('yk_change')}
                   </button>
@@ -520,7 +520,7 @@ function YojanaKendraContent() {
                     className={`cursor-pointer shrink-0 px-3.5 py-2 rounded-full text-xs font-semibold border transition-colors ${
                       filter === f.id
                         ? 'bg-[#0B1E33] text-[#F5F1E6] border-[#0B1E33]'
-                        : 'bg-white text-[#0B1E33] border-[#C9A24B]/30 hover:bg-[#EDE9DA]'
+                        : 'bg-white text-[#0B1E33] border-[#0B1E33]/50 hover:bg-[#EDE9DA]'
                     }`}
                   >
                     {f.label}
@@ -558,7 +558,7 @@ function YojanaKendraContent() {
                   <span className="text-[#0B1E33]/50 ml-2">{papersOpen ? '▴' : '▾'}</span>
                 </button>
                 {papersOpen && (
-                  <div className="absolute z-20 mt-1 w-full bg-white border border-[#C9A24B]/30 rounded-2xl shadow-[0_12px_32px_rgba(11,30,51,0.12)] p-2">
+                  <div className="absolute z-20 mt-1 w-full bg-white border-[1.5px] border-[#0B1E33]/60 rounded-2xl shadow-[0_12px_32px_rgba(11,30,51,0.12)] p-2">
                     {PAPERS.map((paper) => (
                       <label key={paper} className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[#F5F1E6] cursor-pointer text-sm">
                         <input
@@ -691,7 +691,7 @@ function YojanaKendraContent() {
 // ── Small pieces ────────────────────────────────────────────────────────────
 
 const inputCls =
-  'w-full bg-[#F5F1E6] text-[#0B1E33] px-3.5 py-2.5 border border-[#C9A24B]/30 rounded-2xl text-sm focus:outline-none focus:bg-white focus:border-[#C9A24B]';
+  'w-full bg-white text-[#0B1E33] px-3.5 py-2.5 border-[1.5px] border-[#0B1E33]/60 rounded-2xl text-sm focus:outline-none focus:border-[#0B1E33]';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -723,7 +723,7 @@ function Toggle({ active, onClick, children }: { active: boolean; onClick: () =>
       type="button"
       onClick={onClick}
       className={`cursor-pointer px-3 py-2.5 rounded-2xl text-sm font-semibold border transition-colors ${
-        active ? 'bg-[#0B1E33] text-[#F5F1E6] border-[#0B1E33]' : 'bg-[#F5F1E6] border-[#C9A24B]/30 hover:bg-[#EDE9DA]'
+        active ? 'bg-[#0B1E33] text-[#F5F1E6] border-[#0B1E33]' : 'bg-white border-[#0B1E33]/50 hover:bg-[#EDE9DA]'
       }`}
     >
       {children}
