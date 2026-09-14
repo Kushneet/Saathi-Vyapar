@@ -41,6 +41,8 @@ export interface OnboardingData {
   existing_loans: boolean;
   /** Outstanding amount across all loans; only meaningful when existing_loans is true. */
   loan_amount?: number;
+  /** What goes out every month towards those loans (EMI). */
+  loan_monthly_payment?: number;
   consent_given: boolean;
 }
 

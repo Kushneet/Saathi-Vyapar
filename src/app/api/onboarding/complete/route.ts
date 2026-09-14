@@ -28,6 +28,7 @@ const OnboardingCompleteSchema = z.object({
   monthly_expense_est: z.number().min(0, 'Monthly expense must be positive'),
   existing_loans: z.boolean().default(false),
   loan_amount: z.number().min(0).optional(),
+  loan_monthly_payment: z.number().min(0).optional(),
   category: z.string().optional(),
   gender: z.string().optional(),
   shg_membership: z.union([z.boolean(), z.string()]).optional(),
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
       existing_loans: data.existing_loans,
       // Only meaningful with a loan; a stray figure without one is dropped.
       loan_amount: data.existing_loans ? data.loan_amount ?? null : null,
+      loan_monthly_payment: data.existing_loans ? data.loan_monthly_payment ?? null : null,
       category: data.category || 'general',
       gender: data.gender || 'other',
       shg_membership: data.shg_membership ?? (data.is_shg_member ? 'shg_member' : 'none'),
