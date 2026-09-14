@@ -33,6 +33,7 @@ import Link from 'next/link';
 import LanguageToggleButton from '@/components/LanguageToggleButton';
 import { useLanguage } from '@/contexts/LanguageContext';
 import ChatPanel from '@/components/ChatPanel';
+import Reveal from '@/components/Reveal';
 
 /**
  * The worked example, labelled as an example on the page.
@@ -134,7 +135,7 @@ export default function HomePage() {
         {/* ── Hero: words left, the worked example right ─────────────── */}
         <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-12 sm:pt-16 sm:pb-14">
           <div className="grid lg:grid-cols-[1fr_1.05fr] gap-10 lg:gap-14 items-center">
-            <div>
+            <Reveal>
               <p className="text-[13px] font-semibold tracking-[0.12em] uppercase text-[#3F6B52]">
                 {t('hp_eyebrow')}
               </p>
@@ -152,7 +153,7 @@ export default function HomePage() {
               <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-3">
                 <Link
                   href="/onboarding"
-                  className="bg-[#C9A227] hover:bg-[#B08A1E] text-white font-bold text-[17px] px-8 py-4 rounded-full transition-colors"
+                  className="bg-[#C9A227] hover:bg-[#B08A1E] text-white font-bold text-[17px] px-8 py-4 rounded-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(201,162,39,0.30)]"
                 >
                   {t('hp_hero_cta')} →
                 </Link>
@@ -160,11 +161,11 @@ export default function HomePage() {
                   {t('hp_hero_secondary')}
                 </Link>
               </div>
-            </div>
+            </Reveal>
 
             {/* The worked example. One soft disc behind it for depth — no
                 handwriting, no drawn arrows: this goes in front of judges. */}
-            <div className="relative">
+            <Reveal delay={2} className="relative">
               <span
                 aria-hidden="true"
                 className="hidden lg:block absolute -top-8 -right-4 w-[24rem] h-[24rem] rounded-full bg-[#BFCFB4]/45"
@@ -219,18 +220,18 @@ export default function HomePage() {
 
                 <p className="mt-4 text-xs leading-relaxed text-[#1B4332]/50">{t('hp_demo_note')}</p>
               </div>
-            </div>
+            </Reveal>
           </div>
         </section>
 
         {/* ── What you can do, at a glance ───────────────────────────── */}
         <section className="bg-[#F3EFE2]/70 border-y border-[#1B4332]/8">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {strip.map((item) => (
-              <div key={item.title} className="pt-4 border-t border-[#1B4332]/15">
+            {strip.map((item, i) => (
+              <Reveal key={item.title} delay={((i % 4) + 1) as 1 | 2 | 3 | 4} className="pt-4 border-t border-[#1B4332]/15 transition-transform duration-300 hover:-translate-y-0.5">
                 <h3 className="font-semibold text-[15px] leading-snug text-[#1B4332]">{item.title}</h3>
                 <p className="text-[13px] text-[#1B4332]/55 mt-1.5">{item.sub}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </section>
@@ -241,11 +242,11 @@ export default function HomePage() {
             <h2 className="font-['Roboto',sans-serif] text-2xl sm:text-3xl font-bold text-[#1B4332]">{t('hp_help_title')}</h2>
 
             <div className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2">
-              {helps.map((item) => (
-                <div key={item.q} className="border-l-2 border-[#C9A227]/45 pl-4">
+              {helps.map((item, i) => (
+                <Reveal key={item.q} delay={((i % 4) + 1) as 1 | 2 | 3 | 4} className="border-l-2 border-[#C9A227]/45 hover:border-[#C9A227] pl-4 transition-colors duration-300">
                   <h3 className="font-bold text-[17px] leading-snug text-[#1B4332]">{item.q}</h3>
                   <p className="mt-1.5 text-[15px] leading-relaxed text-[#1B4332]/70">{item.a}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -257,12 +258,14 @@ export default function HomePage() {
 
           <ol className="mt-8 grid gap-6 sm:grid-cols-3">
             {steps.map((step, i) => (
-              <li key={step.title} className="pt-4 border-t border-[#1B4332]/15">
+              <li key={step.title}>
+                <Reveal delay={((i % 4) + 1) as 1 | 2 | 3 | 4} className="pt-4 border-t border-[#1B4332]/15 transition-transform duration-300 hover:-translate-y-0.5">
                 <span className="block font-['Roboto',sans-serif] text-sm font-bold text-[#C9A227] tracking-wider">
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <h3 className="mt-2 font-bold text-[17px] text-[#1B4332]">{step.title}</h3>
-                <p className="mt-1.5 text-[15px] leading-relaxed text-[#1B4332]/70">{step.body}</p>
+                  <p className="mt-1.5 text-[15px] leading-relaxed text-[#1B4332]/70">{step.body}</p>
+                </Reveal>
               </li>
             ))}
           </ol>
@@ -296,7 +299,7 @@ export default function HomePage() {
 
           <Link
             href="/onboarding"
-            className="mt-7 inline-block bg-[#C9A227] hover:bg-[#B08A1E] text-white font-bold px-8 py-4 rounded-full transition-colors"
+            className="mt-7 inline-block bg-[#C9A227] hover:bg-[#B08A1E] text-white font-bold px-8 py-4 rounded-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(201,162,39,0.30)]"
           >
             {t('hp_hero_cta')} →
           </Link>
