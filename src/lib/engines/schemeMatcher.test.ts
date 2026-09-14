@@ -378,3 +378,36 @@ describe('sectorMatches', () => {
     expect(sectorMatches('Agriculture', ['Farming'])).toBe(true);
   });
 });
+
+describe('ranking of eligible schemes', () => {
+  const profile: BusinessProfile = {
+    monthly_revenue_est: 25000,
+    monthly_expense_est: 15000,
+    existing_loans: false,
+    sector: 'retail',
+  };
+  const portal: SchemeRecord = { id: 'portal', name: 'Grievance Portal', eligibility_rules: {}, scheme_type: 'other' };
+  const loan: SchemeRecord = {
+    id: 'loan', name: 'Small Loan', eligibility_rules: { income_max: 2500000, sector: ['retail'] }, scheme_type: 'loan',
+  };
+  const registration: SchemeRecord = {
+    id: 'reg', name: 'Registration', eligibility_rules: { sector: ['retail'] }, scheme_type: 'registration',
+  };
+
+  it('puts schemes that matched the person before ones with no rules', () => {
+    const ids = matchSchemes(profile, [portal, registration, loan]).map((r) => r.scheme.id);
+    expect(ids).toEqual(['loan', 'reg', 'portal']);
+  });
+
+  it('puts money before portals when the fit is equal', () => {
+    const grant: SchemeRecord = { id: 'grant', name: 'Grant', eligibility_rules: {}, scheme_type: 'subsidy' };
+    const ids = matchSchemes(profile, [portal, grant]).map((r) => r.scheme.id);
+    expect(ids).toEqual(['grant', 'portal']);
+  });
+
+  it('still lists ineligible schemes last', () => {
+    const women: SchemeRecord = { id: 'w', name: 'Women only', eligibility_rules: { gender: 'female' }, scheme_type: 'loan' };
+    const ids = matchSchemes({ ...profile, gender: 'male' }, [women, portal]).map((r) => r.scheme.id);
+    expect(ids).toEqual(['portal', 'w']);
+  });
+});

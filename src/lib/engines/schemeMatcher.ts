@@ -47,6 +47,8 @@ export interface SchemeRecord {
   /** Applicant document checklist (schemes.required_documents). */
   required_documents?: string[];
   active?: boolean;
+  /** loan | subsidy | direct_benefit | credit_guarantee | training | registration | other (schemes.scheme_type). */
+  scheme_type?: string | null;
 }
 
 /** Business profile input for matching */
@@ -290,9 +292,29 @@ export function matchSchemes(
     return { scheme, eligible, reasons };
   });
 
-  // Sort: eligible schemes first
+  // Eligible first. Within the eligible set, the ones that matched this
+  // person specifically come before the ones that match everyone, and
+  // money before portals: a kirana owner's top result should be a loan or
+  // subsidy they fit, not a grievance portal that has no rules at all.
   return results.sort((a, b) => {
-    if (a.eligible === b.eligible) return 0;
-    return a.eligible ? -1 : 1;
+    if (a.eligible !== b.eligible) return a.eligible ? -1 : 1;
+    if (!a.eligible) return 0;
+    const fit = specificMatches(b) - specificMatches(a);
+    if (fit !== 0) return fit;
+    return typeRank(a.scheme.scheme_type) - typeRank(b.scheme.scheme_type);
   });
+}
+
+/** How many rules this person satisfied, ignoring the "no rules" tick. */
+function specificMatches(result: MatchResult): number {
+  return result.reasons.filter((r) => r.startsWith('✓') && !r.includes('no specific eligibility')).length;
+}
+
+const TYPE_ORDER = ['loan', 'subsidy', 'direct_benefit', 'credit_guarantee', 'training', 'registration', 'other'];
+
+/** Lower is better. Rows without a type (the original seed) sit with loans/subsidies. */
+function typeRank(type?: string | null): number {
+  if (!type) return 1;
+  const i = TYPE_ORDER.indexOf(type);
+  return i === -1 ? TYPE_ORDER.length : i;
 }

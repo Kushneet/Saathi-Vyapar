@@ -164,6 +164,7 @@ export async function POST(request: NextRequest) {
       application_link: s.application_link,
       sponsoring_body: s.sponsoring_body,
       required_documents: s.required_documents || [],
+      scheme_type: s.scheme_type ?? null,
     }));
 
     const businessProfile: BusinessProfile = {
