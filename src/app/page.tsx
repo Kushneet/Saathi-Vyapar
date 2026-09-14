@@ -226,9 +226,9 @@ export default function HomePage() {
 
         {/* ── What you can do, at a glance ───────────────────────────── */}
         <section className="bg-[#F3EFE2]/70 border-y border-[#1B4332]/8">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid gap-8 sm:gap-10 sm:grid-cols-2 lg:grid-cols-4">
             {strip.map((item, i) => (
-              <Reveal key={item.title} delay={((i % 4) + 1) as 1 | 2 | 3 | 4} className="pt-4 border-t border-[#1B4332]/15 transition-transform duration-300 hover:-translate-y-0.5">
+              <Reveal key={item.title} delay={((i % 4) + 1) as 1 | 2 | 3 | 4} className="transition-transform duration-300 hover:-translate-y-0.5">
                 <h3 className="font-semibold text-[15px] leading-snug text-[#1B4332]">{item.title}</h3>
                 <p className="text-[13px] text-[#1B4332]/55 mt-1.5">{item.sub}</p>
               </Reveal>
@@ -241,11 +241,13 @@ export default function HomePage() {
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
             <h2 className="font-['Roboto',sans-serif] text-2xl sm:text-3xl font-bold text-[#1B4332]">{t('hp_help_title')}</h2>
 
-            <div className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2">
+            <div className="mt-8 max-w-3xl divide-y divide-[#1B4332]/10">
               {helps.map((item, i) => (
-                <Reveal key={item.q} delay={((i % 4) + 1) as 1 | 2 | 3 | 4} className="border-l-2 border-[#C9A227]/45 hover:border-[#C9A227] pl-4 transition-colors duration-300">
-                  <h3 className="font-bold text-[17px] leading-snug text-[#1B4332]">{item.q}</h3>
-                  <p className="mt-1.5 text-[15px] leading-relaxed text-[#1B4332]/70">{item.a}</p>
+                <Reveal key={item.q} delay={((i % 4) + 1) as 1 | 2 | 3 | 4}>
+                  <div className="py-5 first:pt-0">
+                    <h3 className="font-bold text-[19px] leading-snug text-[#1B4332]">{item.q}</h3>
+                    <p className="mt-2 text-[16px] leading-relaxed text-[#1B4332]/70">{item.a}</p>
+                  </div>
                 </Reveal>
               ))}
             </div>
@@ -256,15 +258,15 @@ export default function HomePage() {
         <section id="how" className="max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-20 scroll-mt-16">
           <h2 className="font-['Roboto',sans-serif] text-2xl sm:text-3xl font-bold text-[#1B4332]">{t('hp_how_title')}</h2>
 
-          <ol className="mt-8 grid gap-6 sm:grid-cols-3">
+          <ol className="mt-8 grid gap-8 sm:gap-10 sm:grid-cols-3">
             {steps.map((step, i) => (
               <li key={step.title}>
-                <Reveal delay={((i % 4) + 1) as 1 | 2 | 3 | 4} className="pt-4 border-t border-[#1B4332]/15 transition-transform duration-300 hover:-translate-y-0.5">
-                <span className="block font-['Roboto',sans-serif] text-sm font-bold text-[#C9A227] tracking-wider">
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <h3 className="mt-2 font-bold text-[17px] text-[#1B4332]">{step.title}</h3>
-                  <p className="mt-1.5 text-[15px] leading-relaxed text-[#1B4332]/70">{step.body}</p>
+                <Reveal delay={((i % 4) + 1) as 1 | 2 | 3 | 4}>
+                  <h3 className="font-bold text-[17px] text-[#1B4332]">
+                    <span className="text-[#C9A227] mr-2">{i + 1}.</span>
+                    {step.title}
+                  </h3>
+                  <p className="mt-2 text-[15px] leading-relaxed text-[#1B4332]/70">{step.body}</p>
                 </Reveal>
               </li>
             ))}

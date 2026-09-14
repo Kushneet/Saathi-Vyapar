@@ -21,10 +21,11 @@ export function useInView<T extends HTMLElement = HTMLDivElement>(rootMargin = '
     const el = ref.current;
     if (!el) return;
 
-    // Without the API, or where the reader has asked for less motion, show
-    // everything immediately rather than leaving content invisible.
+    // Without the API, show everything rather than leaving content invisible.
+    // Queued rather than set straight away: a synchronous setState inside an
+    // effect triggers a cascading render, and the React compiler rejects it.
     if (typeof IntersectionObserver === 'undefined') {
-      setInView(true);
+      queueMicrotask(() => setInView(true));
       return;
     }
 
