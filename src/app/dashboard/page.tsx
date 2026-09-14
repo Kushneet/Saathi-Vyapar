@@ -725,8 +725,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 href={`/dashboard/schemes?user_id=${user.id}`}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] font-bold text-xs sm:text-sm rounded-full transition-all shadow-sm"
               >
-                <span>🏛️ Open Yojana Kendra — All 15+ Schemes, Eligibility & Document Checklist</span>
-                <span>→</span>
+                <span>{t('dashboard_open_yojana')}</span>
               </Link>
             </div>
           </section>
