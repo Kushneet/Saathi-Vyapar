@@ -375,23 +375,12 @@ export default function LoginForm() {
                 <span className="text-base shrink-0">⚠️</span>
                 <div className="flex-1 leading-relaxed font-medium">{activeError}</div>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setError('');
-                  setSuccessMessage('Continuing in Demo Mode... Redirecting to dashboard...');
-                  setTimeout(() => {
-                    const next = searchParams.get('next') || '/dashboard';
-                    router.push(next);
-                    router.refresh();
-                  }, 600);
-                }}
-                className="self-start text-[11px] font-bold text-[#0B1E33] bg-amber-100 hover:bg-amber-200 border border-amber-300 px-3 py-1.5 rounded-full transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
-              >
-                <span>👉</span>
-                <span>Continue as Demo User</span>
-              </button>
-            </div>
+              {/* "Continue as Demo User" used to sit here. It only pushed the
+                  router at /dashboard — no sign-in — which worked back when the
+                  dashboard rendered for anyone. The dashboard now requires a
+                  session, so the button sent the user straight back to this
+                  page. A control that promises access and returns a loop is
+                  worse than no control. */}            </div>
           )}
 
           {/* Success Alert */}
