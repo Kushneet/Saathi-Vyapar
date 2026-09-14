@@ -223,47 +223,60 @@ export function generateFinancialSummary(
 }
 
 /**
- * The same figures, said plainly, in the language on screen.
+ * The same figures, said plainly, in the language on screen — as two or
+ * three short points a person can take in at a glance.
  *
  * `explanation` above is the English template the plan stores when no model
- * is configured; it is also what the dashboard used to show a Hindi-mode
- * user. This is the version to render: short, everyday words, no
- * "discretionary expenses", and available in both languages.
+ * is configured; the dashboard used to print that paragraph (or the model's)
+ * whole. This is what to render instead.
  */
-export function explainPlain(
+export function explainPoints(
   summary: Pick<FinancialSummaryOutput, 'netProfit' | 'marginPercent' | 'breakEvenRevenue' | 'cashFlowRisk'>,
   lang: 'hi' | 'en',
   existingLoans = false
-): string {
+): string[] {
   const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
   const { netProfit, marginPercent, breakEvenRevenue, cashFlowRisk } = summary;
   const be = isFinite(breakEvenRevenue) ? inr(breakEvenRevenue) : null;
 
   if (lang === 'hi') {
-    const kept =
+    const points = [
       netProfit >= 0
-        ? `इस महीने आपके पास ${inr(netProfit)} बचे — हर ₹100 में से ₹${marginPercent.toFixed(0)}।`
-        : `इस महीने ${inr(Math.abs(netProfit))} कम पड़े — खर्च कमाई से ज़्यादा है।`;
-    const need = be ? ` खर्च निकालने के लिए हर महीने कम से कम ${be} की बिक्री चाहिए।` : '';
-    const risk = {
-      low: ' पैसा सुरक्षित है — कमाई और खर्च में अच्छा फ़ासला है।',
-      medium: ' थोड़ा ध्यान रखें — फ़ासला ज़्यादा नहीं है।',
-      high: ' सावधान — खर्च कमाई के बहुत करीब है।',
-    }[cashFlowRisk];
-    const loan = existingLoans ? ' लोन की किस्त को भी इसी में गिनें।' : '';
-    return `${kept}${need}${risk}${loan}`;
+        ? `इस महीने ${inr(netProfit)} बचे — हर ₹100 में से ₹${marginPercent.toFixed(0)}।`
+        : `इस महीने ${inr(Math.abs(netProfit))} कम पड़े — खर्च कमाई से ज़्यादा है।`,
+    ];
+    if (be) points.push(`खर्च निकालने के लिए हर महीने कम से कम ${be} की बिक्री चाहिए।`);
+    points.push(
+      {
+        low: 'पैसा सुरक्षित है — कमाई और खर्च में अच्छा फ़ासला है।',
+        medium: 'थोड़ा ध्यान रखें — फ़ासला ज़्यादा नहीं है।',
+        high: 'सावधान — खर्च कमाई के बहुत करीब है।',
+      }[cashFlowRisk] + (existingLoans ? ' लोन की किस्त भी इसी में गिनें।' : '')
+    );
+    return points;
   }
 
-  const kept =
+  const points = [
     netProfit >= 0
-      ? `You kept ${inr(netProfit)} this month — ₹${marginPercent.toFixed(0)} out of every ₹100.`
-      : `You were short by ${inr(Math.abs(netProfit))} this month — costs are more than sales.`;
-  const need = be ? ` To cover costs you need at least ${be} in sales every month.` : '';
-  const risk = {
-    low: ' Your money is safe — there is a good gap between what comes in and what goes out.',
-    medium: ' Keep an eye on it — the gap is not large.',
-    high: ' Be careful — costs are very close to sales.',
-  }[cashFlowRisk];
-  const loan = existingLoans ? ' Count the loan instalment in this too.' : '';
-  return `${kept}${need}${risk}${loan}`;
+      ? `You kept ${inr(netProfit)} this month — ₹${marginPercent.toFixed(0)} of every ₹100.`
+      : `You were short by ${inr(Math.abs(netProfit))} this month — costs are more than sales.`,
+  ];
+  if (be) points.push(`You need at least ${be} in sales every month to cover costs.`);
+  points.push(
+    {
+      low: 'Your money is safe — a good gap between what comes in and what goes out.',
+      medium: 'Keep an eye on it — the gap is not large.',
+      high: 'Be careful — costs are very close to sales.',
+    }[cashFlowRisk] + (existingLoans ? ' Count the loan instalment in this too.' : '')
+  );
+  return points;
+}
+
+/** The points above as one paragraph, for places that store a single string. */
+export function explainPlain(
+  summary: Pick<FinancialSummaryOutput, 'netProfit' | 'marginPercent' | 'breakEvenRevenue' | 'cashFlowRisk'>,
+  lang: 'hi' | 'en',
+  existingLoans = false
+): string {
+  return explainPoints(summary, lang, existingLoans).join(' ');
 }

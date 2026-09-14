@@ -19,6 +19,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSpeechSupported } from '@/lib/hooks/useSpeechSupported';
 
@@ -38,13 +39,15 @@ interface SpeechRecognitionLike {
   onend: (() => void) | null;
 }
 
-interface Props {
-  /** Facilitator asking on behalf of a linked entrepreneur. */
-  userId?: string;
-}
-
-export default function ChatPanel({ userId }: Props) {
+/**
+ * Mounted once, in the root layout, so it is on every page. A facilitator
+ * viewing an entrepreneur's pages carries `?user_id=` in the URL; the
+ * panel passes that along so the answers are about that person. The
+ * server still decides whether the caller may see them.
+ */
+export default function ChatPanel() {
   const { t, language } = useLanguage();
+  const userId = useSearchParams().get('user_id') ?? undefined;
   const speechSupported = useSpeechSupported();
 
   const [open, setOpen] = useState(false);

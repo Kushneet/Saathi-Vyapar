@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
 import { requirePageUser, resolveTargetUserId } from '@/lib/auth/requireUser';
-import { calculateMarginPercent, assessCashFlowRisk, explainPlain } from '@/lib/engines/financialEngine';
+import { calculateMarginPercent, assessCashFlowRisk, explainPoints } from '@/lib/engines/financialEngine';
 import { localizeReason } from '@/lib/engines/localizeReason';
 import { sectorLabel } from '@/lib/engines/sectorLabel';
 import { matchSchemes, SchemeRecord } from '@/lib/engines/schemeMatcher';
@@ -23,7 +23,6 @@ import { getServerT } from '@/lib/i18n.server';
 import LogoutButton from './LogoutButton';
 import LanguageToggleButton from '@/components/LanguageToggleButton';
 import LedgerPhotoUpload from '@/components/LedgerPhotoUpload';
-import ChatPanel from '@/components/ChatPanel';
 
 interface PageProps {
   searchParams: Promise<{ user_id?: string }>;
@@ -243,10 +242,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        {/* Also here, not only on the full dashboard. Someone who has not
-            finished their profile is the person most likely to have a
-            question, and this early return used to skip the panel entirely. */}
-        <ChatPanel />
       </div>
     );
   }
@@ -397,32 +392,27 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     : Number(profile.monthly_expense_est) || null;
   const eligibleCount = matchedSchemes.filter((s) => s.eligible).length;
 
-  // The stored summary is whatever the plan was phrased in at the time —
-  // Hindi from the model, or the English template. Show it only when it is
-  // in the language on screen; otherwise say the same figures plainly in
-  // that language. A Hindi-mode user must never meet "discretionary expenses".
-  const storedSummary = latestPlan?.summary_text || '';
-  const storedIsHindi = /[\u0900-\u097F]/.test(storedSummary);
-  const summaryForScreen =
-    storedSummary && storedIsHindi === (language === 'hi')
-      ? storedSummary
-      : explainPlain(
-          {
-            netProfit,
-            marginPercent: calculateMarginPercent(
-              Number(profile.monthly_revenue_est) || 0,
-              Number(profile.monthly_expense_est) || 0
-            ),
-            breakEvenRevenue: breakEvenRevenue ?? Infinity,
-            cashFlowRisk: assessCashFlowRisk(
-              Number(profile.monthly_revenue_est) || 0,
-              Number(profile.monthly_expense_est) || 0,
-              Boolean(profile.existing_loans)
-            ),
-          },
-          language,
-          Boolean(profile.existing_loans)
-        );
+  // Two or three short points from the live figures, in the on-screen
+  // language. The plan's stored paragraph (the model's, or the engine's
+  // English template with "discretionary expenses") is not shown here:
+  // it was a wall of text and could be in the wrong language.
+  const summaryPoints = explainPoints(
+    {
+      netProfit,
+      marginPercent: calculateMarginPercent(
+        Number(profile.monthly_revenue_est) || 0,
+        Number(profile.monthly_expense_est) || 0
+      ),
+      breakEvenRevenue: breakEvenRevenue ?? Infinity,
+      cashFlowRisk: assessCashFlowRisk(
+        Number(profile.monthly_revenue_est) || 0,
+        Number(profile.monthly_expense_est) || 0,
+        Boolean(profile.existing_loans)
+      ),
+    },
+    language,
+    Boolean(profile.existing_loans)
+  );
 
   // ── Chart series, computed from the ledger ───────────────────────
   // The SVG below used to draw two hard-coded polylines: the same rising
@@ -550,9 +540,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 <h2 className="text-xs sm:text-sm font-bold text-[#C9A24B] uppercase tracking-wider">
                   {t('dashboard_advisory_label')}
                 </h2>
-                <p className="text-[#0B1E33] text-base sm:text-lg leading-relaxed font-semibold">
-                  {summaryForScreen}
-                </p>
+                <ul className="space-y-1.5">
+                  {summaryPoints.map((point, i) => (
+                    <li key={i} className="flex gap-2.5 text-[#0B1E33] text-base sm:text-lg leading-snug font-semibold">
+                      <span className="text-[#C9A24B] shrink-0">•</span>
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
                 {latestPlan?.created_at && (
                   <p className="text-xs text-[#0B1E33]/50 pt-1">
                     {t('dashboard_updated')}{' '}
@@ -821,11 +816,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </section>
         </main>
       </div>
-
-      {/* Asking is easier than navigating for someone who finds a dashboard
-          hard to read, and every figure it quotes comes from the same engines
-          these cards use. */}
-      <ChatPanel userId={user.id === sessionUser.id ? undefined : user.id} />
     </div>
   );
 }

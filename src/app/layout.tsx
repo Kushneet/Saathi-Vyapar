@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Suspense } from "react";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import ChatPanel from "@/components/ChatPanel";
 import { getServerLanguage } from "@/lib/i18n.server";
 
 export const metadata: Metadata = {
@@ -53,6 +55,11 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-[#F5F1E6] text-[#0B1E33] font-['Open_Sans',sans-serif]">
         <LanguageProvider initialLanguage={language}>
           {children}
+          {/* Ask Saathi on every page. Suspense because the panel reads the
+              URL (?user_id=) with useSearchParams. */}
+          <Suspense fallback={null}>
+            <ChatPanel />
+          </Suspense>
         </LanguageProvider>
       </body>
     </html>

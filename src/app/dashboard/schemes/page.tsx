@@ -32,7 +32,7 @@ import { sectorLabel } from '@/lib/engines/sectorLabel';
 
 type Lang = 'hi' | 'en';
 type Kind = 'loan' | 'subsidy' | 'direct_benefit' | 'credit_guarantee' | 'training' | 'registration' | 'other';
-type Filter = 'eligible' | Kind | 'ineligible';
+type Filter = 'eligible' | Kind | 'ineligible' | 'all';
 type Sort = 'best' | 'name' | 'amount';
 
 /** A scheme row with the optional Hindi columns. */
@@ -72,6 +72,30 @@ function kindOf(s: SchemeRow): Kind {
   return (s.scheme_type || SEED_KIND[s.id] || 'other') as Kind;
 }
 
+/**
+ * What kind of paper a document string is asking for, so the user can tick
+ * "I have Aadhaar, PAN and a bank passbook" and see only the schemes those
+ * are enough for. Strings are free text from the table; keywords decide.
+ * Anything unrecognised is 'other', which the user can also tick.
+ */
+type Paper = 'aadhaar' | 'pan' | 'bank' | 'udyam' | 'address' | 'caste' | 'shop';
+/** Only papers that are an identity or a proof. Photos, quotations and
+ *  project reports are not filtered on: everyone can get those made. */
+const PAPERS: Paper[] = ['aadhaar', 'pan', 'bank', 'udyam', 'address', 'caste', 'shop'];
+
+function paperOf(doc: string): Paper | null {
+  const d = doc.toLowerCase();
+  // Udyam first: "उद्यम आधार" contains "आधार" and is not an Aadhaar card.
+  if (/udyam|उद्यम|msme reg|incorporation|पंजीकरण/.test(d)) return 'udyam';
+  if (/aadhaar|आधार|voter|पहचान/.test(d)) return 'aadhaar';
+  if (/\bpan\b|पैन|फॉर्म 60/.test(d)) return 'pan';
+  if (/bank|बैंक|passbook|पासबुक|statement/.test(d)) return 'bank';
+  if (/address|निवास|ration|राशन|residence/.test(d)) return 'address';
+  if (/caste|जाति|sc\/st/.test(d)) return 'caste';
+  if (/shop|दुकान|कार्यस्थल|vending|वेंडिंग/.test(d)) return 'shop';
+  return null;
+}
+
 /** "आधार कार्ड (Aadhaar Card)" → one language. Anything else is returned whole. */
 function docLabel(doc: string, lang: Lang): string {
   const m = doc.match(/^(.*?)\s*\(([^()]*[A-Za-z][^()]*)\)\s*$/);
@@ -83,6 +107,15 @@ function docLabel(doc: string, lang: Lang): string {
 }
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
+
+/**
+ * "How much do you need?" slider stops. A linear slider from ₹5,000 to
+ * ₹50 lakh would put every small loan in its first millimetre, so the
+ * stops are roughly logarithmic; index 0 means "any amount".
+ */
+const AMOUNT_STOPS = [0, 5000, 10000, 25000, 50000, 100000, 200000, 500000, 1000000, 2500000, 5000000];
+const inrShort = (n: number) =>
+  n >= 10000000 ? `₹${n / 10000000} Cr` : n >= 100000 ? `₹${n / 100000} L` : `₹${(n / 1000).toFixed(0)}k`;
 
 function toMatchProfile(p: ProfileRow): BusinessProfile {
   return {
@@ -122,6 +155,9 @@ function YojanaKendraContent() {
   const [filter, setFilter] = useState<Filter>('eligible');
   const [sort, setSort] = useState<Sort>('best');
   const [query, setQuery] = useState('');
+  const [have, setHave] = useState<Set<Paper>>(new Set());
+  const [amountIdx, setAmountIdx] = useState(0);
+  const [papersOpen, setPapersOpen] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [ticked, setTicked] = useState<Record<string, boolean>>({});
 
@@ -182,7 +218,29 @@ function YojanaKendraContent() {
     let list = results;
     if (filter === 'eligible') list = list.filter((r) => r.eligible);
     else if (filter === 'ineligible') list = list.filter((r) => !r.eligible);
-    else list = list.filter((r) => r.eligible && kindOf(r.scheme as SchemeRow) === filter);
+    else if (filter !== 'all') list = list.filter((r) => r.eligible && kindOf(r.scheme as SchemeRow) === filter);
+
+    // "How much do you need?": keep loans whose range covers the amount.
+    // Schemes that are not about a loan amount (training, registration)
+    // are not what someone moving this slider is looking for.
+    const want = AMOUNT_STOPS[amountIdx];
+    if (want > 0) {
+      list = list.filter((r) => {
+        const { loan_amount_min, loan_amount_max } = r.scheme.eligibility_rules;
+        if (loan_amount_min === undefined && loan_amount_max === undefined) return false;
+        return (loan_amount_min ?? 0) <= want && want <= (loan_amount_max ?? Infinity);
+      });
+    }
+
+    // "Papers I have": keep schemes whose every ID-type paper is one the
+    // user ticked (photos and the like are ignored). Nothing ticked means
+    // no restriction.
+    if (have.size > 0) {
+      list = list.filter((r) => {
+        const ids = ((r.scheme as SchemeRow).required_documents ?? []).map(paperOf).filter((x): x is Paper => x !== null);
+        return ids.every((x) => have.has(x));
+      });
+    }
 
     const q = query.trim().toLowerCase();
     if (q) {
@@ -203,7 +261,7 @@ function YojanaKendraContent() {
       list = [...list].sort((a, b) => amt(b) - amt(a));
     }
     return list;
-  }, [results, filter, query, sort, lang]);
+  }, [results, filter, query, sort, lang, have, amountIdx]);
 
   // ── Change details, in place ──────────────────────────────────────────
   function startEdit() {
@@ -262,6 +320,7 @@ function YojanaKendraContent() {
     { id: 'training', label: t('yk_f_training') },
     { id: 'registration', label: t('yk_f_registration') },
     { id: 'ineligible', label: t('yk_f_ineligible') },
+    { id: 'all', label: t('yk_f_everything') },
   ];
 
   return (
@@ -503,6 +562,82 @@ function YojanaKendraContent() {
                   <option value="name">{t('yk_sort_name')}</option>
                   <option value="amount">{t('yk_sort_amount')}</option>
                 </select>
+              </div>
+
+              {/* How much do you need? */}
+              <div className="bg-white border border-[#C9A24B]/20 rounded-2xl px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-bold">{t('yk_amount_label')}</p>
+                  <p className="text-sm font-bold text-[#0B1E33]">
+                    {amountIdx === 0 ? t('yk_amount_any') : inr(AMOUNT_STOPS[amountIdx])}
+                  </p>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={AMOUNT_STOPS.length - 1}
+                  step={1}
+                  value={amountIdx}
+                  onChange={(e) => setAmountIdx(Number(e.target.value))}
+                  aria-label={t('yk_amount_label')}
+                  className="w-full mt-2 accent-[#C9A24B] cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-[#0B1E33]/45 mt-0.5">
+                  <span>{t('yk_amount_any')}</span>
+                  <span>{inrShort(AMOUNT_STOPS[3])}</span>
+                  <span>{inrShort(AMOUNT_STOPS[5])}</span>
+                  <span>{inrShort(AMOUNT_STOPS[7])}</span>
+                  <span>{inrShort(AMOUNT_STOPS[AMOUNT_STOPS.length - 1])}</span>
+                </div>
+                {amountIdx > 0 && <p className="text-[11px] text-[#0B1E33]/50 mt-1">{t('yk_amount_hint')}</p>}
+              </div>
+
+              {/* Papers I have — a multi-select dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setPapersOpen((o) => !o)}
+                  aria-expanded={papersOpen}
+                  className={`${inputCls} cursor-pointer text-left flex items-center justify-between`}
+                >
+                  <span className={have.size ? 'font-semibold' : 'text-[#0B1E33]/60'}>
+                    {have.size === 0
+                      ? t('yk_papers_have')
+                      : `${t('yk_papers_have')} ${Array.from(have).map((x) => t(`paper_${x}`)).join(', ')}`}
+                  </span>
+                  <span className="text-[#0B1E33]/50 ml-2">{papersOpen ? '▴' : '▾'}</span>
+                </button>
+                {papersOpen && (
+                  <div className="absolute z-20 mt-1 w-full bg-white border border-[#C9A24B]/30 rounded-2xl shadow-[0_12px_32px_rgba(11,30,51,0.12)] p-2">
+                    {PAPERS.map((paper) => (
+                      <label key={paper} className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[#F5F1E6] cursor-pointer text-sm">
+                        <input
+                          type="checkbox"
+                          checked={have.has(paper)}
+                          onChange={() =>
+                            setHave((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(paper)) next.delete(paper);
+                              else next.add(paper);
+                              return next;
+                            })
+                          }
+                          className="h-4 w-4 accent-[#C9A24B]"
+                        />
+                        {t(`paper_${paper}`)}
+                      </label>
+                    ))}
+                    <div className="flex justify-between items-center px-2.5 pt-2 border-t border-[#C9A24B]/15 mt-1">
+                      <button type="button" onClick={() => setHave(new Set())} className="cursor-pointer text-xs text-[#0B1E33]/60 hover:underline">
+                        {t('yk_papers_clear')}
+                      </button>
+                      <button type="button" onClick={() => setPapersOpen(false)} className="cursor-pointer text-xs font-bold px-3 py-1.5 rounded-full bg-[#0B1E33] text-[#F5F1E6]">
+                        {t('yk_papers_done')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {have.size > 0 && <p className="text-[11px] text-[#0B1E33]/50 mt-1">{t('yk_papers_hint')}</p>}
               </div>
             </section>
 
