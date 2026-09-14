@@ -108,15 +108,6 @@ function docLabel(doc: string, lang: Lang): string {
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 
-/**
- * "How much do you need?" slider stops. A linear slider from ₹5,000 to
- * ₹50 lakh would put every small loan in its first millimetre, so the
- * stops are roughly logarithmic; index 0 means "any amount".
- */
-const AMOUNT_STOPS = [0, 5000, 10000, 25000, 50000, 100000, 200000, 500000, 1000000, 2500000, 5000000];
-const inrShort = (n: number) =>
-  n >= 10000000 ? `₹${n / 10000000} Cr` : n >= 100000 ? `₹${n / 100000} L` : `₹${(n / 1000).toFixed(0)}k`;
-
 function toMatchProfile(p: ProfileRow): BusinessProfile {
   return {
     monthly_revenue_est: Number(p.monthly_revenue_est) || 0,
@@ -156,7 +147,6 @@ function YojanaKendraContent() {
   const [sort, setSort] = useState<Sort>('best');
   const [query, setQuery] = useState('');
   const [have, setHave] = useState<Set<Paper>>(new Set());
-  const [amountIdx, setAmountIdx] = useState(0);
   const [papersOpen, setPapersOpen] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [ticked, setTicked] = useState<Record<string, boolean>>({});
@@ -220,18 +210,6 @@ function YojanaKendraContent() {
     else if (filter === 'ineligible') list = list.filter((r) => !r.eligible);
     else if (filter !== 'all') list = list.filter((r) => r.eligible && kindOf(r.scheme as SchemeRow) === filter);
 
-    // "How much do you need?": keep loans whose range covers the amount.
-    // Schemes that are not about a loan amount (training, registration)
-    // are not what someone moving this slider is looking for.
-    const want = AMOUNT_STOPS[amountIdx];
-    if (want > 0) {
-      list = list.filter((r) => {
-        const { loan_amount_min, loan_amount_max } = r.scheme.eligibility_rules;
-        if (loan_amount_min === undefined && loan_amount_max === undefined) return false;
-        return (loan_amount_min ?? 0) <= want && want <= (loan_amount_max ?? Infinity);
-      });
-    }
-
     // "Papers I have": keep schemes whose every ID-type paper is one the
     // user ticked (photos and the like are ignored). Nothing ticked means
     // no restriction.
@@ -261,7 +239,7 @@ function YojanaKendraContent() {
       list = [...list].sort((a, b) => amt(b) - amt(a));
     }
     return list;
-  }, [results, filter, query, sort, lang, have, amountIdx]);
+  }, [results, filter, query, sort, lang, have]);
 
   // ── Change details, in place ──────────────────────────────────────────
   function startEdit() {
@@ -562,34 +540,6 @@ function YojanaKendraContent() {
                   <option value="name">{t('yk_sort_name')}</option>
                   <option value="amount">{t('yk_sort_amount')}</option>
                 </select>
-              </div>
-
-              {/* How much do you need? */}
-              <div className="bg-white border border-[#C9A24B]/20 rounded-2xl px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-bold">{t('yk_amount_label')}</p>
-                  <p className="text-sm font-bold text-[#0B1E33]">
-                    {amountIdx === 0 ? t('yk_amount_any') : inr(AMOUNT_STOPS[amountIdx])}
-                  </p>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={AMOUNT_STOPS.length - 1}
-                  step={1}
-                  value={amountIdx}
-                  onChange={(e) => setAmountIdx(Number(e.target.value))}
-                  aria-label={t('yk_amount_label')}
-                  className="w-full mt-2 accent-[#C9A24B] cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] text-[#0B1E33]/45 mt-0.5">
-                  <span>{t('yk_amount_any')}</span>
-                  <span>{inrShort(AMOUNT_STOPS[3])}</span>
-                  <span>{inrShort(AMOUNT_STOPS[5])}</span>
-                  <span>{inrShort(AMOUNT_STOPS[7])}</span>
-                  <span>{inrShort(AMOUNT_STOPS[AMOUNT_STOPS.length - 1])}</span>
-                </div>
-                {amountIdx > 0 && <p className="text-[11px] text-[#0B1E33]/50 mt-1">{t('yk_amount_hint')}</p>}
               </div>
 
               {/* Papers I have — a multi-select dropdown */}

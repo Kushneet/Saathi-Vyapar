@@ -13,6 +13,7 @@
 
 import { generateText } from '@/lib/llm/provider';
 import type { ChatContext, ChatMessage, ChatResponse } from './types';
+import { localizeReason } from '@/lib/engines/localizeReason';
 
 /** How many prior turns to carry. Enough for context, short enough to stay cheap. */
 const MAX_HISTORY = 6;
@@ -26,7 +27,7 @@ interface Intent {
   /** Matched against the question; Devanagari, romanised Hindi and English. */
   patterns: RegExp;
   /** Returns null when the figures are not available yet. */
-  answer: (c: ChatContext, lang: Lang) => string | null;
+  answer: (c: ChatContext & { question: string }, lang: Lang) => string | null;
 }
 
 /**
@@ -36,6 +37,44 @@ interface Intent {
  * a Hindi-mode user reads Devanagari, an English-mode user reads English —
  * the Hinglish these used to be was wrong for both.
  */
+/** Documents stored as "हिंदी (English)" → the on-screen language. */
+function docLabel(doc: string, lang: Lang): string {
+  const m = doc.match(/^(.*?)\s*\(([^()]*[A-Za-z][^()]*)\)\s*$/);
+  if (!m) return doc;
+  return lang === 'hi' ? (/[ऀ-ॿ]/.test(m[1]) ? m[1].trim() : m[2].trim()) : m[2].trim();
+}
+
+/** Strip the ✓/✗ the matcher prefixes; the reply phrases it itself. */
+const bare = (r: string) => r.replace(/^[✓✗⚠️]\s*/, '');
+
+/**
+ * Which scheme, if any, the question names. Matched on the words of the
+ * scheme's name and id ("mudra", "pmegp", "svanidhi", "kisan"), so a
+ * romanised or partial mention still lands. Short filler words are
+ * ignored so "loan" alone does not pick the first loan.
+ */
+function findScheme(question: string, schemes: ChatContext['schemes']['all']) {
+  const q = question.toLowerCase();
+  const STOP = new Set(['loan', 'scheme', 'yojana', 'pm', 'pradhan', 'mantri', 'the', 'and', 'for', 'of', 'india', 'programme', 'program', 'national', 'mission', 'card']);
+  let best: { scheme: ChatContext['schemes']['all'][number]; score: number } | null = null;
+  for (const scheme of schemes) {
+    const words = `${scheme.name} ${scheme.id.replace(/-/g, ' ')}`
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 4 && !STOP.has(w));
+    const score = words.filter((w) => q.includes(w)).length;
+    if (score > 0 && (!best || score > best.score)) best = { scheme, score };
+  }
+  return best?.scheme ?? null;
+}
+
+const KIND_WORDS: Record<string, RegExp> = {
+  loan: /loan|karz|karza|udhaar|कर्ज़|लोन|ऋण/i,
+  subsidy: /subsidy|grant|anudaan|सब्सिडी|अनुदान/i,
+  training: /training|skill|seekh|सीख|ट्रेनिंग|प्रशिक्षण|कौशल/i,
+  registration: /register|registration|udyam|पंजीकरण|रजिस्ट्रेशन/i,
+};
+
 const INTENTS: Intent[] = [
   {
     id: 'help',
@@ -71,6 +110,54 @@ const INTENTS: Intent[] = [
       return lang === 'hi'
         ? `हर महीने कम से कम ${be} की बिक्री चाहिए — उतने में खर्च निकल जाता है। उससे ऊपर जो भी है, वही आपका मुनाफा है।`
         : `You need at least ${be} in sales every month — that covers your costs. Everything above it is profit.`;
+    },
+  },
+  {
+    id: 'scheme_detail',
+    // Any question that names a scheme, whatever else it asks.
+    patterns: /./,
+    answer: (c, lang) => {
+      const s = findScheme(c.question, c.schemes.all);
+      if (!s) return null;
+      const docs = s.documents.slice(0, 4).map((d) => docLabel(d, lang));
+      const why = s.reasons[0] ? bare(s.reasons[0]) : '';
+      if (lang === 'hi') {
+        const verdict = s.eligible
+          ? `आपको यह मिल सकती है${why ? ` — ${localizeReason(s.reasons[0], 'hi')}` : ''}।`
+          : `अभी यह आपके लिए नहीं है${why ? ` — ${localizeReason(s.reasons[0], 'hi')}` : ''}।`;
+        const papers = docs.length ? ` कागज़: ${docs.join(', ')}।` : '';
+        return `${s.name}: ${s.benefit} ${verdict}${papers} योजना केंद्र में "आवेदन करें" से सीधे फ़ॉर्म खुलता है।`;
+      }
+      const verdict = s.eligible
+        ? `You qualify — you can get it${why ? `: ${localizeReason(s.reasons[0], 'en')}` : ''}.`
+        : `It is not for you right now${why ? `: ${localizeReason(s.reasons[0], 'en')}` : ''}.`;
+      const papers = docs.length ? ` Papers: ${docs.join(', ')}.` : '';
+      return `${s.name}: ${s.benefit} ${verdict}${papers} Tap Apply on Yojana Kendra to open the form.`;
+    },
+  },
+  {
+    id: 'schemes_by_kind',
+    patterns: /loan|karz|udhaar|कर्ज़|लोन|ऋण|subsidy|grant|anudaan|सब्सिडी|अनुदान|training|skill|seekh|ट्रेनिंग|प्रशिक्षण|कौशल|register|udyam|पंजीकरण|रजिस्ट्रेशन/i,
+    answer: (c, lang) => {
+      const kind = Object.keys(KIND_WORDS).find((k) => KIND_WORDS[k].test(c.question));
+      if (!kind) return null;
+      const ofKind = c.schemes.all.filter((s) => s.kind === kind);
+      if (ofKind.length === 0) return null;
+      const label = { loan: ['लोन', 'loans'], subsidy: ['सब्सिडी / अनुदान', 'grants and subsidies'], training: ['ट्रेनिंग', 'training schemes'], registration: ['पंजीकरण', 'registrations'] }[kind]!;
+      const list = ofKind.filter((s) => s.eligible).slice(0, 5);
+      if (list.length === 0) {
+        // Nothing of this kind is open: say so, and say what stands in the
+        // way of the nearest one, rather than falling silent.
+        const nearest = ofKind[0];
+        const why = nearest.reasons.find((r) => r.startsWith('✗'));
+        return lang === 'hi'
+          ? `अभी कोई ${label[0]} आपके लिए खुली नहीं है।${why ? ` जैसे ${nearest.name}: ${localizeReason(why, 'hi')}।` : ''} योजना केंद्र में "जानकारी बदलें" से अपने आँकड़े ठीक कर के दोबारा देखें।`
+          : `None of the ${label[1]} are open to you right now.${why ? ` For example ${nearest.name}: ${localizeReason(why, 'en')}.` : ''} Check your details under "Change details" on Yojana Kendra and look again.`;
+      }
+      const items = list.map((s) => `${s.name} (${s.benefit.split(/[.।]/)[0]})`).join('; ');
+      return lang === 'hi'
+        ? `आपको ये ${label[0]} मिल सकते हैं: ${items}। किसी एक का नाम लेकर पूछें तो कागज़ और शर्तें बता दूँगा।`
+        : `These ${label[1]} are open to you: ${items}. Ask about any one by name and I will tell you the papers and conditions.`;
     },
   },
   {
@@ -121,6 +208,11 @@ function factSheet(c: ChatContext): string {
     lines.push(`Sales needed to cover costs: ${rupees(c.finance.breakEvenRevenue)}`);
   }
   lines.push(`Schemes the user qualifies for: ${c.schemes.eligibleCount}`);
+  const eligible = c.schemes.all.filter((s) => s.eligible).slice(0, 20);
+  if (eligible.length) {
+    lines.push('ELIGIBLE SCHEMES (name — what it gives):');
+    for (const s of eligible) lines.push(`- ${s.name} — ${s.benefit}`);
+  }
   if (c.ledger.entryCount > 0) {
     lines.push(`Last 30 days in: ${rupees(c.ledger.last30DaysIncome)}`);
     lines.push(`Last 30 days out: ${rupees(c.ledger.last30DaysExpense)}`);
@@ -136,10 +228,11 @@ export async function answerQuestion(
   const asked = question.trim();
 
   const lang: Lang = context.language === 'hi' ? 'hi' : 'en';
+  const ctx: ChatContext & { question: string } = { ...context, question: asked };
 
   for (const intent of INTENTS) {
     if (intent.patterns.test(asked)) {
-      const reply = intent.answer(context, lang);
+      const reply = intent.answer(ctx, lang);
       if (reply) return { reply, source: 'data' };
     }
   }

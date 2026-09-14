@@ -37,7 +37,7 @@ export async function buildChatContext(userId: string): Promise<ChatContext> {
     profile: null,
     finance: null,
     ledger: { last30DaysIncome: 0, last30DaysExpense: 0, entryCount: 0 },
-    schemes: { eligibleCount: 0, topMatches: [] },
+    schemes: { eligibleCount: 0, topMatches: [], all: [] },
   };
 
   if (profile) {
@@ -82,7 +82,7 @@ export async function buildChatContext(userId: string): Promise<ChatContext> {
       scheme_type: s.scheme_type ?? null,
     }));
 
-    const eligible = matchSchemes(
+    const matches = matchSchemes(
       {
         monthly_revenue_est: revenue,
         monthly_expense_est: expense,
@@ -91,15 +91,27 @@ export async function buildChatContext(userId: string): Promise<ChatContext> {
         category: profile.category || undefined,
         gender: profile.gender || undefined,
         state: profile.state || undefined,
+        is_shg_member: Boolean(profile.is_shg_member || profile.shg_membership === 'shg_member'),
       },
       schemes
-    ).filter((m) => m.eligible);
+    );
+    const eligible = matches.filter((m) => m.eligible);
 
     context.schemes = {
       eligibleCount: eligible.length,
       topMatches: eligible.slice(0, 3).map((m) => ({
         name: m.scheme.name,
         reasons: m.reasons,
+        applicationLink: m.scheme.application_link,
+      })),
+      all: matches.map((m) => ({
+        id: m.scheme.id,
+        name: m.scheme.name,
+        kind: m.scheme.scheme_type || 'other',
+        benefit: m.scheme.benefit_summary || m.scheme.description || '',
+        eligible: m.eligible,
+        reasons: m.reasons,
+        documents: m.scheme.required_documents || [],
         applicationLink: m.scheme.application_link,
       })),
     };

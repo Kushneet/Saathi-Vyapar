@@ -24,6 +24,26 @@ const context: ChatContext = {
   schemes: {
     eligibleCount: 3,
     topMatches: [{ name: 'Mudra Shishu Loan (PMMY)', reasons: ['✓ within limit'] }],
+    all: [
+      {
+        id: 'mudra-shishu', name: 'Mudra Shishu Loan (PMMY)', kind: 'loan',
+        benefit: 'Collateral-free loans up to ₹50,000.', eligible: true,
+        reasons: ['✓ Your annual revenue (₹3,00,000) is within the scheme limit (₹25,00,000)'],
+        documents: ['आधार कार्ड (Aadhaar Card)', 'पैन कार्ड / फॉर्म 60 (PAN Card)', 'बैंक खाता पासबुक (Bank Account Details)'],
+        applicationLink: 'https://www.mudra.org.in/',
+      },
+      {
+        id: 'stand-up-india', name: 'Stand-Up India — SC/ST & Women', kind: 'loan',
+        benefit: 'Loans ₹10 Lakh–₹1 Crore for greenfield projects.', eligible: false,
+        reasons: ['✗ This scheme is specifically for female entrepreneurs'],
+        documents: [], applicationLink: 'https://www.standupmitra.in/',
+      },
+      {
+        id: 'pmkvy', name: 'PMKVY — PM Kaushal Vikas Yojana', kind: 'training',
+        benefit: 'Free skills training with certificate.', eligible: true,
+        reasons: ['✓ You appear to meet all eligibility criteria for this scheme'], documents: [],
+      },
+    ],
   },
 };
 
@@ -80,10 +100,39 @@ describe('answerQuestion — nothing to answer from', () => {
       profile: null,
       finance: null,
       ledger: { last30DaysIncome: 0, last30DaysExpense: 0, entryCount: 0 },
-      schemes: { eligibleCount: 0, topMatches: [] },
+      schemes: { eligibleCount: 0, topMatches: [], all: [] },
     };
     const r = await answerQuestion('kitna bacha', empty);
     expect(r.source).toBe('fallback');
     expect(r.reply).not.toMatch(/₹\s*\d/);
+  });
+});
+
+describe('answerQuestion — scheme questions from data', () => {
+  it('describes a named scheme: what it gives, whether you qualify, papers', async () => {
+    const res = await answerQuestion('mudra loan kya hai?', { ...context, language: 'en' });
+    expect(res.source).toBe('data');
+    expect(res.reply).toContain('Mudra Shishu');
+    expect(res.reply).toContain('₹50,000');
+    expect(res.reply).toMatch(/you can get it|You qualify/i);
+    expect(res.reply).toContain('Aadhaar');
+  });
+
+  it('says why a scheme is not for you', async () => {
+    const res = await answerQuestion('stand up india milega?', { ...context, language: 'hi' });
+    expect(res.source).toBe('data');
+    expect(res.reply).toMatch(/महिला|नहीं/);
+  });
+
+  it('lists loans you can get when asked for loans', async () => {
+    const res = await answerQuestion('which loans can I get?', { ...context, language: 'en' });
+    expect(res.source).toBe('data');
+    expect(res.reply).toContain('Mudra Shishu');
+    expect(res.reply).not.toContain('PMKVY');
+  });
+
+  it('lists training when asked for training', async () => {
+    const res = await answerQuestion('koi training milegi?', { ...context, language: 'en' });
+    expect(res.reply).toContain('PMKVY');
   });
 });

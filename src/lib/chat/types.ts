@@ -48,7 +48,23 @@ export interface ChatContext {
   schemes: {
     eligibleCount: number;
     topMatches: { name: string; reasons: string[]; applicationLink?: string }[];
+    /** Every scheme in the table with this person's result, so a question
+     *  about a particular one ("PMEGP ke liye kya chahiye?") is answered
+     *  from data. */
+    all: ChatScheme[];
   };
+}
+
+export interface ChatScheme {
+  id: string;
+  name: string;
+  /** loan | subsidy | direct_benefit | credit_guarantee | training | registration | other */
+  kind: string;
+  benefit: string;
+  eligible: boolean;
+  reasons: string[];
+  documents: string[];
+  applicationLink?: string;
 }
 
 export interface ChatRequest {
