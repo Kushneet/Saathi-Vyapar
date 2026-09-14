@@ -202,10 +202,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // margin, risk and scheme-matching cards, and belonged to nobody.
   if (!profileData) {
     return (
-      <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] p-4 sm:p-6 flex items-center justify-center font-['Inter',sans-serif]">
+      <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] p-4 sm:p-6 flex items-center justify-center font-['Open_Sans',sans-serif]">
         <div className="max-w-md w-full bg-white border border-[#C9A24B]/20 rounded-[32px] p-7 shadow-[0_16px_40px_rgba(11,30,51,0.07)] space-y-4 text-center">
           <div className="text-4xl">📋</div>
-          <h1 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
+          <h1 className="font-['Roboto',sans-serif] text-xl font-bold text-[#0B1E33]">
             {t('empty_profile_title')}
           </h1>
           <p className="text-sm text-[#0B1E33]/60 leading-relaxed">{t('empty_profile_sub')}</p>
@@ -429,7 +429,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   }[risk];
 
   return (
-    <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] p-3 sm:p-6 pb-24 font-['Inter',sans-serif] relative overflow-hidden">
+    <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] p-3 sm:p-6 pb-24 font-['Open_Sans',sans-serif] relative overflow-hidden">
       {/* Background radial glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[radial-gradient(ellipse_at_center,rgba(201,162,75,0.07),transparent_70%)] blur-3xl"></div>
@@ -565,7 +565,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <section className="bg-white border border-[#C9A24B]/20 rounded-[32px] p-5 sm:p-6 shadow-[0_16px_40px_rgba(11,30,51,0.07)] space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h3 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
+                <h3 className="font-['Roboto',sans-serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
                   📊 {t('dashboard_chart_title')}
                 </h3>
                 <p className="text-xs text-[#0B1E33]/50">{t('dashboard_chart_sub')}</p>
@@ -623,7 +623,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <section className="bg-white border border-[#C9A24B]/20 rounded-[32px] p-5 sm:p-6 shadow-[0_16px_40px_rgba(11,30,51,0.07)] space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
+                <h3 className="font-['Roboto',sans-serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
                   🏛️ {t('dashboard_schemes_title')}
                 </h3>
                 <p className="text-xs text-[#0B1E33]/50">
@@ -700,7 +700,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           {/* ── Recent Ledger Entries ─────────────────────────────────── */}
           <section className="bg-white border border-[#C9A24B]/20 rounded-[32px] p-5 sm:p-6 shadow-[0_16px_40px_rgba(11,30,51,0.07)] space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
+              <h3 className="font-['Roboto',sans-serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
                 📝 {t('dashboard_ledger_title')}
               </h3>
               <span className="text-xs text-[#0B1E33]/50 font-mono">

@@ -5,7 +5,7 @@
  *
  * Pantheon Eternal Authentication Portal
  * - Warm cream background (#F5F1E6), deep navy (#0B1E33), gold accent (#C9A24B)
- * - Playfair Display headlines, Inter body text
+ * - Roboto headlines, Open Sans body text
  * - Email/Password Sign In & Sign Up + Google OAuth
  * - EN/HI language toggle via useLanguage()
  * - Voice Mode via Web Speech API
@@ -283,7 +283,7 @@ export default function LoginForm() {
   const isAnyLoading = isSignInLoading || isSignUpLoading || isGoogleLoading;
 
   return (
-    <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] font-['Inter',sans-serif] flex flex-col justify-between relative overflow-hidden">
+    <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] font-['Open_Sans',sans-serif] flex flex-col justify-between relative overflow-hidden">
       {/* Subtle background texture */}
       <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
 
@@ -341,7 +341,7 @@ export default function LoginForm() {
           </div>
 
           {/* Heading */}
-          <h2 className="font-['Playfair_Display',Georgia,serif] text-2xl sm:text-3xl font-bold text-[#0B1E33] tracking-tight leading-snug mb-1">
+          <h2 className="font-['Roboto',sans-serif] text-2xl sm:text-3xl font-bold text-[#0B1E33] tracking-tight leading-snug mb-1">
             {mode === 'login' ? t('login_heading_signin') : t('login_heading_signup')}
           </h2>
 

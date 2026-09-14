@@ -115,18 +115,18 @@
   --color-accent-end: #FF4B2B;
   --color-status-active: #22C55E;
 
-  --font-headline-sm: 'Poppins', sans-serif;
-  --font-headline-md: 'Poppins', sans-serif;
-  --font-headline-lg: 'Poppins', sans-serif;
-  --font-display-hero: 'Poppins', sans-serif;
-  --font-display-hero-mobile: 'Poppins', sans-serif;
-  --font-title-lg: 'Poppins', sans-serif;
-  --font-body-lg: 'Poppins', sans-serif;
-  --font-body-md: 'Poppins', sans-serif;
-  --font-body-sm: 'Poppins', sans-serif;
-  --font-label-sm: 'Poppins', sans-serif;
-  --font-label-catalog: 'Poppins', sans-serif;
-  --font-label-caps: 'Poppins', sans-serif;
+  --font-headline-sm: 'Open Sans', sans-serif;
+  --font-headline-md: 'Open Sans', sans-serif;
+  --font-headline-lg: 'Open Sans', sans-serif;
+  --font-display-hero: 'Open Sans', sans-serif;
+  --font-display-hero-mobile: 'Open Sans', sans-serif;
+  --font-title-lg: 'Open Sans', sans-serif;
+  --font-body-lg: 'Open Sans', sans-serif;
+  --font-body-md: 'Open Sans', sans-serif;
+  --font-body-sm: 'Open Sans', sans-serif;
+  --font-label-sm: 'Open Sans', sans-serif;
+  --font-label-catalog: 'Open Sans', sans-serif;
+  --font-label-caps: 'Open Sans', sans-serif;
 
   --text-headline-sm: 24px;
   --text-headline-sm--line-height: 1.3;

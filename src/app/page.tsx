@@ -9,7 +9,7 @@
  * - Warm cream background (#F5F1E6)
  * - Deep navy ink (#0B1E33)
  * - Gold accent (#C9A24B)
- * - Serif display headlines (Playfair Display)
+ * - Roboto display headlines, Open Sans body text
  * - Clean sans body text (Inter)
  * - Large 32-40px rounded corners on every card and image
  * - Generous whitespace, editorial premium feel referencing classical pantheon/column heritage
@@ -61,7 +61,7 @@ export default function ShowcaseHomePage() {
   }, [isVoiceModalOpen]);
 
   return (
-    <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] font-['Inter',sans-serif] selection:bg-[#0B1E33] selection:text-[#F5F1E6] relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] font-['Open_Sans',sans-serif] selection:bg-[#0B1E33] selection:text-[#F5F1E6] relative overflow-x-hidden">
       {/* ── Background Classical Architectural Geometry ── */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden opacity-35">
         <svg
@@ -140,13 +140,13 @@ export default function ShowcaseHomePage() {
         </div>
 
         {/* Primary Serif Display Headline */}
-        <h1 className="font-['Playfair_Display',Georgia,serif] text-4xl sm:text-6xl md:text-7xl font-bold text-[#0B1E33] tracking-tight leading-[1.1] mb-6">
+        <h1 className="font-['Roboto',sans-serif] text-4xl sm:text-6xl md:text-7xl font-bold text-[#0B1E33] tracking-tight leading-[1.1] mb-6">
           {t('home_hero_1')} <br className="hidden sm:inline" />
           <span className="italic text-[#0B1E33]">{t('home_hero_2')}</span>
         </h1>
 
         {/* Subtitle */}
-        <p className="text-[#0B1E33]/80 font-['Inter',sans-serif] text-base sm:text-xl max-w-3xl mx-auto leading-relaxed mb-10">
+        <p className="text-[#0B1E33]/80 font-['Open_Sans',sans-serif] text-base sm:text-xl max-w-3xl mx-auto leading-relaxed mb-10">
           {t('home_hero_sub')}
         </p>
 
@@ -175,11 +175,13 @@ export default function ShowcaseHomePage() {
 
         {/* Full-width Rounded-Corner (40px) Hero Image */}
         <div className="relative w-full rounded-[40px] overflow-hidden shadow-[0_30px_80px_rgba(11,30,51,0.14)] border border-[#C9A24B]/30 group">
-          {/* Generated photograph */}
-          <img
-            src="https://lh3.googleusercontent.com/aida/AEtjO1XNMpVqGgJm68VUGZKWw0LvKcusyDLbyfpEeVnim3ZOO7HnOAO_b1gBUgM6rPwWhUjw5e8UyNN0VuAuvRNxDTCn1hD4VZwWSkzhri3myGmi7viaHe5QPbPPb-x2NcMUkTdUksxGCJ-HfBJ_8jYtDyswRc1IgHAlxnr-oAInnEIDA18tBUSzHSyf2TcAPa0r72kCKattpXXK8HjXh5iEV6Ik4OBXj8fq0nSUw4VvIdUEZ5J-mwl_Vq6L7Q"
-            alt="Rural Indian shopkeeper smiling while using a smartphone in a small village shop"
-            className="w-full h-[380px] sm:h-[500px] md:h-[580px] object-cover object-center group-hover:scale-102 transition-transform duration-700 ease-out"
+          {/* The generated photograph this used to load returned 403 — it was a
+              private Google AI Studio URL that has since expired, so the page
+              rendered its alt text across 580px. A gradient keeps the frame and
+              the telemetry card readable without depending on a dead asset. */}
+          <div
+            aria-hidden="true"
+            className="w-full h-[380px] sm:h-[500px] md:h-[580px] bg-[linear-gradient(135deg,#0B1E33_0%,#16324F_45%,#C9A24B_140%)]"
           />
 
           {/* Gradient Overlay at Bottom */}
@@ -194,7 +196,7 @@ export default function ShowcaseHomePage() {
                   {t('home_live_badge')}
                 </span>
               </div>
-              <p className="font-['Playfair_Display',Georgia,serif] text-base sm:text-lg font-bold mt-1">
+              <p className="font-['Roboto',sans-serif] text-base sm:text-lg font-bold mt-1">
                 Ramesh General Store · Satara District
               </p>
               <p className="text-xs text-[#F5F1E6]/80 font-sans mt-0.5">
@@ -220,7 +222,7 @@ export default function ShowcaseHomePage() {
           </span>
         </div>
         <div className="relative w-full overflow-hidden flex items-center">
-          <div className="animate-marquee whitespace-nowrap flex items-center gap-12 text-[#C9A24B] font-['Playfair_Display',Georgia,serif] text-sm sm:text-lg tracking-widest uppercase select-none">
+          <div className="animate-marquee whitespace-nowrap flex items-center gap-12 text-[#C9A24B] font-['Roboto',sans-serif] text-sm sm:text-lg tracking-widest uppercase select-none">
             <span>PMEGP · 35% Capital Subsidy</span>
             <span className="text-xs text-[#C9A24B]/60">◆</span>
             <span>Mudra Shishu, Kishor & Tarun</span>
@@ -241,197 +243,6 @@ export default function ShowcaseHomePage() {
             <span className="text-xs text-[#C9A24B]/60">◆</span>
             <span>NABARD SHG Credit-Linkage</span>
           </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════════
-          SECTION 4 — FLOATING VISUAL COLLAGE
-         ══════════════════════════════════════════════════════════════════ */}
-      <section id="product" className="py-28 px-4 sm:px-8 max-w-7xl mx-auto relative overflow-hidden">
-        {/* Background Large Serif Watermark Heading */}
-        <div className="absolute inset-x-0 top-12 text-center pointer-events-none select-none z-0">
-          <h2 className="font-['Playfair_Display',Georgia,serif] text-6xl sm:text-8xl md:text-9xl font-bold text-[#0B1E33]/[0.06] tracking-tight">
-            {t('home_collage_eyebrow')}
-          </h2>
-        </div>
-
-        <div className="relative z-10 text-center max-w-2xl mx-auto mb-16">
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#C9A24B]">
-            {t('home_collage_label')}
-          </span>
-          <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] mt-2">
-            {t('home_collage_title')}
-          </h3>
-          <p className="text-sm sm:text-base text-[#0B1E33]/70 font-sans mt-3">
-            {t('home_collage_sub')}
-          </p>
-        </div>
-
-        {/* Scattered 5 Glassmorphism Cards with Layered Z-Index */}
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {/* Card 1: WhatsApp Voice Note Processing */}
-          <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#25D366] flex items-center gap-1.5 bg-[#25D366]/10 px-3 py-1 rounded-full">
-                <span>💬</span> {t('home_voice_ingestion')}
-              </span>
-              <span className="text-[10px] text-[#0B1E33]/50 font-mono">0.82s Latency</span>
-            </div>
-            <div className="bg-[#EFECE4] p-4 rounded-[20px] space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center text-sm font-bold">
-                  ▶
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="h-2 bg-[#C9A24B]/40 rounded-full w-4/5" />
-                  <div className="h-1.5 bg-[#C9A24B]/20 rounded-full w-2/3" />
-                </div>
-                <span className="text-[11px] font-bold text-[#0B1E33]/70">0:14</span>
-              </div>
-              <p className="text-xs text-[#0B1E33]/80 italic">
-                “नमस्ते! आज 20 पैकेट चाय पत्ती बिकी, ₹1,200 मिले और ₹400 सामान लाने में लगे।”
-              </p>
-            </div>
-            <div className="p-3 bg-[#0B1E33]/5 rounded-2xl border border-[#0B1E33]/10">
-              <p className="text-xs font-semibold text-[#0B1E33]">
-                {t('home_ai_extraction')}
-              </p>
-            </div>
-          </div>
-
-          {/* Card 2: Break-Even Math Card */}
-          <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#C9A24B] uppercase tracking-wider">
-                {t('home_det_math')}
-              </span>
-              <span className="text-xs bg-[#0B1E33] text-white px-2.5 py-0.5 rounded-full font-mono">
-                {t('home_verified')}
-              </span>
-            </div>
-            <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold text-[#0B1E33]">
-              {t('home_breakeven_12')}
-            </h4>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs font-medium text-[#0B1E33]/70">
-                <span>{t('home_daily_progress')}</span>
-                <span className="text-[#0B1E33] font-bold">133% Target</span>
-              </div>
-              <div className="w-full bg-[#EFECE4] h-3 rounded-full overflow-hidden">
-                <div className="bg-[#C9A24B] h-full rounded-full w-[85%]" />
-              </div>
-            </div>
-            <p className="text-xs text-[#0B1E33]/70 leading-relaxed">
-              {t('home_unit_contrib')}
-            </p>
-          </div>
-
-          {/* Card 3: PMEGP Scheme Match Card */}
-          <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                {t('home_eligible_match')}
-              </span>
-              <span className="text-xs text-[#C9A24B] font-bold">{t('home_priority_scheme')}</span>
-            </div>
-            <div>
-              <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-                PMEGP (KVIC)
-              </h4>
-              <p className="text-xs text-[#C9A24B] font-semibold mt-0.5">
-                {t('home_pmegp_sub')}
-              </p>
-            </div>
-            <div className="bg-[#F5F1E6] p-3 rounded-2xl border border-[#C9A24B]/20 text-xs text-[#0B1E33]/80 space-y-1">
-              <div className="flex justify-between">
-                <span>{t('home_max_loan')}</span>
-                <span className="font-bold text-[#0B1E33]">₹10,00,000</span>
-              </div>
-              <div className="flex justify-between">
-                <span>{t('home_govt_subsidy')}</span>
-                <span className="font-bold text-emerald-700">₹3,50,000 (Non-repayable)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Notebook Photo to Ledger OCR */}
-          <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#0B1E33] uppercase tracking-wider">
-                {t('home_ocr_title')}
-              </span>
-              <span className="text-xs text-[#C9A24B] font-mono">Bahi-Khata</span>
-            </div>
-            <h4 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33]">
-              {t('home_ocr_sub')}
-            </h4>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-[#EFECE4] p-2.5 rounded-xl">
-                <span className="text-[10px] text-[#0B1E33]/60 block font-bold">{t('home_raw_khata')}</span>
-                <span className="italic text-[#0B1E33]/80 font-serif">“रोहन ₹240 जमा, तेल ₹180 बाकी”</span>
-              </div>
-              <div className="bg-[#0B1E33] p-2.5 rounded-xl text-white">
-                <span className="text-[10px] text-[#C9A24B] block font-bold">{t('home_parsed_ledger')}</span>
-                <span className="font-mono text-[11px]">+₹240 In / -₹180 Rec</span>
-              </div>
-            </div>
-            <p className="text-xs text-[#0B1E33]/70">
-              {t('home_ocr_desc')}
-            </p>
-          </div>
-
-          {/* Card 5: Facilitator Testimonial Card */}
-          <div className="bg-white/85 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_40px_rgba(11,30,51,0.06)] border border-[#C9A24B]/30 space-y-4 hover:-translate-y-1 transition-all duration-300 md:col-span-2 lg:col-span-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#C9A24B] uppercase tracking-wider">
-                {t('home_field_title')}
-              </span>
-              <span className="text-xs bg-[#0B1E33]/5 text-[#0B1E33] px-3 py-1 rounded-full font-bold">
-                {t('home_field_ratio')}
-              </span>
-            </div>
-            <blockquote className="font-['Playfair_Display',Georgia,serif] text-lg sm:text-xl font-normal italic text-[#0B1E33] leading-relaxed">
-              {t('home_field_quote')}
-            </blockquote>
-            <div className="flex items-center gap-3 pt-2">
-              <div className="w-10 h-10 rounded-full bg-[#0B1E33] text-[#C9A24B] flex items-center justify-center font-bold text-sm">
-                SD
-              </div>
-              <div>
-                <p className="text-sm font-bold text-[#0B1E33]">Sunita Devi</p>
-                <p className="text-xs text-[#0B1E33]/70">{t('home_field_role')}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════════
-          SECTION 5 — MANIFESTO
-         ══════════════════════════════════════════════════════════════════ */}
-      <section className="py-28 sm:py-36 px-6 max-w-4xl mx-auto text-center relative z-10">
-        {/* Faded Concentric Circles & Pantheon Column Outline */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none -z-10 opacity-25">
-          <svg className="w-[500px] h-[500px] text-[#C9A24B]" fill="none" stroke="currentColor" viewBox="0 0 200 200">
-            <circle cx="100" cy="100" r="90" strokeDasharray="3 6" strokeWidth="0.75" />
-            <circle cx="100" cy="100" r="70" strokeWidth="0.5" />
-            <circle cx="100" cy="100" r="45" strokeDasharray="2 4" strokeWidth="0.75" />
-          </svg>
-        </div>
-
-        <div className="w-12 h-12 rounded-full bg-[#0B1E33] border border-[#C9A24B] flex items-center justify-center text-[#C9A24B] mx-auto mb-8 shadow-md">
-          <span className="text-xl font-serif">§</span>
-        </div>
-
-        <blockquote className="font-['Playfair_Display',Georgia,serif] text-2xl sm:text-4xl md:text-5xl text-[#0B1E33] leading-[1.3] font-normal italic">
-          {t('home_manifesto_quote')}
-        </blockquote>
-
-        <div className="mt-8 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-[0.25em] text-[#C9A24B]">
-          <span className="w-8 h-px bg-[#C9A24B]/60" />
-          <span>{t('home_manifesto_label')}</span>
-          <span className="w-8 h-px bg-[#C9A24B]/60" />
         </div>
       </section>
 
@@ -446,7 +257,7 @@ export default function ShowcaseHomePage() {
               <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#C9A24B]">
                 {t('home_engine_eyebrow')}
               </span>
-              <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] leading-tight">
+              <h3 className="font-['Roboto',sans-serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] leading-tight">
                 {t('home_engine_title')}
               </h3>
             </div>
@@ -454,7 +265,7 @@ export default function ShowcaseHomePage() {
             {/* Stacked Features with Vertical Gold Line */}
             <div className="border-l-2 border-[#C9A24B] pl-6 space-y-6">
               <div className="space-y-1.5">
-                <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
+                <h4 className="font-['Roboto',sans-serif] text-xl font-bold text-[#0B1E33]">
                   {t('home_f1_title')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
@@ -463,7 +274,7 @@ export default function ShowcaseHomePage() {
               </div>
 
               <div className="space-y-1.5">
-                <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
+                <h4 className="font-['Roboto',sans-serif] text-xl font-bold text-[#0B1E33]">
                   {t('home_f2_title')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
@@ -472,7 +283,7 @@ export default function ShowcaseHomePage() {
               </div>
 
               <div className="space-y-1.5">
-                <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
+                <h4 className="font-['Roboto',sans-serif] text-xl font-bold text-[#0B1E33]">
                   {t('home_f3_title')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
@@ -491,7 +302,7 @@ export default function ShowcaseHomePage() {
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#C9A24B]">
                       {t('home_dossier_label')}
                     </span>
-                    <h5 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33]">
+                    <h5 className="font-['Roboto',sans-serif] text-lg font-bold text-[#0B1E33]">
                       Shree Ganesh Tailoring · Solapur
                     </h5>
                   </div>
@@ -503,12 +314,12 @@ export default function ShowcaseHomePage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-[#F5F1E6] p-3.5 rounded-2xl">
                     <span className="text-[10px] text-[#0B1E33]/60 uppercase font-bold">{t('home_dossier_revenue')}</span>
-                    <p className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold text-[#0B1E33]">₹28,500</p>
+                    <p className="font-['Roboto',sans-serif] text-2xl font-bold text-[#0B1E33]">₹28,500</p>
                     <span className="text-[10px] text-emerald-700 font-bold">{t('home_dossier_revenue_note')}</span>
                   </div>
                   <div className="bg-[#F5F1E6] p-3.5 rounded-2xl">
                     <span className="text-[10px] text-[#0B1E33]/60 uppercase font-bold">{t('home_dossier_margin')}</span>
-                    <p className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold text-[#C9A24B]">34.2%</p>
+                    <p className="font-['Roboto',sans-serif] text-2xl font-bold text-[#C9A24B]">34.2%</p>
                     <span className="text-[10px] text-[#0B1E33]/70">{t('home_dossier_margin_note')}</span>
                   </div>
                 </div>
@@ -546,7 +357,7 @@ export default function ShowcaseHomePage() {
                 </div>
 
                 <div>
-                  <h5 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-white">
+                  <h5 className="font-['Roboto',sans-serif] text-xl font-bold text-white">
                     PMEGP — Prime Minister Employment Generation Programme
                   </h5>
                   <p className="text-xs text-[#C9A24B] font-semibold mt-1">
@@ -590,14 +401,14 @@ export default function ShowcaseHomePage() {
               <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#C9A24B]">
                 {t('home_welfare_eyebrow')}
               </span>
-              <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] leading-tight">
+              <h3 className="font-['Roboto',sans-serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] leading-tight">
                 {t('home_welfare_title')}
               </h3>
             </div>
 
             <div className="border-l-2 border-[#C9A24B] pl-6 space-y-6">
               <div className="space-y-1.5">
-                <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
+                <h4 className="font-['Roboto',sans-serif] text-xl font-bold text-[#0B1E33]">
                   {t('home_w1_title')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
@@ -606,7 +417,7 @@ export default function ShowcaseHomePage() {
               </div>
 
               <div className="space-y-1.5">
-                <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
+                <h4 className="font-['Roboto',sans-serif] text-xl font-bold text-[#0B1E33]">
                   {t('home_w2_title')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
@@ -615,7 +426,7 @@ export default function ShowcaseHomePage() {
               </div>
 
               <div className="space-y-1.5">
-                <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
+                <h4 className="font-['Roboto',sans-serif] text-xl font-bold text-[#0B1E33]">
                   {t('home_w3_title')}
                 </h4>
                 <p className="text-sm text-[#0B1E33]/75 leading-relaxed font-sans">
@@ -635,7 +446,7 @@ export default function ShowcaseHomePage() {
           <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#C9A24B]">
             {t('home_usecase_eyebrow')}
           </span>
-          <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] mt-2">
+          <h3 className="font-['Roboto',sans-serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] mt-2">
             {t('home_usecase_title')}
           </h3>
           <p className="text-sm sm:text-base text-[#0B1E33]/70 font-sans mt-3">
@@ -705,7 +516,7 @@ export default function ShowcaseHomePage() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A24B] bg-[#0B1E33]/80 px-3 py-1 rounded-full inline-block">
                 {t('home_uc1_label')}
               </span>
-              <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold">
+              <h4 className="font-['Roboto',sans-serif] text-2xl font-bold">
                 {t('home_uc1_title')}
               </h4>
               <p className="text-sm text-[#F5F1E6]/90 font-sans leading-relaxed">
@@ -730,7 +541,7 @@ export default function ShowcaseHomePage() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A24B] bg-[#0B1E33]/80 px-3 py-1 rounded-full inline-block">
                 {t('home_uc2_label')}
               </span>
-              <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold">
+              <h4 className="font-['Roboto',sans-serif] text-2xl font-bold">
                 {t('home_uc2_title')}
               </h4>
               <p className="text-sm text-[#F5F1E6]/90 font-sans leading-relaxed">
@@ -755,7 +566,7 @@ export default function ShowcaseHomePage() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A24B] bg-[#0B1E33]/80 px-3 py-1 rounded-full inline-block">
                 {t('home_uc3_label')}
               </span>
-              <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold">
+              <h4 className="font-['Roboto',sans-serif] text-2xl font-bold">
                 {t('home_uc3_title')}
               </h4>
               <p className="text-sm text-[#F5F1E6]/90 font-sans leading-relaxed">
@@ -780,110 +591,13 @@ export default function ShowcaseHomePage() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A24B] bg-[#0B1E33]/80 px-3 py-1 rounded-full inline-block">
                 {t('home_uc4_label')}
               </span>
-              <h4 className="font-['Playfair_Display',Georgia,serif] text-2xl font-bold">
+              <h4 className="font-['Roboto',sans-serif] text-2xl font-bold">
                 {t('home_uc4_title')}
               </h4>
               <p className="text-sm text-[#F5F1E6]/90 font-sans leading-relaxed">
                 {t('home_uc4_desc')}
               </p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════════
-          SECTION 9 — TESTIMONIAL
-         ══════════════════════════════════════════════════════════════════ */}
-      <section className="py-24 px-6 max-w-4xl mx-auto text-center relative z-10">
-        <span className="text-6xl text-[#C9A24B] font-['Playfair_Display',Georgia,serif] leading-none block mb-4">
-          “
-        </span>
-
-        <blockquote className="font-['Playfair_Display',Georgia,serif] text-2xl sm:text-4xl text-[#0B1E33] leading-relaxed italic font-normal">
-          {t('home_testimonial_quote')}
-        </blockquote>
-
-        <div className="mt-8 flex flex-col items-center gap-2">
-          <div className="w-12 h-12 rounded-full bg-[#0B1E33] text-[#C9A24B] flex items-center justify-center font-bold text-base border border-[#C9A24B]/40 shadow-sm">
-            RP
-          </div>
-          <p className="text-sm font-bold text-[#0B1E33]">Ramesh Patil</p>
-          <p className="text-xs text-[#0B1E33]/60 italic">
-            {t('home_testimonial_note')}
-          </p>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════════
-          SECTION 10 — ROADMAP / UPDATES
-         ══════════════════════════════════════════════════════════════════ */}
-      <section className="py-24 px-4 sm:px-8 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-12">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#C9A24B]">
-              {t('home_horizon_eyebrow')}
-            </span>
-            <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] mt-1">
-              {t('home_horizon_title')}
-            </h3>
-          </div>
-          <Link
-            href="/dashboard/business-guide"
-            className="text-xs sm:text-sm font-bold text-[#0B1E33] hover:text-[#C9A24B] flex items-center gap-1.5 transition-colors border-b border-[#0B1E33]/30 pb-0.5"
-          >
-            <span>{t('home_horizon_cta')}</span>
-            <span>→</span>
-          </Link>
-        </div>
-
-        {/* 3-Card Grid for Future Scope */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Item 1 */}
-          <div className="bg-white rounded-[32px] p-7 border border-[#C9A24B]/25 shadow-md space-y-4 hover:-translate-y-1 transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <span className="text-2xl">🗣️</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-[#0B1E33]/5 text-[#0B1E33] px-3 py-1 rounded-full border border-[#0B1E33]/15">
-                {t('home_future_scope')}
-              </span>
-            </div>
-            <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-              {t('home_r1_title')}
-            </h4>
-            <p className="text-sm text-[#0B1E33]/70 leading-relaxed">
-              {t('home_r1_desc')}
-            </p>
-          </div>
-
-          {/* Item 2 */}
-          <div className="bg-white rounded-[32px] p-7 border border-[#C9A24B]/25 shadow-md space-y-4 hover:-translate-y-1 transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <span className="text-2xl">👥</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-[#0B1E33]/5 text-[#0B1E33] px-3 py-1 rounded-full border border-[#0B1E33]/15">
-                {t('home_future_scope')}
-              </span>
-            </div>
-            <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-              {t('home_r2_title')}
-            </h4>
-            <p className="text-sm text-[#0B1E33]/70 leading-relaxed">
-              {t('home_r2_desc')}
-            </p>
-          </div>
-
-          {/* Item 3 */}
-          <div className="bg-white rounded-[32px] p-7 border border-[#C9A24B]/25 shadow-md space-y-4 hover:-translate-y-1 transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <span className="text-2xl">🏛️</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-[#0B1E33]/5 text-[#0B1E33] px-3 py-1 rounded-full border border-[#0B1E33]/15">
-                {t('home_future_scope')}
-              </span>
-            </div>
-            <h4 className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-[#0B1E33]">
-              {t('home_r3_title')}
-            </h4>
-            <p className="text-sm text-[#0B1E33]/70 leading-relaxed">
-              {t('home_r3_desc')}
-            </p>
           </div>
         </div>
       </section>
@@ -901,7 +615,7 @@ export default function ShowcaseHomePage() {
           </div>
 
           <div className="space-y-4 max-w-2xl mx-auto">
-            <h3 className="font-['Playfair_Display',Georgia,serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] leading-tight">
+            <h3 className="font-['Roboto',sans-serif] text-3xl sm:text-5xl font-bold text-[#0B1E33] leading-tight">
               {t('home_closing_title')}
             </h3>
             <p className="text-sm sm:text-base text-[#0B1E33]/75 font-sans leading-relaxed">
@@ -943,7 +657,7 @@ export default function ShowcaseHomePage() {
                   alt="Saathi Vyapar Logo"
                   className="w-9 h-9 object-contain rounded-full border border-[#C9A24B]"
                 />
-                <span className="font-['Playfair_Display',Georgia,serif] text-xl font-bold text-white">
+                <span className="font-['Roboto',sans-serif] text-xl font-bold text-white">
                   Saathi Vyapar
                 </span>
               </div>

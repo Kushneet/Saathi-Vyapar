@@ -551,7 +551,7 @@ export default function VoiceOnboardingModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 bg-[#F5F1E6]/96 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-6 text-[#0B1E33] font-['Inter',sans-serif] animate-in fade-in duration-200 selection:bg-[#0B1E33] selection:text-white"
+      className="fixed inset-0 z-50 bg-[#F5F1E6]/96 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-6 text-[#0B1E33] font-['Open_Sans',sans-serif] animate-in fade-in duration-200 selection:bg-[#0B1E33] selection:text-white"
     >
       {/* ── Top Header ────────────────────────────────────────────── */}
       <div className="max-w-4xl w-full mx-auto flex items-center justify-between border-b border-[#C9A24B]/20 pb-3.5">

@@ -320,7 +320,7 @@ function BusinessGuideContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] font-['Inter',sans-serif] p-3 sm:p-6 pb-24 selection:bg-[#0B1E33] selection:text-white relative overflow-hidden">
+    <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] font-['Open_Sans',sans-serif] p-3 sm:p-6 pb-24 selection:bg-[#0B1E33] selection:text-white relative overflow-hidden">
       {/* Background radial glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[radial-gradient(ellipse_at_center,rgba(201,162,75,0.07),transparent_70%)] blur-3xl"></div>

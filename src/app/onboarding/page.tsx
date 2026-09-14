@@ -277,7 +277,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] font-['Inter',sans-serif] flex flex-col justify-between relative overflow-hidden">
+    <div className="min-h-screen bg-[#F5F1E6] text-[#0B1E33] font-['Open_Sans',sans-serif] flex flex-col justify-between relative overflow-hidden">
       {/* ── Ambient Background Glows ── */}
       <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[radial-gradient(ellipse_at_center,rgba(201,162,75,0.07),transparent_70%)] blur-3xl pointer-events-none -z-10" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,rgba(11,30,51,0.04),transparent_70%)] blur-3xl pointer-events-none -z-10" />
@@ -335,7 +335,7 @@ export default function OnboardingPage() {
               )}
             </div>
 
-            <h1 className="font-['Playfair_Display',Georgia,serif] text-xl sm:text-2xl font-bold text-[#0B1E33]">
+            <h1 className="font-['Roboto',sans-serif] text-xl sm:text-2xl font-bold text-[#0B1E33]">
               {t(`onboarding_step${currentStep}_heading`)}
             </h1>
             <p className="text-xs text-[#0B1E33]/50 leading-relaxed">

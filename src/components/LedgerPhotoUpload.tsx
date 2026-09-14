@@ -184,7 +184,7 @@ export default function LedgerPhotoUpload({ userId }: Props) {
     <section className="bg-white border border-[#C9A24B]/20 rounded-[32px] p-5 sm:p-6 shadow-[0_16px_40px_rgba(11,30,51,0.07)] space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-['Playfair_Display',Georgia,serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
+          <h3 className="font-['Roboto',sans-serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
             📷 {t('photo_title')}
           </h3>
           <p className="text-xs text-[#0B1E33]/55 mt-0.5">{t('photo_sub')}</p>
