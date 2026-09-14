@@ -477,7 +477,7 @@ hero_subtitle: 'An AI-driven hyper-local business advisor for rural micro-entrep
     hp_nav_how: 'How it works',
     hp_nav_schemes: 'Government schemes',
     hp_login: 'Login',
-    hp_try: 'Try Saathi Vyapar',
+    hp_try: 'Create free account',
 
     hp_hero_title: 'Your business, in plain language',
 
@@ -495,7 +495,7 @@ hero_subtitle: 'An AI-driven hyper-local business advisor for rural micro-entrep
     hp_strip4_title: 'Ask anything in your language',
     hp_strip4_sub: 'Chat or speak, like a friend',
     hp_hero_sub: 'Saathi Vyapar helps small shopkeepers and vendors keep their accounts, see whether they are making money, and find government schemes they can apply for. Speak to it, or send a photo of your notebook.',
-    hp_hero_cta: 'Try Saathi Vyapar',
+    hp_hero_cta: 'Create your free account',
     hp_hero_secondary: 'I already have an account',
 
     hp_demo_label: 'Example',
@@ -1044,7 +1044,7 @@ hero_subtitle: 'ग्रामीण सूक्ष्म उद्यमि�
     hp_nav_how: 'कैसे काम करता है',
     hp_nav_schemes: 'सरकारी योजनाएँ',
     hp_login: 'लॉगिन',
-    hp_try: 'साथी व्यापार आज़माएँ',
+    hp_try: 'मुफ़्त खाता बनाएँ',
 
     hp_hero_title: 'आपका व्यापार, आपकी भाषा में',
 
@@ -1062,7 +1062,7 @@ hero_subtitle: 'ग्रामीण सूक्ष्म उद्यमि�
     hp_strip4_title: 'अपनी भाषा में कुछ भी पूछिए',
     hp_strip4_sub: 'लिखकर या बोलकर, दोस्त की तरह',
     hp_hero_sub: 'साथी व्यापार छोटे दुकानदारों और विक्रेताओं की मदद करता है — हिसाब रखने में, यह समझने में कि मुनाफ़ा हो रहा है या नहीं, और ऐसी सरकारी योजनाएँ ढूँढने में जिनके लिए वे आवेदन कर सकें। बोलकर पूछिए, या अपनी कॉपी की फोटो भेज दीजिए।',
-    hp_hero_cta: 'साथी व्यापार आज़माएँ',
+    hp_hero_cta: 'अपना मुफ़्त खाता बनाएँ',
     hp_hero_secondary: 'मेरा खाता पहले से है',
 
     hp_demo_label: 'उदाहरण',
