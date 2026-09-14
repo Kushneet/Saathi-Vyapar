@@ -32,17 +32,19 @@ export default function KhataMitraAssistant({ userId, language, onLedgerChanged 
   const lang = language || 'hi';
 
   const text = {
-    title: lang === 'hi' ? 'खाता मित्र एआई' : 'Khata Mitra AI',
-    subtitle: lang === 'hi' ? 'द्विभाषी बहीखाता सहायक' : 'Bilingual Bookkeeping Assistant',
+    // Khata Mitra writes; Ask Saathi answers. The copy used to promise
+    // profit and scheme answers here too, which blurred the two.
+    title: lang === 'hi' ? 'खाता मित्र' : 'Khata Mitra',
+    subtitle: lang === 'hi' ? 'बोलकर या लिखकर खाता लिखवाएँ' : 'Say it or type it — it goes in your khata',
     clearTooltip: lang === 'hi' ? 'बातचीत साफ़ करें' : 'Clear conversation',
     demoTip:
       lang === 'hi'
-        ? 'बोलें: "आज 500 की बिक्री हुई" या "मेरा मुनाफा कितना है?" या "कौन सी योजनाएं मिल सकती हैं?"'
-        : 'Try: "Sold ₹500 today", "What is my profit?", or "Which schemes am I eligible for?"',
+        ? 'बोलें: "आज 500 की बिक्री हुई", "200 का सामान खरीदा", "रमेश को 300 उधार दिया"'
+        : 'Try: "Sold ₹500 today", "Bought stock for ₹200", "Ramesh owes me ₹300"',
     emptyState:
       lang === 'hi'
-        ? 'नमस्ते! मैं आपका खाता मित्र हूँ। रोज़ की बिक्री-खर्च दर्ज करने, मुनाफा जानने, या सरकारी योजनाएं खोजने के लिए बोलें या टाइप करें।'
-        : 'Hello! I am your Khata Mitra. Speak or type to log daily sales/expenses, check your profit, or find matching government schemes.',
+        ? 'नमस्ते! जो बिका, जो खर्च हुआ, जिसे उधार दिया — बोल दीजिए या लिख दीजिए, मैं खाते में दर्ज कर दूँगा। सवाल पूछने के लिए "साथी से पूछें" है।'
+        : 'Hello! Tell me what you sold, what you spent, or who owes you — say it or type it and I will write it in your khata. For questions, use "Ask Saathi".',
   };
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
