@@ -12,7 +12,7 @@
 
 import { supabaseServer } from '@/lib/supabase/server';
 import { generateText } from '@/lib/llm/provider';
-import { generateFinancialSummary } from '@/lib/engines/financialEngine';
+import { generateFinancialSummary, explainPlain } from '@/lib/engines/financialEngine';
 import { matchSchemes, SchemeRecord, BusinessProfile } from '@/lib/engines/schemeMatcher';
 
 // ── Language display names for system prompt ──────────────────────────────────
@@ -145,7 +145,9 @@ export async function generatePlanForUser(user_id: string): Promise<GeneratedPla
   const userLanguage = user.language || 'hi';
   const languageName = LANGUAGE_NAMES[userLanguage] || 'Hindi';
 
-  let llmSummaryText = financialSummary.explanation; // deterministic fallback
+  // Deterministic fallback, in the user's own language rather than the
+  // engine's English template.
+  let llmSummaryText = explainPlain(financialSummary, userLanguage === 'hi' ? 'hi' : 'en', Boolean(profile.existing_loans));
 
   const matchedSchemeNames = eligibleSchemes
     .map((s) => s.scheme.name)

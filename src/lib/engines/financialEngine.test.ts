@@ -6,6 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  explainPlain,
   calculateBreakEven,
   calculateNetProfit,
   calculateBreakEvenRevenue,
@@ -263,5 +264,28 @@ describe('generateFinancialSummary', () => {
     });
     expect(result.marginPercent).toBeLessThan(0);
     expect(result.explanation).toContain('loss');
+  });
+});
+
+describe('explainPlain', () => {
+  const summary = { netProfit: 21000, marginPercent: 84, breakEvenRevenue: 4000, cashFlowRisk: 'medium' as const };
+
+  it('says the same figures in Hindi with no English words', () => {
+    const text = explainPlain(summary, 'hi', true);
+    expect(text).toContain('₹21,000');
+    expect(text).toContain('₹4,000');
+    expect(text).not.toMatch(/[A-Za-z]{3,}/);
+  });
+
+  it('says the same figures in English with no Devanagari', () => {
+    const text = explainPlain(summary, 'en', false);
+    expect(text).toContain('₹21,000');
+    expect(text).toContain('₹4,000');
+    expect(text).not.toMatch(/[ऀ-ॿ]/);
+    expect(text).not.toMatch(/instalment/);
+  });
+
+  it('describes a loss as a shortfall', () => {
+    expect(explainPlain({ ...summary, netProfit: -500, marginPercent: -5 }, 'en')).toMatch(/short by ₹500/);
   });
 });

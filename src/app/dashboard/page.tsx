@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
 import { requirePageUser, resolveTargetUserId } from '@/lib/auth/requireUser';
-import { calculateMarginPercent, assessCashFlowRisk } from '@/lib/engines/financialEngine';
+import { calculateMarginPercent, assessCashFlowRisk, explainPlain } from '@/lib/engines/financialEngine';
 import { matchSchemes, SchemeRecord } from '@/lib/engines/schemeMatcher';
 import { getServerT } from '@/lib/i18n.server';
 import LogoutButton from './LogoutButton';
@@ -143,7 +143,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // Server components can't use the client language hook, so the language
   // comes from the cookie the toggle writes. LanguageProvider calls
   // router.refresh() on switch, which re-renders this page in the new one.
-  const { t } = await getServerT();
+  const { t, language } = await getServerT();
 
   // A `user_id` in the URL is a facilitator viewing a linked entrepreneur.
   // Anyone else asking for someone else's id is sent back to their own view.
@@ -395,6 +395,33 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     : Number(profile.monthly_expense_est) || null;
   const eligibleCount = matchedSchemes.filter((s) => s.eligible).length;
 
+  // The stored summary is whatever the plan was phrased in at the time —
+  // Hindi from the model, or the English template. Show it only when it is
+  // in the language on screen; otherwise say the same figures plainly in
+  // that language. A Hindi-mode user must never meet "discretionary expenses".
+  const storedSummary = latestPlan?.summary_text || '';
+  const storedIsHindi = /[\u0900-\u097F]/.test(storedSummary);
+  const summaryForScreen =
+    storedSummary && storedIsHindi === (language === 'hi')
+      ? storedSummary
+      : explainPlain(
+          {
+            netProfit,
+            marginPercent: calculateMarginPercent(
+              Number(profile.monthly_revenue_est) || 0,
+              Number(profile.monthly_expense_est) || 0
+            ),
+            breakEvenRevenue: breakEvenRevenue ?? Infinity,
+            cashFlowRisk: assessCashFlowRisk(
+              Number(profile.monthly_revenue_est) || 0,
+              Number(profile.monthly_expense_est) || 0,
+              Boolean(profile.existing_loans)
+            ),
+          },
+          language,
+          Boolean(profile.existing_loans)
+        );
+
   // ── Chart series, computed from the ledger ───────────────────────
   // The SVG below used to draw two hard-coded polylines: the same rising
   // "trend" for every user, on every visit, whatever their transactions said.
@@ -493,7 +520,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               href={`/dashboard/khata-mitr?user_id=${user.id}`}
               className="px-4 py-2 bg-[#C9A24B] hover:bg-[#B8912A] text-white text-xs font-bold rounded-full shadow-sm transition-all"
             >
-              🎙️ Khata Mitra
+              {t('dashboard_khata_mitra')}
             </Link>
             <Link
               href="/facilitator"
@@ -517,12 +544,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                   {t('dashboard_advisory_label')}
                 </h2>
                 <p className="text-[#0B1E33] text-base sm:text-lg leading-relaxed font-semibold">
-                  {latestPlan?.summary_text ||
-                    'Your financial analysis is ready. View your profit margins and government schemes below.'}
+                  {summaryForScreen}
                 </p>
                 {latestPlan?.created_at && (
                   <p className="text-xs text-[#0B1E33]/50 pt-1">
-                    Updated: {new Date(latestPlan.created_at).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
+                    {t('dashboard_updated')}{' '}
+                    {new Date(latestPlan.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { dateStyle: 'medium' })}
                   </p>
                 )}
                 <div className="pt-2">
@@ -530,8 +557,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                     href={`/dashboard/business-guide?user_id=${user.id}`}
                     className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#C9A24B] hover:bg-[#B8912A] text-white font-bold text-xs rounded-full transition-all shadow-sm"
                   >
-                    <span>🧭 Build 5-Stage Business Roadmap</span>
-                    <span>→</span>
+                    <span>{t('dashboard_roadmap_btn')}</span>
                   </Link>
                 </div>
               </div>
