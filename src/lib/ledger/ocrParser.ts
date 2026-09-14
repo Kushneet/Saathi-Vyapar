@@ -125,6 +125,24 @@ export function parseOcrText(rawText: string): ParsedEntry[] {
           description: 'OCR extracted amount',
           confidence: 'low',
         });
+        continue;
+      }
+    }
+
+    // Pattern 4: a spoken or typed sentence with the amount anywhere —
+    // "aaj 2400 ki bikri hui", "sold 500 today". Exactly one number, so a
+    // line like "2 kg aloo 60" is not misread as ₹2. The words either side
+    // become the description; small filler words are dropped from it.
+    const numbers = trimmed.match(/(?:Rs\.?|₹)?\s*\b[0-9][0-9,]*(?:\.[0-9]{1,2})?\b/g) ?? [];
+    if (numbers.length === 1) {
+      const amount = parseFloat(numbers[0].replace(/[^0-9.]/g, ''));
+      const words = trimmed
+        .replace(numbers[0], ' ')
+        .replace(/\b(aaj|kal|ka|ki|ke|ko|hui|hua|huyi|the|today|of|for|rupaye|rupay|rs|₹|आज|कल|का|की|के|को|हुई|हुआ|रुपये|रुपए)\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!isNaN(amount) && amount > 0 && amount < MAX_AMOUNT && words.length > 0) {
+        entries.push({ amount, entry_type: type, description: words, confidence });
       }
     }
   }

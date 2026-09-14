@@ -67,3 +67,22 @@ describe('parseOcrText', () => {
     expect(summariseEntries(entries)).toEqual({ income: 2000, expense: 750, net: 1250 });
   });
 });
+
+describe('parseOcrText — spoken or typed sentences', () => {
+  it('finds the amount in the middle of a sentence', () => {
+    expect(parseOcrText('aaj 2400 ki bikri hui')).toEqual([
+      { amount: 2400, entry_type: 'income', description: 'bikri', confidence: 'high' },
+    ]);
+  });
+
+  it('reads an English sentence', () => {
+    const [e] = parseOcrText('sold 500 today');
+    expect(e.amount).toBe(500);
+    expect(e.entry_type).toBe('income');
+    expect(e.description).toBe('sold');
+  });
+
+  it('does not guess when a sentence has two numbers', () => {
+    expect(parseOcrText('2 kg aloo kharida 60 rupaye me')).toEqual([]);
+  });
+});

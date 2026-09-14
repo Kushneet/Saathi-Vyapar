@@ -15,14 +15,14 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
 import { requirePageUser, resolveTargetUserId } from '@/lib/auth/requireUser';
-import { calculateMarginPercent, assessCashFlowRisk, explainPoints } from '@/lib/engines/financialEngine';
-import { localizeReason } from '@/lib/engines/localizeReason';
+import { calculateMarginPercent, assessCashFlowRisk } from '@/lib/engines/financialEngine';
 import { sectorLabel } from '@/lib/engines/sectorLabel';
 import { matchSchemes, SchemeRecord } from '@/lib/engines/schemeMatcher';
 import { getServerT } from '@/lib/i18n.server';
 import LogoutButton from './LogoutButton';
 import LanguageToggleButton from '@/components/LanguageToggleButton';
-import LedgerPhotoUpload from '@/components/LedgerPhotoUpload';
+import AddEntry from '@/components/AddEntry';
+import DashboardNav from './DashboardNav';
 
 interface PageProps {
   searchParams: Promise<{ user_id?: string }>;
@@ -395,27 +395,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     : Number(profile.monthly_expense_est) || null;
   const eligibleCount = matchedSchemes.filter((s) => s.eligible).length;
 
-  // Two or three short points from the live figures, in the on-screen
-  // language. The plan's stored paragraph (the model's, or the engine's
-  // English template with "discretionary expenses") is not shown here:
-  // it was a wall of text and could be in the wrong language.
-  const summaryPoints = explainPoints(
-    {
-      netProfit,
-      marginPercent: calculateMarginPercent(
-        Number(profile.monthly_revenue_est) || 0,
-        Number(profile.monthly_expense_est) || 0
-      ),
-      breakEvenRevenue: breakEvenRevenue ?? Infinity,
-      cashFlowRisk: assessCashFlowRisk(
-        Number(profile.monthly_revenue_est) || 0,
-        Number(profile.monthly_expense_est) || 0,
-        Boolean(profile.existing_loans)
-      ),
-    },
-    language,
-    Boolean(profile.existing_loans)
-  );
 
   // ── Chart series, computed from the ledger ───────────────────────
   // The SVG below used to draw two hard-coded polylines: the same rising
@@ -484,6 +463,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,rgba(11,30,51,0.04),transparent_70%)] blur-3xl"></div>
       </div>
 
+      <DashboardNav />
+
       <div className="relative z-10 max-w-4xl mx-auto space-y-6">
         {/* ── Top Header ────────────────────────────────────────────── */}
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#C9A24B]/20 pb-4">
@@ -503,13 +484,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               href={`/dashboard/schemes?user_id=${user.id}`}
               className="px-4 py-2 bg-white hover:bg-[#F5F1E6] text-[#0B1E33] text-xs font-semibold rounded-full border border-[#C9A24B]/30 transition-all"
             >
-              🏛️ {t('dashboard_yojana')}
+              {t('dashboard_yojana')}
             </Link>
             <Link
               href={`/dashboard/business-guide?user_id=${user.id}`}
               className="px-4 py-2 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] text-xs font-bold rounded-full shadow-sm transition-all"
             >
-              🧭 {t('dashboard_business_guide')}
+              {t('dashboard_business_guide')}
             </Link>
             <Link
               href={`/dashboard/khata-mitr?user_id=${user.id}`}
@@ -533,44 +514,15 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </header>
 
         <main className="space-y-6">
-          {/* ── Plain Language AI Advisory Banner ─────────────────────── */}
-          <section className="bg-white border border-[#C9A24B]/20 rounded-[32px] p-5 sm:p-6 shadow-[0_16px_40px_rgba(11,30,51,0.07)] relative overflow-hidden">
-            <div className="flex items-start gap-3.5">
-              <div className="p-3 bg-[#F5F1E6] border border-[#C9A24B]/20 rounded-2xl text-2xl shrink-0">
-                💡
-              </div>
-              <div className="space-y-1.5 flex-1">
-                <h2 className="text-xs sm:text-sm font-bold text-[#C9A24B] uppercase tracking-wider">
-                  {t('dashboard_advisory_label')}
-                </h2>
-                <ul className="space-y-1.5">
-                  {summaryPoints.map((point, i) => (
-                    <li key={i} className="flex gap-2.5 text-[#0B1E33] text-base sm:text-lg leading-snug font-semibold">
-                      <span className="text-[#C9A24B] shrink-0">•</span>
-                      <span>{point}</span>
-                    </li>
-                  ))}
-                </ul>
-                {latestPlan?.created_at && (
-                  <p className="text-xs text-[#0B1E33]/50 pt-1">
-                    {t('dashboard_updated')}{' '}
-                    {new Date(latestPlan.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { dateStyle: 'medium' })}
-                  </p>
-                )}
-                <div className="pt-2">
-                  <Link
-                    href={`/dashboard/business-guide?user_id=${user.id}`}
-                    className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#C9A24B] hover:bg-[#B8912A] text-white font-bold text-xs rounded-full transition-all shadow-sm"
-                  >
-                    <span>{t('dashboard_roadmap_btn')}</span>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </section>
+          {/* Order is the job: write today's entry, see the money, see the
+              trend, then everything else. Schemes are one link at the end
+              rather than a list that competed with the books. */}
+          <AddEntry userId={user.id === sessionUser.id ? undefined : user.id} />
 
           {/* ── Key Metrics Cards (High Contrast Grid) ───────────────── */}
-          <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <section id="overview" className="scroll-mt-24 space-y-3">
+            <h2 className="font-['Roboto',sans-serif] text-xl font-bold text-[#0B1E33]">{t('dashboard_overview_title')}</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* Card 1: Profit Margin */}
             <div className="bg-white border border-[#C9A24B]/20 rounded-2xl p-5 shadow-[0_8px_24px_rgba(11,30,51,0.05)] flex flex-col justify-between">
               <span className="text-[#0B1E33]/60 text-sm font-bold">
@@ -638,14 +590,20 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </p>
               <p className="text-[11px] text-[#0B1E33]/45 leading-snug mt-2 pt-2 border-t border-[#C9A24B]/15">{t('help_risk')}</p>
             </div>
+          </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm pt-1">
+              <Link href={`/dashboard/business-guide?user_id=${user.id}`} className="font-semibold text-[#0B1E33] underline underline-offset-4 decoration-[#C9A24B] hover:decoration-[#0B1E33]">
+                {t('dashboard_roadmap_btn')}
+              </Link>
+            </div>
           </section>
 
           {/* ── 30-Day Ledger Trend Chart ─────────────────────────────── */}
-          <section className="bg-white border border-[#C9A24B]/20 rounded-[32px] p-5 sm:p-6 shadow-[0_16px_40px_rgba(11,30,51,0.07)] space-y-4">
+          <section id="trend" className="scroll-mt-24 bg-white border border-[#C9A24B]/20 rounded-3xl p-5 sm:p-6 shadow-[0_8px_24px_rgba(11,30,51,0.05)] space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h3 className="font-['Roboto',sans-serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
-                  📊 {t('dashboard_chart_title')}
+                  {t('dashboard_chart_title')}
                 </h3>
                 <p className="text-xs text-[#0B1E33]/50">{t('dashboard_chart_sub')}</p>
                 <p className="text-[11px] text-[#0B1E33]/45 mt-1">{t('help_chart')}</p>
@@ -699,89 +657,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             )}
           </section>
 
-          {/* ── Matched Government Schemes ───────────────────────────── */}
-          <section className="bg-white border border-[#C9A24B]/20 rounded-[32px] p-5 sm:p-6 shadow-[0_16px_40px_rgba(11,30,51,0.07)] space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-['Roboto',sans-serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
-                  🏛️ {t('dashboard_schemes_title')}
-                </h3>
-                <p className="text-xs text-[#0B1E33]/50">
-                  {eligibleCount} {t('dashboard_schemes_sub')}
-                </p>
-                <p className="text-[11px] text-[#0B1E33]/45 mt-1 max-w-md">{t('help_schemes')}</p>
-              </div>
-              <span className="px-3 py-1 bg-[#F0EFEB] border border-[#E5E2E1] text-[#0B1E33] text-xs font-bold rounded-full">
-                {eligibleCount} {t('dashboard_eligible')}
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {matchedSchemes.length === 0 ? (
-                <p className="text-sm text-[#8C8880]">No scheme data available.</p>
-              ) : (
-                matchedSchemes.slice(0, 6).map((item, idx) => (
-                  <div
-                    key={idx}
-                    className={`p-4 rounded-2xl border transition-all ${
-                      item.eligible
-                        ? 'bg-white border-[#C9A24B]/20'
-                        : 'bg-[#F5F1E6] border-[#C9A24B]/10 opacity-75'
-                    }`}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{item.eligible ? '✅' : 'ℹ️'}</span>
-                          <h4 className="text-base font-bold text-[#0B1E33]">{item.schemeName}</h4>
-                        </div>
-                        {item.benefitSummary && (
-                          <p className="text-xs text-[#0B1E33]/50 font-medium">
-                            {item.benefitSummary}
-                          </p>
-                        )}
-                      </div>
-                      {item.applicationLink && (
-                        <a
-                          href={item.applicationLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-4 py-2 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] text-xs font-semibold rounded-full shrink-0 text-center transition-all"
-                        >
-                          {t('dashboard_apply')}
-                        </a>
-                      )}
-                    </div>
-                    {item.reasons && item.reasons.length > 0 && (
-                      <div className="mt-2 text-xs text-[#0B1E33]/50 space-y-0.5 border-t border-[#E5E2E1] pt-2">
-                        {item.reasons.slice(0, 2).map((r, i) => (
-                          <p key={i}>✓ {localizeReason(r, language)}</p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="pt-2 flex justify-center">
-              <Link
-                href={`/dashboard/schemes?user_id=${user.id}`}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] font-bold text-xs sm:text-sm rounded-full transition-all shadow-sm"
-              >
-                <span>{t('dashboard_open_yojana')}</span>
-              </Link>
-            </div>
-          </section>
-
-          {/* ── Bahi-Khata Photo → Ledger ─────────────────────────────── */}
-          <LedgerPhotoUpload userId={user.id === sessionUser.id ? undefined : user.id} />
-
           {/* ── Recent Ledger Entries ─────────────────────────────────── */}
-          <section className="bg-white border border-[#C9A24B]/20 rounded-[32px] p-5 sm:p-6 shadow-[0_16px_40px_rgba(11,30,51,0.07)] space-y-3">
+          <section id="entries" className="scroll-mt-24 bg-white border border-[#C9A24B]/20 rounded-3xl p-5 sm:p-6 shadow-[0_8px_24px_rgba(11,30,51,0.05)] space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-['Roboto',sans-serif] text-lg font-bold text-[#0B1E33] flex items-center gap-2">
-                📝 {t('dashboard_ledger_title')}
+                {t('dashboard_ledger_title')}
               </h3>
               <span className="text-xs text-[#0B1E33]/50 font-mono">
                 {ledgerEntries.length} {t('dashboard_records')}
@@ -816,6 +696,31 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 </div>
               ))}
             </div>
+          </section>
+
+          {/* ── Yojana Kendra: a door, not the list ──────────────────── */}
+          <section
+            id="schemes"
+            className="scroll-mt-24 bg-white border border-[#C9A24B]/20 rounded-3xl p-5 sm:p-6 shadow-[0_8px_24px_rgba(11,30,51,0.05)]"
+          >
+            <p className="text-xs font-bold uppercase tracking-wider text-[#0B1E33]/50">{t('dashboard_yojana_kicker')}</p>
+            <h2 className="font-['Roboto',sans-serif] text-xl font-bold text-[#0B1E33] mt-1">
+              {eligibleCount > 0
+                ? t('dashboard_yojana_headline', { n: String(eligibleCount) })
+                : t('dashboard_yojana_headline_none')}
+            </h2>
+            <p className="text-base text-[#0B1E33] font-medium mt-1">{t('dashboard_yojana_teaser')}</p>
+            {eligibleCount > 0 && (
+              <p className="text-sm text-[#0B1E33] mt-2 truncate">
+                {matchedSchemes.filter((s) => s.eligible).slice(0, 3).map((s) => s.schemeName).join(' · ')}
+              </p>
+            )}
+            <Link
+              href={`/dashboard/schemes?user_id=${user.id}`}
+              className="mt-4 inline-flex items-center gap-2 px-6 py-3 bg-[#0B1E33] hover:bg-[#162D59] text-[#F5F1E6] font-bold text-sm rounded-full transition-colors"
+            >
+              {t('dashboard_yojana_button')}
+            </Link>
           </section>
         </main>
       </div>

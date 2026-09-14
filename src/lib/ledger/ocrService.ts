@@ -59,38 +59,7 @@ export async function runLedgerOcr(
   }
 
   const parsedEntries = parseOcrText(rawText);
-  const savedEntries: StagedEntry[] = [];
-
-  if (parsedEntries.length > 0) {
-    const insertRows = parsedEntries.map((entry) => ({
-      user_id: userId,
-      amount: entry.amount,
-      entry_type: entry.entry_type,
-      description: entry.description,
-      source,
-      confirmed: false,
-    }));
-
-    const { data, error } = await supabaseServer
-      .from('ledger_entries')
-      .insert(insertRows)
-      .select('id, amount, entry_type, description');
-
-    if (error) {
-      // Non-fatal: the caller can still show the user what was read.
-      console.error('Failed to stage ledger entries:', error);
-    } else {
-      (data || []).forEach((row, index) => {
-        savedEntries.push({
-          id: row.id,
-          amount: Number(row.amount),
-          entry_type: row.entry_type,
-          description: row.description,
-          confidence: parsedEntries[index]?.confidence ?? 'low',
-        });
-      });
-    }
-  }
+  const savedEntries = await stageEntries(parsedEntries, userId, source);
 
   return {
     rawText,
@@ -98,4 +67,47 @@ export async function runLedgerOcr(
     savedEntries,
     totals: summariseEntries(parsedEntries),
   };
+}
+
+/**
+ * Write parsed entries as unconfirmed rows and hand back their ids.
+ *
+ * Shared by every way of adding an entry — photo, spoken, typed — so all
+ * three stage rows the same way and the same review-and-confirm step
+ * decides what reaches the books. A failed insert is logged, not thrown:
+ * the caller can still show what was read.
+ */
+export async function stageEntries(
+  parsedEntries: ParsedEntry[],
+  userId: string,
+  source: 'ocr' | 'whatsapp' | 'voice' | 'manual'
+): Promise<StagedEntry[]> {
+  if (parsedEntries.length === 0) return [];
+
+  const { data, error } = await supabaseServer
+    .from('ledger_entries')
+    .insert(
+      parsedEntries.map((entry) => ({
+        user_id: userId,
+        amount: entry.amount,
+        entry_type: entry.entry_type,
+        description: entry.description,
+        source,
+        confirmed: false,
+      }))
+    )
+    .select('id, amount, entry_type, description');
+
+  if (error) {
+    console.error('Failed to stage ledger entries:', error);
+    return [];
+  }
+
+  return (data || []).map((row, index) => ({
+    id: row.id,
+    amount: Number(row.amount),
+    entry_type: row.entry_type,
+    description: row.description,
+    confidence: parsedEntries[index]?.confidence ?? 'low',
+  }));
 }
