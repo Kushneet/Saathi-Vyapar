@@ -132,11 +132,11 @@ function KhataMitraContent() {
           <section className="grid grid-cols-2 gap-4">
             <div className="bg-white border border-[#C9A24B]/20 rounded-2xl p-4 shadow-[0_8px_24px_rgba(11,30,51,0.05)]">
               <span className="text-[#0B1E33]/50 text-[10px] font-bold uppercase tracking-wider">{t('km_income_30')}</span>
-              <p className="text-2xl font-bold text-emerald-700 mt-1">₹{totals.income.toLocaleString('en-IN')}</p>
+              <p className="text-2xl font-bold text-[#1B7F4B] mt-1">₹{totals.income.toLocaleString('en-IN')}</p>
             </div>
             <div className="bg-white border border-[#C9A24B]/20 rounded-2xl p-4 shadow-[0_8px_24px_rgba(11,30,51,0.05)]">
               <span className="text-[#0B1E33]/50 text-[10px] font-bold uppercase tracking-wider">{t('km_expense_30')}</span>
-              <p className="text-2xl font-bold text-[#C9A24B] mt-1">₹{totals.expense.toLocaleString('en-IN')}</p>
+              <p className="text-2xl font-bold text-[#C62828] mt-1">₹{totals.expense.toLocaleString('en-IN')}</p>
             </div>
           </section>
         )}

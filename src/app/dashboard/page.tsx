@@ -31,6 +31,7 @@ interface PageProps {
 interface SchemeItem {
   schemeId: string;
   schemeName: string;
+  schemeNameHi?: string | null;
   eligible: boolean;
   reasons: string[];
   benefitSummary?: string;
@@ -297,6 +298,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const schemeItems: SchemeItem[] = liveMatches.map((m) => ({
     schemeId: m.scheme.id,
     schemeName: m.scheme.name,
+    schemeNameHi: m.scheme.name_hi ?? null,
     eligible: m.eligible,
     reasons: m.reasons,
     benefitSummary: m.scheme.benefit_summary,
@@ -703,7 +705,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <p className="text-base text-[#0B1E33] font-medium mt-1">{t('dashboard_yojana_teaser')}</p>
             {eligibleCount > 0 && (
               <p className="text-sm text-[#0B1E33] mt-2 truncate">
-                {matchedSchemes.filter((s) => s.eligible).slice(0, 3).map((s) => s.schemeName).join(' · ')}
+                {matchedSchemes
+                  .filter((s) => s.eligible)
+                  .slice(0, 3)
+                  .map((s) => (language === 'hi' && s.schemeNameHi) || s.schemeName)
+                  .join(' · ')}
               </p>
             )}
             <Link

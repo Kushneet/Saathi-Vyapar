@@ -101,12 +101,15 @@ export async function buildChatContext(userId: string): Promise<ChatContext> {
       eligibleCount: eligible.length,
       topMatches: eligible.slice(0, 3).map((m) => ({
         name: m.scheme.name,
+        nameHi: m.scheme.name_hi ?? null,
         reasons: m.reasons,
         applicationLink: m.scheme.application_link,
       })),
       all: matches.map((m) => ({
         id: m.scheme.id,
         name: m.scheme.name,
+        nameHi: m.scheme.name_hi ?? null,
+        benefitHi: m.scheme.benefit_summary_hi ?? null,
         kind: m.scheme.scheme_type || 'other',
         benefit: m.scheme.benefit_summary || m.scheme.description || '',
         eligible: m.eligible,

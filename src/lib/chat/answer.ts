@@ -44,6 +44,10 @@ function docLabel(doc: string, lang: Lang): string {
   return lang === 'hi' ? (/[ऀ-ॿ]/.test(m[1]) ? m[1].trim() : m[2].trim()) : m[2].trim();
 }
 
+/** The scheme as it should be named on screen. */
+const nameOf = (s: { name: string; nameHi?: string | null }, lang: Lang) => (lang === 'hi' && s.nameHi) || s.name;
+const benefitOf = (s: { benefit: string; benefitHi?: string | null }, lang: Lang) => (lang === 'hi' && s.benefitHi) || s.benefit;
+
 /** Strip the ✓/✗ the matcher prefixes; the reply phrases it itself. */
 const bare = (r: string) => r.replace(/^[✓✗⚠️]\s*/, '');
 
@@ -126,7 +130,7 @@ const INTENTS: Intent[] = [
           ? `आपको यह मिल सकती है${why ? ` — ${localizeReason(s.reasons[0], 'hi')}` : ''}।`
           : `अभी यह आपके लिए नहीं है${why ? ` — ${localizeReason(s.reasons[0], 'hi')}` : ''}।`;
         const papers = docs.length ? ` कागज़: ${docs.join(', ')}।` : '';
-        return `${s.name}: ${s.benefit} ${verdict}${papers} योजना केंद्र में "आवेदन करें" से सीधे फ़ॉर्म खुलता है।`;
+        return `${nameOf(s, 'hi')}: ${benefitOf(s, 'hi')} ${verdict}${papers} योजना केंद्र में "आवेदन करें" से सीधे फ़ॉर्म खुलता है।`;
       }
       const verdict = s.eligible
         ? `You qualify — you can get it${why ? `: ${localizeReason(s.reasons[0], 'en')}` : ''}.`
@@ -151,10 +155,10 @@ const INTENTS: Intent[] = [
         const nearest = ofKind[0];
         const why = nearest.reasons.find((r) => r.startsWith('✗'));
         return lang === 'hi'
-          ? `अभी कोई ${label[0]} आपके लिए खुली नहीं है।${why ? ` जैसे ${nearest.name}: ${localizeReason(why, 'hi')}।` : ''} योजना केंद्र में "जानकारी बदलें" से अपने आँकड़े ठीक कर के दोबारा देखें।`
+          ? `अभी कोई ${label[0]} आपके लिए खुली नहीं है।${why ? ` जैसे ${nameOf(nearest, 'hi')}: ${localizeReason(why, 'hi')}।` : ''} योजना केंद्र में "जानकारी बदलें" से अपने आँकड़े ठीक कर के दोबारा देखें।`
           : `None of the ${label[1]} are open to you right now.${why ? ` For example ${nearest.name}: ${localizeReason(why, 'en')}.` : ''} Check your details under "Change details" on Yojana Kendra and look again.`;
       }
-      const items = list.map((s) => `${s.name} (${s.benefit.split(/[.।]/)[0]})`).join('; ');
+      const items = list.map((s) => `${nameOf(s, lang)} (${benefitOf(s, lang).split(/[.।]/)[0]})`).join('; ');
       return lang === 'hi'
         ? `आपको ये ${label[0]} मिल सकते हैं: ${items}। किसी एक का नाम लेकर पूछें तो कागज़ और शर्तें बता दूँगा।`
         : `These ${label[1]} are open to you: ${items}. Ask about any one by name and I will tell you the papers and conditions.`;
@@ -165,7 +169,7 @@ const INTENTS: Intent[] = [
     patterns: /scheme|yojana|loan|subsidy|sarkari|योजना|सरकारी|लोन|सब्सिडी|कर्ज़/i,
     answer: (c, lang) => {
       if (c.schemes.eligibleCount === 0) return null;
-      const names = c.schemes.topMatches.map((s) => s.name).join(', ');
+      const names = c.schemes.topMatches.map((s) => nameOf(s, lang)).join(', ');
       return lang === 'hi'
         ? `आप ${c.schemes.eligibleCount} योजनाओं के लिए पात्र हैं। सबसे ऊपर: ${names}। योजना केंद्र में देख सकते हैं कि क्यों पात्र हैं और कौन से कागज़ लगेंगे।`
         : `You qualify for ${c.schemes.eligibleCount} schemes. Top matches: ${names}. Open Yojana Kendra to see why you qualify and which papers you need.`;

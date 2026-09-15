@@ -49,6 +49,9 @@ export interface SchemeRecord {
   active?: boolean;
   /** loan | subsidy | direct_benefit | credit_guarantee | training | registration | other (schemes.scheme_type). */
   scheme_type?: string | null;
+  /** Hindi name and benefit (migration 016); English when absent. */
+  name_hi?: string | null;
+  benefit_summary_hi?: string | null;
 }
 
 /** Business profile input for matching */
