@@ -406,19 +406,44 @@ async function toolTurnOpenAi(config: LlmConfig, req: ToolTurnRequest): Promise<
   }
 }
 
+/** Whether an error is the provider saying "slow down". */
+function isRateLimit(err: unknown): boolean {
+  const text = err instanceof Error ? `${err.message} ${JSON.stringify(err)}` : String(err);
+  return /\b429\b|RESOURCE_EXHAUSTED|rate limit|quota/i.test(text);
+}
+
+/** The wait the provider asked for, if it said; otherwise a few seconds. */
+function retryDelayMs(err: unknown): number {
+  const text = err instanceof Error ? `${err.message} ${JSON.stringify(err)}` : String(err);
+  const m = text.match(/retryDelay["']?\s*:\s*["']?(\d+)s/i) || text.match(/retry in (\d+)s/i);
+  const seconds = m ? Number(m[1]) : 4;
+  return Math.min(seconds, 20) * 1000;
+}
+
 /**
  * Run one model turn of a tool-calling conversation.
  *
  * Unlike generateText this throws on failure: a tool loop has no
  * deterministic fallback to degrade to, and the caller's error handling
- * is the right place to turn that into a reply.
+ * is the right place to turn that into a reply. A per-minute rate limit
+ * (the free Gemini tier allows about ten calls) gets one retry after the
+ * wait the provider asked for; a hard daily quota still surfaces.
  */
 export async function generateWithTools(req: ToolTurnRequest): Promise<ToolTurnResult> {
   const config = resolveLlmConfig();
   if (!config) {
     throw new Error('No language model is configured (set GEMINI_API_KEY or LLM_BASE_URL).');
   }
-  return config.provider === 'gemini' ? toolTurnGemini(config, req) : toolTurnOpenAi(config, req);
+  const run = () => (config.provider === 'gemini' ? toolTurnGemini(config, req) : toolTurnOpenAi(config, req));
+  try {
+    return await run();
+  } catch (err) {
+    if (!isRateLimit(err)) throw err;
+    const wait = retryDelayMs(err);
+    console.warn(`LLM rate limited (${config.provider}/${config.model}); retrying once in ${wait}ms`);
+    await new Promise((resolve) => setTimeout(resolve, wait));
+    return run();
+  }
 }
 
 /** Which model is answering, for logs and the health endpoint. */
