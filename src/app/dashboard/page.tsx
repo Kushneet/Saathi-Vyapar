@@ -371,28 +371,18 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     .reduce((sum, e) => sum + e.amount, 0);
 
   // Parse plan schemes
-  const planJson = latestPlan?.plan_json as {
-    financialMetrics?: {
-      breakEvenRevenue?: number | null;
-      marginPercent?: number;
-      cashFlowRisk?: 'low' | 'medium' | 'high';
-    };
-    matchedSchemes?: SchemeItem[];
-  } | null;
 
   const matchedSchemes: SchemeItem[] = schemeItems;
 
-  // Monthly sales needed to cover costs. Prefer the stored plan value; fall
-  // back to current expenses, which is the same quantity the engine computes.
-  // `break_even_units` is deliberately not consulted: it held a ratio.
-  // Net profit in rupees — the figure the deck calls the "profit picture".
-  const netProfit =
-    (Number(profile.monthly_revenue_est) || 0) - (Number(profile.monthly_expense_est) || 0);
-
-  const storedBreakEven = Number(latestPlan?.break_even_revenue);
-  const breakEvenRevenue = isFinite(storedBreakEven) && storedBreakEven > 0
-    ? storedBreakEven
-    : Number(profile.monthly_expense_est) || null;
+  // Every figure on the cards comes from the profile as it is now, through
+  // the same engine the plan uses. The stored plan's margin and break-even
+  // used to be preferred, so a profile corrected on Yojana Kendra still
+  // showed the old numbers here (₹21,000 kept next to "₹99.9 of every ₹100").
+  const liveRevenue = Number(profile.monthly_revenue_est) || 0;
+  const liveExpense = Number(profile.monthly_expense_est) || 0;
+  const netProfit = liveRevenue - liveExpense;
+  const marginPercent = calculateMarginPercent(liveRevenue, liveExpense);
+  const breakEvenRevenue = liveExpense > 0 ? liveExpense : null;
   const eligibleCount = matchedSchemes.filter((s) => s.eligible).length;
 
 
@@ -448,7 +438,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const hasLedgerData = ledgerEntries.length > 0;
 
   // Risk styling helper
-  const risk = planJson?.financialMetrics?.cashFlowRisk || 'low';
+  // Same reason: risk from today's figures, not the plan's snapshot.
+  const risk = assessCashFlowRisk(liveRevenue, liveExpense, Boolean(profile.existing_loans));
   const riskConfig = {
     low: { bg: 'bg-white/95', border: 'border-emerald-200', text: 'text-emerald-700', label: t('common_risk_low') },
     medium: { bg: 'bg-white/95', border: 'border-amber-200', text: 'text-amber-700', label: t('common_risk_medium') },
@@ -538,7 +529,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 </span>
                 <span className="block text-xs font-semibold text-[#0B1E33]/60 mt-1">
                   {t('dashboard_profit_margin_note', {
-                    margin: Number(latestPlan?.margin_percent ?? 0).toFixed(1),
+                    margin: marginPercent.toFixed(1),
                   })}
                 </span>
               </div>
